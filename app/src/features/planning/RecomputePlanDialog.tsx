@@ -15,6 +15,7 @@
 import { useMemo, useState } from "react";
 import { GlassCard } from "../../components/GlassCard";
 import { useEscapeToClose } from "../../hooks/useEscapeToClose";
+import { useActivePlanGroup } from "../../api/hooks/useActivePlanGroup";
 import { useActiveTrainingPlan } from "../../api/hooks/useActiveTrainingPlan";
 import { usePlanHistoryAggregate } from "../../api/hooks/usePlanHistoryAggregate";
 import { sportBadge } from "../../core/activity-sport.js";
@@ -27,6 +28,8 @@ import { groupRideEstimates } from "../../core/group-ride-duration.js";
 import { generatePlan } from "../../core/plan-generator.js";
 import { AddSportFlow } from "./AddSportFlow";
 import { FixedDaysEditor } from "./FixedDaysEditor";
+import { GroupRecomputeDialog } from "./GroupRecomputeDialog";
+import { isGroupRecompute } from "./group-recompute-view-model";
 import { goalPlanChanges, goalPlanHint, planGoalProfile } from "./goal-plan-view-model";
 import { useGoalPlanContext } from "./useGoalPlanContext";
 import { PlanPreview } from "./PlanPreview";
@@ -78,7 +81,11 @@ export function RecomputePlanDialog({ athleteId, onClose, withGoals = false, spo
 
   const today = localISODate();
   const { effectiveSport } = useEffectiveSport(athleteId, sport);
-  const { data: activePlan, isLoading: planLoading } = useActiveTrainingPlan(athleteId, effectiveSport);
+  const { data: activePlan, isLoading: planQueryLoading } = useActiveTrainingPlan(athleteId, effectiveSport);
+  // Fahrplan 44 E6: Gehört der Plan zu einer Gruppe mit mindestens zwei aktiven
+  // Plänen, übernimmt GroupRecomputeDialog. Sonst bleibt alles wie bisher.
+  const { plans: groupPlans, isLoading: groupLoading } = useActivePlanGroup(athleteId, activePlan?.planGroupId);
+  const planLoading = planQueryLoading || groupLoading;
   const { aggregate } = usePlanHistoryAggregate(athleteId, effectiveSport);
   const { entries: formatEntries } = useAthleteFormats();
   const { recompute, isPending } = useRecomputeRemainingPlan(athleteId);
@@ -200,6 +207,18 @@ export function RecomputePlanDialog({ athleteId, onClose, withGoals = false, spo
   }
 
   const blocked = !built || "error" in built;
+
+  if (!planLoading && isGroupRecompute(groupPlans)) {
+    return (
+      <GroupRecomputeDialog
+        athleteId={athleteId}
+        plans={groupPlans}
+        callerSport={effectiveSport}
+        onClose={onClose}
+        withGoals={withGoals}
+      />
+    );
+  }
 
   if (adding) {
     return <AddSportFlow athleteId={athleteId} onBack={() => setAdding(false)} onClose={onClose} />;

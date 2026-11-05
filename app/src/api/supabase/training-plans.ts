@@ -241,6 +241,8 @@ export async function updateTrainingPlan(
     /** Nur setzen, wenn die Gruppe geändert wird; `null` löst die Verknüpfung.
      *  Fehlt das Feld, bleibt die Spalte unberührt (Fahrplan 44 E2). */
     planGroupId?: string | null;
+    /** Nur setzen, wenn die Stunden je Woche geändert wurden (Fahrplan 44 E6). */
+    weeklyHours?: number;
   },
 ): Promise<Result<{ plan: TrainingPlan }>> {
   if (!supabase) return { ok: false, error: NOT_CONFIGURED };
@@ -252,7 +254,42 @@ export async function updateTrainingPlan(
       params: patch.params,
       ...(patch.trainingWeekdays ? { training_weekdays: patch.trainingWeekdays } : {}),
       ...(patch.ftpTarget != null ? { ftp_target: patch.ftpTarget } : {}),
+      ...(patch.weeklyHours != null ? { weekly_hours: patch.weeklyHours } : {}),
       ...(patch.planGroupId !== undefined ? { plan_group_id: patch.planGroupId } : {}),
+    })
+    .eq("id", id)
+    .select(SELECT_COLS)
+    .single<TrainingPlanRow>();
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true, plan: toTrainingPlan(data) };
+}
+
+/** Die Werte, die „Plan gemeinsam anpassen" (Fahrplan 44 E6) an einer Plan-Zeile
+ *  ändert — Sicherung und Wiederherstellung. */
+export interface TrainingPlanValues {
+  weekModel: WeekModelEntry[];
+  params: Record<string, unknown>;
+  trainingWeekdays: number[];
+  ftpTarget: number | null;
+  weeklyHours: number | null;
+}
+
+/** Schreibt gesicherte Werte zurück — anders als `updateTrainingPlan` auch
+ *  `null` (Ziel-FTP/Stunden waren vorher leer). Filtert nur über `id`. */
+export async function restoreTrainingPlanValues(
+  id: string,
+  values: TrainingPlanValues,
+): Promise<Result<{ plan: TrainingPlan }>> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { data, error } = await client
+    .from("training_plans")
+    .update({
+      week_model: values.weekModel,
+      params: values.params,
+      training_weekdays: values.trainingWeekdays,
+      ftp_target: values.ftpTarget,
+      weekly_hours: values.weeklyHours,
     })
     .eq("id", id)
     .select(SELECT_COLS)

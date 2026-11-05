@@ -36,11 +36,10 @@ import { fetchAthleteProfileId } from "../../api/hooks/useAthleteProfileId";
 import { useAuthUserId } from "../../api/hooks/useSession";
 import { qk } from "../../api/keys";
 import { catchResult, ResultError_, toResultError, unwrap } from "../../api/result";
-import { localISODate } from "../../core/format.js";
 import { flattenPlanCards } from "./plan-persist";
-import { replaceFromISO } from "./recompute-plan-view-model";
+import { buildRecomputePatch, replaceFromISO } from "./recompute-plan-view-model";
 import type { GeneratedPlan, PlanGeneratorInput } from "./new-plan-dialog-view-model";
-import type { Result, TrainingPlan, WeekModelEntry } from "../../api/types";
+import type { Result, TrainingPlan } from "../../api/types";
 
 const NOT_LOGGED_IN = { code: "UNKNOWN" as const, message: "Nicht eingeloggt" };
 const NO_ACCOUNT = {
@@ -86,38 +85,9 @@ export function useRecomputeRemainingPlan(athleteId: string) {
         const cards = flattenPlanCards(args.generated).filter((c) => c.date >= replaceFrom);
         unwrap(await createPlanCards(profileId, planId, cards));
 
-        // Die tatsächlich bespielten Tage der ersten neu gerechneten Woche
-        // (bei schwacher Planerfüllung kann der Generator einen streichen) —
-        // wie in plan-persist.ts muss die Spalte zum week_model passen.
-        const weekModel = (args.generated.weekModel ?? []) as WeekModelEntry[];
-        const tail = weekModel.find((w) => w.start >= regenerateFrom);
-        const tailWeekdays = tail?.trainingWeekdays?.length ? [...tail.trainingWeekdays] : undefined;
-
-        // `params.form` mitziehen, damit ein späterer Recompute die geänderten
-        // Tage / festen Tage / das Häkchen wieder vorfindet.
-        const oldForm = ((args.plan.params as { form?: Record<string, unknown> } | null)?.form ??
-          {}) as Record<string, unknown>;
-        const params = {
-          ...(args.plan.params ?? {}),
-          form: {
-            ...oldForm,
-            trainingWeekdays: args.input.trainingWeekdays,
-            fixedDays: args.input.fixedDays ?? [],
-            keepAllTrainingDays: args.input.keepAllTrainingDays === true,
-          },
-          history: (args.input.history as unknown) ?? null,
-          warnings: args.generated.warnings,
-          recomputedAt: localISODate(),
-          recomputedFrom: regenerateFrom,
-        };
-        unwrap(
-          await updateTrainingPlan(planId, {
-            weekModel,
-            params,
-            ...(tailWeekdays ? { trainingWeekdays: tailWeekdays } : {}),
-            ...(sport === "ride" && args.input.ftpTarget != null ? { ftpTarget: args.input.ftpTarget } : {}),
-          }),
-        );
+        // Plan-Zeile nachziehen (Wochenmodell, Tage, params, Ziel-FTP) — der
+        // Baustein ist mit der gemeinsamen Anpassung (Fahrplan 44 E6) geteilt.
+        unwrap(await updateTrainingPlan(planId, buildRecomputePatch(args.plan, args.generated, args.input)));
 
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: qk.planCards(athleteId) }),

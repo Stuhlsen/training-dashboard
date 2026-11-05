@@ -16,13 +16,19 @@
    „Plan anpassen" ändern.
    ============================================================ */
 
+import { localISODate } from "../../core/format.js";
 import {
   activeDayEnvironment,
   mondayOf,
   savedFixedDays,
   savedPlanForm,
 } from "./new-plan-dialog-view-model";
-import type { PlanGeneratorInput, AthleteDefaults, FixedDay } from "./new-plan-dialog-view-model";
+import type {
+  PlanGeneratorInput,
+  AthleteDefaults,
+  FixedDay,
+  GeneratedPlan,
+} from "./new-plan-dialog-view-model";
 import type { GoalPlanProfile } from "./goal-plan-view-model";
 import type { TrainingPlan, WeekModelEntry } from "../../api/types";
 
@@ -40,6 +46,67 @@ export function currentTailWeekdays(plan: TrainingPlan, todayISO: string): numbe
   const cut = base.findIndex((w) => w.start >= mondayOf(todayISO));
   const fromModel = cut >= 0 ? base[cut]?.trainingWeekdays : undefined;
   return fromModel?.length ? [...fromModel] : [...(plan.trainingWeekdays ?? [])];
+}
+
+/** Was nach einer Neuberechnung an der `training_plans`-Zeile nachzieht. */
+export interface RecomputePatch {
+  weekModel: WeekModelEntry[];
+  params: Record<string, unknown>;
+  /** Nur gesetzt, wenn der Generator Tage für die neu gerechnete Woche liefert. */
+  trainingWeekdays?: number[];
+  /** Nur Rad und nur mit Wert. */
+  ftpTarget?: number;
+  /** Nur gesetzt, wenn die Stunden bewusst geändert wurden (Fahrplan 44 E6). */
+  weeklyHours?: number;
+}
+
+/**
+ * Die Plan-Zeilen-Werte zur gezeigten Vorschau. Geteilt von „Rest neu berechnen"
+ * für einen Plan (useRecomputeRemainingPlan) und der gemeinsamen Anpassung
+ * verknüpfter Pläne (Fahrplan 44 E6) — ein Weg, damit beide dasselbe schreiben.
+ */
+export function buildRecomputePatch(
+  plan: TrainingPlan,
+  generated: GeneratedPlan,
+  input: PlanGeneratorInput,
+  opts: { weeklyHours?: number } = {},
+): RecomputePatch {
+  const regenerateFrom = input.regenerateFrom ?? "";
+  const sport = plan.sport ?? "ride";
+  const weekModel = (generated.weekModel ?? []) as WeekModelEntry[];
+  // Die tatsächlich bespielten Tage der ersten neu gerechneten Woche (bei
+  // schwacher Planerfüllung kann der Generator einen streichen) — wie in
+  // plan-persist.ts muss die Spalte zum week_model passen.
+  const tail = weekModel.find((w) => w.start >= regenerateFrom);
+  const tailWeekdays = tail?.trainingWeekdays?.length ? [...tail.trainingWeekdays] : undefined;
+
+  // `params.form` mitziehen, damit ein späterer Recompute die geänderten
+  // Tage / festen Tage / das Häkchen wieder vorfindet.
+  const oldForm = ((plan.params as { form?: Record<string, unknown> } | null)?.form ?? {}) as Record<
+    string,
+    unknown
+  >;
+  const params = {
+    ...(plan.params ?? {}),
+    form: {
+      ...oldForm,
+      trainingWeekdays: input.trainingWeekdays,
+      fixedDays: input.fixedDays ?? [],
+      keepAllTrainingDays: input.keepAllTrainingDays === true,
+      ...(opts.weeklyHours != null ? { weeklyHours: opts.weeklyHours } : {}),
+    },
+    history: (input.history as unknown) ?? null,
+    warnings: generated.warnings,
+    recomputedAt: localISODate(),
+    recomputedFrom: regenerateFrom,
+  };
+  return {
+    weekModel,
+    params,
+    ...(tailWeekdays ? { trainingWeekdays: tailWeekdays } : {}),
+    ...(sport === "ride" && input.ftpTarget != null ? { ftpTarget: input.ftpTarget } : {}),
+    ...(opts.weeklyHours != null ? { weeklyHours: opts.weeklyHours } : {}),
+  };
 }
 
 export interface RecomputeArgs {

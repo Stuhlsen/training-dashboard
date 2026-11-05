@@ -22,6 +22,7 @@ const {
   deleteTrainingPlan,
   toTrainingPlan,
   listPlanGroup,
+  restoreTrainingPlanValues,
 } = await import("./training-plans");
 
 const row = (over: Record<string, unknown> = {}) => ({
@@ -334,5 +335,59 @@ describe("deleteTrainingPlan", () => {
     expect(res).toEqual({ ok: true });
     expect(seen?.method).toBe("delete");
     expect(seen?.filters).toEqual([{ op: "eq", col: "id", val: "tp1" }]);
+  });
+});
+
+describe("updateTrainingPlan — weeklyHours (Fahrplan 44 E6)", () => {
+  it("setzt weekly_hours nur, wenn der Patch es mitbringt", async () => {
+    const payloads: Array<Record<string, unknown>> = [];
+    fakeClient.handlers.training_plans = (calls) => {
+      payloads.push(calls.payload as Record<string, unknown>);
+      return { data: row(), error: null };
+    };
+    await updateTrainingPlan("tp1", { weekModel: [], params: {}, weeklyHours: 7 });
+    await updateTrainingPlan("tp1", { weekModel: [], params: {} });
+    expect(payloads[0]).toHaveProperty("weekly_hours", 7);
+    expect(payloads[1]).not.toHaveProperty("weekly_hours");
+  });
+});
+
+describe("restoreTrainingPlanValues (Fahrplan 44 E6)", () => {
+  it("schreibt alle gesicherten Werte zurück, auch null, per id-Filter", async () => {
+    let payload: Record<string, unknown> | undefined;
+    let filters: unknown;
+    fakeClient.handlers.training_plans = (calls) => {
+      payload = calls.payload as Record<string, unknown>;
+      filters = calls.filters;
+      return { data: row(), error: null };
+    };
+    const res = await restoreTrainingPlanValues("tp1", {
+      weekModel: [],
+      params: { a: 1 },
+      trainingWeekdays: [2, 4],
+      ftpTarget: null,
+      weeklyHours: null,
+    });
+    expect(res.ok).toBe(true);
+    expect(payload).toEqual({
+      week_model: [],
+      params: { a: 1 },
+      training_weekdays: [2, 4],
+      ftp_target: null,
+      weekly_hours: null,
+    });
+    expect(filters).toEqual([{ op: "eq", col: "id", val: "tp1" }]);
+  });
+
+  it("gibt den Fehler weiter", async () => {
+    fakeClient.handlers.training_plans = () => ({ data: null, error: { message: "nope" } });
+    const res = await restoreTrainingPlanValues("tp1", {
+      weekModel: [],
+      params: {},
+      trainingWeekdays: [],
+      ftpTarget: null,
+      weeklyHours: null,
+    });
+    expect(res).toEqual({ ok: false, error: { code: "UNKNOWN", message: "nope" } });
   });
 });

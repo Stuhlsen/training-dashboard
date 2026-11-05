@@ -243,7 +243,7 @@ export type AddSportPreview =
 
 /** Die echten Karten einer laufenden Sportart ab `fromISO`, nach Wochenstart gruppiert — für
  *  Raster und Wochenlast der Vorschau. Ausgefallene Karten zählen nicht. */
-function weeksFromCards(cards: readonly PlanCard[], sport: ActiveSport, fromISO: string) {
+export function weeksFromCards(cards: readonly PlanCard[], sport: ActiveSport, fromISO: string) {
   const byWeek = new Map<string, PreviewCard[]>();
   for (const c of cards) {
     if ((c.sport ?? "ride") !== sport || c.cancelled || c.date < fromISO) continue;

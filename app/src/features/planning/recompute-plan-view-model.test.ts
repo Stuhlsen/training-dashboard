@@ -4,7 +4,7 @@
    rechnen"-Fälle. */
 
 import { describe, expect, it } from "vitest";
-import { buildRecomputeInput, replaceFromISO } from "./recompute-plan-view-model";
+import { buildRecomputeInput, buildRecomputePatch, replaceFromISO } from "./recompute-plan-view-model";
 import { goalPlanProfile } from "../../core/goals.js";
 import type { TrainingPlan, WeekModelEntry } from "../../api/types";
 
@@ -368,5 +368,50 @@ describe("buildRecomputeInput — dayEnvironment (Fahrplan 32 E5)", () => {
     });
     expect(off.ok && "dayEnvironment" in off.input).toBe(false);
     expect(run.ok && "dayEnvironment" in run.input).toBe(false);
+  });
+});
+
+describe("buildRecomputePatch (Fahrplan 44 E6, geteilt mit useRecomputeRemainingPlan)", () => {
+  const generated = {
+    weeks: [],
+    weekModel: [
+      { week: "2026-KW40", phase: "Grundlage", start: "2026-09-28", end: "2026-10-04", trainingWeekdays: [1, 3], targetTss: 100 },
+      { week: "2026-KW41", phase: "Schwelle", start: "2026-10-05", end: "2026-10-11", trainingWeekdays: [2, 4, 6], targetTss: 380 },
+    ],
+    warnings: ["w"],
+  };
+  const input = {
+    sport: "ride" as const,
+    trainingWeekdays: [2, 4, 6],
+    fixedDays: [{ weekday: 6, typ: "Gruppenfahrt" }],
+    keepAllTrainingDays: true,
+    regenerateFrom: "2026-10-05",
+    ftpTarget: 215,
+    history: { weeklyActualTss: [1] },
+  };
+
+  it("nimmt Wochenmodell, Tage der ersten neu gerechneten Woche und Ziel-FTP (Rad)", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const patch = buildRecomputePatch(plan({ params: { form: { weeks: 8 } } }), generated as any, input as any);
+    expect(patch.weekModel).toHaveLength(2);
+    expect(patch.trainingWeekdays).toEqual([2, 4, 6]);
+    expect(patch.ftpTarget).toBe(215);
+    expect(patch.weeklyHours).toBeUndefined();
+    const form = (patch.params as { form: Record<string, unknown> }).form;
+    expect(form).toMatchObject({ weeks: 8, trainingWeekdays: [2, 4, 6], keepAllTrainingDays: true });
+    expect(patch.params).toMatchObject({ warnings: ["w"], recomputedFrom: "2026-10-05" });
+  });
+
+  it("setzt bei Laufen kein Ziel-FTP", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const patch = buildRecomputePatch(plan({ sport: "run" }), generated as any, { ...input, sport: "run" } as any);
+    expect(patch.ftpTarget).toBeUndefined();
+  });
+
+  it("trägt geänderte Stunden in Patch und params.form ein", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const patch = buildRecomputePatch(plan(), generated as any, input as any, { weeklyHours: 7 });
+    expect(patch.weeklyHours).toBe(7);
+    expect((patch.params as { form: Record<string, unknown> }).form.weeklyHours).toBe(7);
   });
 });

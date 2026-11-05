@@ -166,6 +166,14 @@ export interface PlanCardBulkDraft {
   sortOrder: number;
   /** Sportart der Karte (Migration 0037). Fehlt ⇒ "ride". Fahrplan 12 W1. */
   sport?: "ride" | "run" | "swim";
+  /** Nur für die Wiederherstellung einer gesicherten Karte (Fahrplan 44 E6):
+   *  frisch erzeugte Karten tragen diese Felder nicht. */
+  details?: string | null;
+  status?: string | null;
+  movedFromDate?: string | null;
+  previousDate?: string | null;
+  moveReason?: string | null;
+  pushedExternalId?: string | null;
 }
 
 /** Schreibt alle Karten eines erzeugten Plans in einem `insert` — mit
@@ -198,6 +206,12 @@ export async function createPlanCards(
         workout: c.workout ?? null,
         workout_structure: c.workoutStructure ?? null,
         sport: c.sport ?? "ride",
+        ...(c.details !== undefined ? { note: c.details } : {}),
+        ...(c.status !== undefined ? { status: c.status } : {}),
+        ...(c.movedFromDate !== undefined ? { moved_from_date: c.movedFromDate } : {}),
+        ...(c.previousDate !== undefined ? { previous_date: c.previousDate } : {}),
+        ...(c.moveReason !== undefined ? { move_reason: c.moveReason } : {}),
+        ...(c.pushedExternalId !== undefined ? { pushed_external_id: c.pushedExternalId } : {}),
       })),
     )
     .select(SELECT_COLS)
@@ -212,6 +226,53 @@ export async function createPlanCards(
  *  Vergangenes. */
 function isReplaceablePlanCard(status: string | null): boolean {
   return status == null || status === "geplant";
+}
+
+/** Sicherung für „Plan gemeinsam anpassen" (Fahrplan 44 E6): genau die Karten,
+ *  die `deleteFuturePlanCardsForPlan(planId, fromDateISO)` löschen würde (ab dem
+ *  Datum, Status leer oder „geplant"), als Entwürfe, die `createPlanCards()`
+ *  unverändert wieder einfügt — samt Hinweis, Verschiebung und Push-ID. Nur
+ *  Lesen. */
+export async function listReplaceablePlanCardsForPlan(
+  planId: string,
+  fromDateISO: string,
+): Promise<Result<{ cards: PlanCardBulkDraft[] }>> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { data, error } = await client
+    .from("plan_cards")
+    .select(SELECT_COLS)
+    .eq("plan_id", planId)
+    .gte("planned_date", fromDateISO)
+    .order("planned_date", { ascending: true })
+    .order("sort_order", { ascending: true })
+    .returns<PlanCardRow[]>();
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  const cards = data
+    .filter((r) => isReplaceablePlanCard(r.status))
+    .map(
+      (r): PlanCardBulkDraft => ({
+        date: r.planned_date,
+        name: r.title ?? "",
+        typ: r.workout_type ?? "",
+        phase: r.phase,
+        week: r.week,
+        tssPlanned: r.tss_planned,
+        durationMin: r.duration_min,
+        km: r.km,
+        workout: r.workout,
+        workoutStructure: r.workout_structure,
+        sortOrder: r.sort_order,
+        sport: r.sport ?? "ride",
+        details: r.note,
+        status: r.status,
+        movedFromDate: r.moved_from_date,
+        previousDate: r.previous_date,
+        moveReason: r.move_reason,
+        pushedExternalId: r.pushed_external_id,
+      }),
+    );
+  return { ok: true, cards };
 }
 
 const DELETE_ID_CHUNK = 100;
