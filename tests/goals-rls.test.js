@@ -47,7 +47,13 @@ const GOAL_KEYS = [
 ];
 
 if (!HAS_CREDS) {
-  test("goals-rls: übersprungen (keine Credentials)", { skip: "SUPABASE_URL ist nicht localhost oder Credentials fehlen — nur gegen den lokalen Demo-Stack" }, () => {});
+  test(
+    "goals-rls: übersprungen (keine Credentials)",
+    {
+      skip: "SUPABASE_URL ist nicht localhost oder Credentials fehlen — nur gegen den lokalen Demo-Stack",
+    },
+    () => {}
+  );
 } else {
   async function signIn(email, password) {
     const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
@@ -112,7 +118,8 @@ if (!HAS_CREDS) {
       const del = await rest("DELETE", `goals?id=eq.${id}`, { token: athlete.token });
       if (!del.ok) leftovers.push(id);
     }
-    if (leftovers.length) throw new Error(`goals-Testzeilen nicht gelöscht: ${leftovers.join(", ")}`);
+    if (leftovers.length)
+      throw new Error(`goals-Testzeilen nicht gelöscht: ${leftovers.join(", ")}`);
   });
 
   test("goals: alle Katalogschlüssel sind als goal_key erlaubt", async () => {
@@ -195,7 +202,10 @@ if (!HAS_CREDS) {
     } finally {
       for (const id of ownIds) await rest("DELETE", `goals?id=eq.${id}`, { token: athlete.token });
       const restored = await setActive(existingIds, true);
-      assert.ok(restored.every((r) => r.ok && r.data.length === 1), "Bestand nicht wiederhergestellt");
+      assert.ok(
+        restored.every((r) => r.ok && r.data.length === 1),
+        "Bestand nicht wiederhergestellt"
+      );
     }
   });
 
