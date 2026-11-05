@@ -29,6 +29,7 @@ import { resolveWeight, type NutritionWellnessDay } from "../nutrition/nutrition
 import {
   buildLoseInput,
   endGoalWithNutrition,
+  NUTRITION_PAUSED_NOTE,
   paceFieldFor,
   planOnEnd,
   planOnSave,
@@ -258,7 +259,8 @@ export function GoalsSection() {
 
     const outcome = await saveGoalWithNutrition(syncDeps, { oldGoalId: old?.id ?? null, goalInput: built.input, plan });
     if (!outcome.ok) {
-      setError(outcome.stage === "goal" ? saveErrorMessage(outcome.message, old != null) : outcome.message);
+      const base = outcome.stage === "goal" ? saveErrorMessage(outcome.message, old != null) : outcome.message;
+      setError(outcome.nutritionPaused && outcome.stage === "goal" ? `${base} ${NUTRITION_PAUSED_NOTE}` : base);
       return;
     }
     setOpen(false);
@@ -269,7 +271,9 @@ export function GoalsSection() {
     const outcome = await endGoalWithNutrition(syncDeps, { goalId, plan: planOnEnd(groups, goalId) });
     if (!outcome.ok) {
       setEndError(
-        outcome.stage === "maintain" ? outcome.message : "Das Ziel konnte nicht beendet werden.",
+        outcome.stage === "maintain"
+          ? outcome.message
+          : `Das Ziel konnte nicht beendet werden.${outcome.nutritionPaused ? ` ${NUTRITION_PAUSED_NOTE}` : ""}`,
       );
     }
   }
@@ -450,7 +454,7 @@ export function GoalsSection() {
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
             <button
               type="submit"
-              disabled={isSaving}
+              disabled={busy}
               style={{
                 padding: "9px 18px",
                 borderRadius: "var(--pill)",
@@ -458,8 +462,8 @@ export function GoalsSection() {
                 background: "var(--ss)",
                 color: "#17110a",
                 fontWeight: 600,
-                cursor: isSaving ? "default" : "pointer",
-                opacity: isSaving ? 0.7 : 1,
+                cursor: busy ? "default" : "pointer",
+                opacity: busy ? 0.7 : 1,
               }}
             >
               {isSaving ? "Speichern …" : "Speichern"}

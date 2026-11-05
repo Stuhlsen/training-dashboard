@@ -81,6 +81,14 @@ beforeEach(() => {
   flow = baseFlow();
 });
 
+describe("AddSportFlow — Fehler werden angekündigt", () => {
+  it("ein Speicherfehler steht in einem role=alert (Screenreader)", () => {
+    flow = baseFlow({ saveError: "Das Speichern ist gescheitert." });
+    setup();
+    expect(screen.getByRole("alert").textContent).toContain("Das Speichern ist gescheitert.");
+  });
+});
+
 describe("AddSportFlow — Schließen während des Speicherns", () => {
   it("ein Klick auf den Hintergrund schließt nicht, solange gespeichert wird", () => {
     flow = baseFlow({ isPending: true });

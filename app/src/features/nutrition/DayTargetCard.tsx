@@ -16,6 +16,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { GlassCard } from "../../components/GlassCard";
 import { fmtDate, fmtDateFull } from "../../core/format.js";
 import { dayProgress } from "../../core/nutrition-progress.js";
+import { STRICT_FLOOR_KCAL_PER_KG_FFM } from "../../core/nutrition.js";
 import { SOURCE_BY_KEY } from "../../core/nutrition-sources.js";
 import type { NutritionDay } from "./nutrition-day-model";
 import { AMPEL_TOKEN, type Ampel } from "./nutrition-week-model";
@@ -163,7 +164,7 @@ export function DayTargetCard({ day, dateISO, isToday = false, summary, notes, a
           {day.bodyFatDate && <p style={META_ON_PHOTO}>Körperfett gemessen am {fmtDateFull(day.bodyFatDate)}</p>}
           {day.goalInfo?.strictFloor && (
             <p style={META_ON_PHOTO}>
-              Bei „Fett verlieren“ gilt als Mindestzufuhr 30 kcal pro kg fettfreier Masse plus Training (eigene
+              Bei „Fett verlieren“ gilt als Mindestzufuhr {STRICT_FLOOR_KCAL_PER_KG_FFM} kcal pro kg fettfreier Masse plus Training (eigene
               Festlegung, keine verbindliche Grenze).
             </p>
           )}

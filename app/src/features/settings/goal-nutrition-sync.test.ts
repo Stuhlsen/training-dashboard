@@ -150,6 +150,18 @@ describe("saveGoalWithNutrition", () => {
     expect(d.replace).not.toHaveBeenCalled();
   });
 
+  it("markiert, dass die Ernährung schon pausiert ist, wenn das Ersetzen nach maintain scheitert", async () => {
+    const d = deps({ replace: vi.fn(async () => fail("db")) });
+    const r = await saveGoalWithNutrition(d, { oldGoalId: "a", goalInput: GOAL_INPUT, plan: { maintainFirst: true, loseAfter: null } });
+    expect(r).toMatchObject({ ok: false, stage: "goal", nutritionPaused: true });
+  });
+
+  it("markiert nichts, wenn gar keine maintain-Zeile geschrieben wurde", async () => {
+    const d = deps({ replace: vi.fn(async () => fail("db")) });
+    const r = await saveGoalWithNutrition(d, { oldGoalId: "a", goalInput: GOAL_INPUT, plan: { maintainFirst: false, loseAfter: null } });
+    expect(r).toMatchObject({ ok: false, stage: "goal", nutritionPaused: false });
+  });
+
   it("meldet den Fehler des Ersetzen-Ablaufs, schreibt keine lose-Zeile und lässt maintain stehen", async () => {
     const d = deps({ replace: vi.fn(async () => fail("Speichern gescheitert — inaktiv")) });
     const r = await saveGoalWithNutrition(d, { oldGoalId: "a", goalInput: GOAL_INPUT, plan: { maintainFirst: true, loseAfter: LOSE } });
@@ -186,6 +198,14 @@ describe("endGoalWithNutrition", () => {
     const r = await endGoalWithNutrition(d, { goalId: "a", plan: { maintainFirst: true, loseAfter: null } });
     expect(r).toMatchObject({ ok: false, stage: "maintain" });
     expect(d.deactivate).not.toHaveBeenCalled();
+  });
+
+  it("markiert die pausierte Ernährung, wenn das Beenden nach maintain scheitert", async () => {
+    const d = deps({ deactivate: vi.fn(async () => fail("db")) });
+    const r = await endGoalWithNutrition(d, { goalId: "a", plan: { maintainFirst: true, loseAfter: null } });
+    expect(r).toMatchObject({ ok: false, stage: "goal", nutritionPaused: true });
+    const r2 = await endGoalWithNutrition(d, { goalId: "a", plan: { maintainFirst: false, loseAfter: null } });
+    expect(r2).toMatchObject({ ok: false, stage: "goal", nutritionPaused: false });
   });
 
   it("lässt maintain stehen, wenn das Beenden scheitert", async () => {

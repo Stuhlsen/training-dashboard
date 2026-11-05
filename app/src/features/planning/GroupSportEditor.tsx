@@ -9,6 +9,7 @@
    Zahlen kommen aus useGroupRecomputeFlow.
    ============================================================ */
 
+import { useState } from "react";
 import { sportBadge } from "../../core/activity-sport.js";
 import type { ActiveSport } from "../../api/hooks/useActiveSport";
 import { FixedDaysEditor } from "./FixedDaysEditor";
@@ -37,6 +38,8 @@ interface GroupSportEditorProps {
 
 export function GroupSportEditor(props: GroupSportEditorProps) {
   const { sport, selected, weekdays } = props;
+  // `null` = das Feld zeigt den Wert aus den Props; sonst steht darin, was gerade getippt wird.
+  const [hoursText, setHoursText] = useState<string | null>(null);
   const badge = sportBadge(sport);
   const label = MULTI_SPORT_LABEL[sport];
 
@@ -103,11 +106,15 @@ export function GroupSportEditor(props: GroupSportEditorProps) {
               step={0.5}
               disabled={props.disabled}
               style={{ ...FIELD_STYLE, maxWidth: 140 }}
-              value={props.hours}
+              value={hoursText ?? String(props.hours)}
               onChange={(e) => {
+                // Der Text gehört dem Feld, damit sich „8" löschen und „12" tippen lässt;
+                // nach außen geht nur eine gültige Zahl.
+                setHoursText(e.target.value);
                 const h = Number(e.target.value);
-                if (h > 0) props.onHours(h);
+                if (e.target.value !== "" && h > 0) props.onHours(h);
               }}
+              onBlur={() => setHoursText(null)}
             />
           </label>
 

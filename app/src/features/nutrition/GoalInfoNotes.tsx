@@ -12,6 +12,7 @@
 
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
+import { STRICT_FLOOR_KCAL_PER_KG_FFM, STRICT_WARN_UPPER_KCAL_PER_KG_FFM } from "../../core/nutrition.js";
 import type { DayGoalInfo } from "./nutrition-day-model";
 import { TEXT_STYLE } from "./nutrition-styles";
 import { ORIENTATION_NOTICE_TEXT } from "../settings/OrientationNotice";
@@ -67,7 +68,7 @@ export function GoalInfoNotes({ info }: { info: DayGoalInfo }) {
   if (info.eaWarn) {
     lines.push({
       key: "ea",
-      node: "Das Ziel liegt im Bereich von 30 bis 45 kcal pro kg fettfreier Masse (ohne Training). In diesem Bereich kann Energie knapp werden.",
+      node: `Das Ziel liegt im Bereich von ${STRICT_FLOOR_KCAL_PER_KG_FFM} bis ${STRICT_WARN_UPPER_KCAL_PER_KG_FFM} kcal pro kg fettfreier Masse (ohne Training). In diesem Bereich kann Energie knapp werden.`,
     });
   }
 

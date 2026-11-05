@@ -185,12 +185,14 @@ export function MultiSportExtras({ ctl }: { ctl: MultiSportController }) {
       )}
 
       {(errorList.length > 0 || ctl.saveError) && (
-        <ul style={ERROR_BOX}>
-          {errorList.map((msg, i) => (
-            <li key={i}>{msg}</li>
-          ))}
-          {ctl.saveError && <li>{ctl.saveError}</li>}
-        </ul>
+        <div role="alert">
+          <ul style={ERROR_BOX}>
+            {errorList.map((msg, i) => (
+              <li key={i}>{msg}</li>
+            ))}
+            {ctl.saveError && <li>{ctl.saveError}</li>}
+          </ul>
+        </div>
       )}
 
       {ctl.bundle && <MultiSportPreview bundle={ctl.bundle} notes={ctl.notes} />}

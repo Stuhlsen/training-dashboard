@@ -144,7 +144,7 @@ export function MultiSportPreview({ bundle, notes }: MultiSportPreviewProps) {
                           cards.map((c, n) => (
                             <div key={n}>
                               {c.name}
-                              {!c.name.includes(`${c.durationMin} min`) && (
+                              {c.durationMin != null && !c.name.includes(`${c.durationMin} min`) && (
                                 <span style={{ color: "var(--ink-3)" }}> · {c.durationMin} min</span>
                               )}
                             </div>

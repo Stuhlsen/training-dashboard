@@ -83,7 +83,16 @@ export interface SyncDeps {
 
 export type SyncOutcome =
   | { ok: true }
-  | { ok: false; stage: "maintain" | "goal" | "nutrition"; message: string };
+  | {
+      ok: false;
+      stage: "maintain" | "goal" | "nutrition";
+      message: string;
+      /** Die maintain-Zeile steht schon: die Ernährung rechnet ohne Defizit, auch wenn das Ziel unverändert blieb. */
+      nutritionPaused: boolean;
+    };
+
+/** Zusatz für Fehlertexte, wenn `nutritionPaused` gilt. */
+export const NUTRITION_PAUSED_NOTE = "Deine Ernährung rechnet vorerst ohne Defizit.";
 
 const MAINTAIN_INPUT: NutritionGoalInput = { goalType: "maintain" };
 
@@ -100,13 +109,15 @@ export async function saveGoalWithNutrition(
   const { oldGoalId, goalInput, plan } = args;
   if (plan.maintainFirst) {
     const m = await deps.addNutritionGoal(MAINTAIN_INPUT);
-    if (!m.ok) return { ok: false, stage: "maintain", message: MSG_MAINTAIN };
+    if (!m.ok) return { ok: false, stage: "maintain", message: MSG_MAINTAIN, nutritionPaused: false };
   }
   const saved = await deps.replace(oldGoalId, goalInput);
-  if (!saved.ok) return { ok: false, stage: "goal", message: saved.error.message };
+  if (!saved.ok) {
+    return { ok: false, stage: "goal", message: saved.error.message, nutritionPaused: plan.maintainFirst };
+  }
   if (plan.loseAfter) {
     const n = await deps.addNutritionGoal(plan.loseAfter);
-    if (!n.ok) return { ok: false, stage: "nutrition", message: MSG_NUTRITION };
+    if (!n.ok) return { ok: false, stage: "nutrition", message: MSG_NUTRITION, nutritionPaused: true };
   }
   return { ok: true };
 }
@@ -118,10 +129,12 @@ export async function endGoalWithNutrition(
 ): Promise<SyncOutcome> {
   if (args.plan.maintainFirst) {
     const m = await deps.addNutritionGoal(MAINTAIN_INPUT);
-    if (!m.ok) return { ok: false, stage: "maintain", message: MSG_MAINTAIN };
+    if (!m.ok) return { ok: false, stage: "maintain", message: MSG_MAINTAIN, nutritionPaused: false };
   }
   const ended = await deps.deactivate(args.goalId);
-  if (!ended.ok) return { ok: false, stage: "goal", message: ended.error.message };
+  if (!ended.ok) {
+    return { ok: false, stage: "goal", message: ended.error.message, nutritionPaused: args.plan.maintainFirst };
+  }
   return { ok: true };
 }
 

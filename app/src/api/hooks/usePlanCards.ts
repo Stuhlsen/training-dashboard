@@ -181,9 +181,6 @@ function useCardsSnapshot(athleteId: string) {
   );
 }
 
-/** Verschieben — gemeinsamer Schreibpfad für den "Verschieben"-Button UND
- *  Drag & Drop. Optimistik und Rollback liegen deshalb hier und nicht im
- *  Drag-Handler, sonst hätte der Button-Pfad sie nicht. */
 /** Wochenmodell der Sportart EINER Karte (Fahrplan 44 E1). Im gemeinsamen
  *  Kalender liegen Karten mehrerer Sportarten nebeneinander — das Phasen-Label
  *  eines Verschiebens muss aus dem Modell der Karten-Sportart kommen, nicht aus
@@ -203,6 +200,9 @@ function useWeekModelForCard(athleteId: string) {
   );
 }
 
+/** Verschieben — gemeinsamer Schreibpfad für den "Verschieben"-Button UND
+ *  Drag & Drop. Optimistik und Rollback liegen deshalb hier und nicht im
+ *  Drag-Handler, sonst hätte der Button-Pfad sie nicht. */
 export function useMovePlanCard(athleteId: string) {
   const mutation = usePatchCard(athleteId);
   const snapshot = useCardsSnapshot(athleteId);

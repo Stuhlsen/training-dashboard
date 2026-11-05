@@ -318,7 +318,9 @@ export function AddSportFlow({ athleteId, onBack, onClose, onBusyChange }: AddSp
         )}
 
         {flow.saveError && (
-          <div style={{ color: "var(--danger)", fontSize: ".8rem", marginTop: 12 }}>{flow.saveError}</div>
+          <div role="alert" style={{ color: "var(--danger)", fontSize: ".8rem", marginTop: 12 }}>
+            {flow.saveError}
+          </div>
         )}
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 20, flexWrap: "wrap" }}>
