@@ -336,6 +336,10 @@ export interface TrainingPlanDraft {
    *  (km/h). Additiv statt Rename (Fahrplan 14 Feinentscheidung). */
   thresholdSpeedAtCreation: number | null;
   thresholdSpeedTarget: number | null;
+  /** Verknüpfung mehrerer Pläne EINES Athleten (Migration 0085, Fahrplan 44
+   *  V1). Aktive Pläne mit gleicher Gruppe gehören zusammen. Fehlt oder
+   *  `null` ⇒ Plan ohne Gruppe, verhält sich wie vor der Migration. */
+  planGroupId?: string | null;
   /** Roh-Formular + Aggregat-Momentaufnahme (V1 `params`, Reproduzierbarkeit). */
   params: Record<string, unknown>;
   /** V4 `WeekModelEntry[]` — Quelle für plan-week-model (E7). */

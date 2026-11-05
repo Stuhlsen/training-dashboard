@@ -30,7 +30,7 @@ const SELECT_COLS =
   "id, athlete_id, created_by, is_active, mode, goal_event_id, start_date, end_date, " +
   "weeks, model, focus, level, training_weekdays, weekly_hours, indoor_share, " +
   "ftp_at_creation, ftp_target, sport, threshold_speed_at_creation, threshold_speed_target, " +
-  "params, week_model, created_at, updated_at";
+  "plan_group_id, params, week_model, created_at, updated_at";
 
 interface TrainingPlanRow {
   id: string;
@@ -53,6 +53,7 @@ interface TrainingPlanRow {
   sport: string;
   threshold_speed_at_creation: number | null;
   threshold_speed_target: number | null;
+  plan_group_id?: string | null;
   params: Record<string, unknown> | null;
   week_model: unknown[] | null;
   created_at: string;
@@ -81,6 +82,7 @@ export function toTrainingPlan(row: TrainingPlanRow): TrainingPlan {
     sport: (row.sport ?? "ride") as "ride" | "run" | "swim",
     thresholdSpeedAtCreation: row.threshold_speed_at_creation,
     thresholdSpeedTarget: row.threshold_speed_target,
+    planGroupId: row.plan_group_id ?? null,
     params: row.params ?? {},
     weekModel: (row.week_model ?? []) as WeekModelEntry[],
     createdAt: row.created_at,
@@ -117,8 +119,31 @@ export async function listActiveTrainingPlan(
   return { ok: true, plan: data.length ? toTrainingPlan(data[0]) : null };
 }
 
+/** Alle AKTIVEN Pläne einer Gruppe (Fahrplan 44 E2, Migration 0085). Filtert
+ *  immer auch nach `athlete_id`: eine Gruppe gehört genau einem Athleten und
+ *  darf nie über zwei Athleten hinweg Zeilen liefern, selbst wenn dieselbe
+ *  uuid versehentlich bei zwei Athleten stünde. Älteste zuerst. */
+export async function listPlanGroup(
+  athleteProfileId: string,
+  planGroupId: string,
+): Promise<Result<{ plans: TrainingPlan[] }>> {
+  if (!supabase) return { ok: true, plans: [] };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { data, error } = await client
+    .from("training_plans")
+    .select(SELECT_COLS)
+    .eq("athlete_id", athleteProfileId)
+    .eq("plan_group_id", planGroupId)
+    .eq("is_active", true)
+    .order("created_at", { ascending: true })
+    .returns<TrainingPlanRow[]>();
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true, plans: (data ?? []).map(toTrainingPlan) };
+}
+
 /** Legt die Plan-Zeile an — `is_active = false` (s. Modulkopf). `draft.sport`
- *  fehlt ⇒ "ride" (additiv wie `plan_cards.sport`, Fahrplan 12 W1). */
+ *  fehlt ⇒ "ride" (additiv wie `plan_cards.sport`, Fahrplan 12 W1).
+ *  `draft.planGroupId` fehlt ⇒ `null` (Plan ohne Gruppe, Fahrplan 44 E2). */
 export async function createTrainingPlan(
   athleteProfileId: string,
   createdBy: string,
@@ -148,6 +173,7 @@ export async function createTrainingPlan(
       sport: draft.sport ?? "ride",
       threshold_speed_at_creation: draft.thresholdSpeedAtCreation,
       threshold_speed_target: draft.thresholdSpeedTarget,
+      plan_group_id: draft.planGroupId ?? null,
       params: draft.params,
       week_model: draft.weekModel,
     })
@@ -192,6 +218,9 @@ export async function updateTrainingPlan(
     trainingWeekdays?: number[];
     /** Nur setzen, wenn der Athlet das Ziel-FTP geändert hat. */
     ftpTarget?: number;
+    /** Nur setzen, wenn die Gruppe geändert wird; `null` löst die Verknüpfung.
+     *  Fehlt das Feld, bleibt die Spalte unberührt (Fahrplan 44 E2). */
+    planGroupId?: string | null;
   },
 ): Promise<Result<{ plan: TrainingPlan }>> {
   if (!supabase) return { ok: false, error: NOT_CONFIGURED };
@@ -203,6 +232,7 @@ export async function updateTrainingPlan(
       params: patch.params,
       ...(patch.trainingWeekdays ? { training_weekdays: patch.trainingWeekdays } : {}),
       ...(patch.ftpTarget != null ? { ftp_target: patch.ftpTarget } : {}),
+      ...(patch.planGroupId !== undefined ? { plan_group_id: patch.planGroupId } : {}),
     })
     .eq("id", id)
     .select(SELECT_COLS)
