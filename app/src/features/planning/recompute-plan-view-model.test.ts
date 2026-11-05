@@ -4,7 +4,7 @@
    rechnen"-Fälle. */
 
 import { describe, expect, it } from "vitest";
-import { buildRecomputeInput } from "./recompute-plan-view-model";
+import { buildRecomputeInput, replaceFromISO } from "./recompute-plan-view-model";
 import type { TrainingPlan, WeekModelEntry } from "../../api/types";
 
 function wm(start: string, phase: string, targetTss: number): WeekModelEntry {
@@ -51,6 +51,16 @@ function plan(over: Partial<TrainingPlan> = {}): TrainingPlan {
 
 const defaults = { ftpMeasured: 205, ftpMeasuredDate: "2026-09-30", eFTP: 200 };
 
+describe("replaceFromISO", () => {
+  it("in der laufenden Woche zählt heute: vergangene Tage bleiben unberührt", () => {
+    expect(replaceFromISO("2026-11-02", "2026-11-05")).toBe("2026-11-05");
+  });
+
+  it("liegt der Start in der Zukunft, zählt der Start", () => {
+    expect(replaceFromISO("2026-11-09", "2026-11-05")).toBe("2026-11-09");
+  });
+});
+
 describe("buildRecomputeInput", () => {
   it("Startwoche = Montag der laufenden KW, baseWeekModel + regenerateFrom gesetzt", () => {
     const res = buildRecomputeInput({
@@ -79,6 +89,65 @@ describe("buildRecomputeInput", () => {
     const changed = buildRecomputeInput({ ...base, trainingWeekdays: [6, 2] });
     expect(keep.ok && keep.input.trainingWeekdays).toEqual([2, 4, 6]);
     expect(changed.ok && changed.input.trainingWeekdays).toEqual([2, 6]);
+  });
+
+  it("geänderte feste Tage ersetzen die gespeicherten und behalten die Zwift-Kennung", () => {
+    const withFixed = plan({
+      params: { form: { fixedDays: [{ weekday: 2, typ: "Gruppenfahrt", keepInRecoveryWeek: false }] } },
+    });
+    const res = buildRecomputeInput({
+      plan: withFixed,
+      todayISO: "2026-10-07",
+      athleteDefaults: defaults,
+      trainingWeekdays: [1, 3, 6, 7],
+      fixedDays: [
+        { weekday: 1, typ: "Gruppenfahrt", keepInRecoveryWeek: false, environment: "indoor", durationMin: 90 },
+        { weekday: 3, typ: "Gruppenfahrt", keepInRecoveryWeek: false, environment: "indoor", durationMin: 90 },
+      ],
+    });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.input.fixedDays?.map((d) => d.weekday)).toEqual([1, 3]);
+    expect(res.input.fixedDays?.[0].environment).toBe("indoor");
+    expect(res.droppedFixedWeekdays).toEqual([]);
+  });
+
+  it("gespeicherte Zwift-Kennung überlebt das erneute Anpassen", () => {
+    const withFixed = plan({
+      trainingWeekdays: [1, 3, 6],
+      params: {
+        form: {
+          fixedDays: [{ weekday: 1, typ: "Gruppenfahrt", keepInRecoveryWeek: false, environment: "indoor" }],
+        },
+      },
+    });
+    const res = buildRecomputeInput({
+      plan: withFixed,
+      todayISO: "2026-10-07",
+      athleteDefaults: defaults,
+      trainingWeekdays: [1, 3, 6],
+    });
+    expect(res.ok && res.input.fixedDays?.[0].environment).toBe("indoor");
+  });
+
+  it("ein geänderter fester Tag auf abgewähltem Wochentag entfällt und wird gemeldet", () => {
+    const res = buildRecomputeInput({
+      plan: plan(),
+      todayISO: "2026-10-07",
+      athleteDefaults: defaults,
+      trainingWeekdays: [1, 6],
+      fixedDays: [{ weekday: 3, typ: "Gruppenfahrt", keepInRecoveryWeek: false }],
+    });
+    expect(res.ok && res.input.fixedDays).toEqual([]);
+    expect(res.ok && res.droppedFixedWeekdays).toEqual([3]);
+  });
+
+  it("ein neues Ziel-FTP gewinnt; ohne Angabe bleibt das des Plans", () => {
+    const base = { plan: plan(), todayISO: "2026-10-07", athleteDefaults: defaults };
+    const changed = buildRecomputeInput({ ...base, ftpTarget: 215 });
+    const same = buildRecomputeInput(base);
+    expect(changed.ok && changed.input.ftpTarget).toBe(215);
+    expect(same.ok && same.input.ftpTarget).toBe(210);
   });
 
   it("weniger als zwei Trainingstage → ok:false", () => {

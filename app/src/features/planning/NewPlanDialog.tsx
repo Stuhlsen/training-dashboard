@@ -29,9 +29,11 @@ import { useActiveTrainingPlan } from "../../api/hooks/useActiveTrainingPlan";
 import { usePlanCards } from "../../api/hooks/usePlanCards";
 import { useSessionProfile } from "../../api/hooks/useSession";
 import { useIsSelfAthlete } from "../../api/hooks/useWriteAuthorization";
-import { useFtpHistory } from "../../api/hooks/useFtpHistory";
 import { useProfileBasics, useUpdateHasIndoorTrainer } from "../../api/hooks/useProfile";
 import { useCreateTrainingPlan } from "./useCreateTrainingPlan";
+import { useFtpHistoryEntries } from "./useFtpHistoryEntries";
+import { FixedDaysEditor } from "./FixedDaysEditor";
+import { groupRideEstimates } from "../../core/group-ride-duration.js";
 import { athleteConfig } from "../../config";
 import { localISODate, addDaysISO, diffDays, fmtDate } from "../../core/format.js";
 import { generatePlan } from "../../core/plan-generator.js";
@@ -49,12 +51,6 @@ import {
   defaultFormState,
   FOCUS_DESCRIPTIONS,
   FOCUS_LABELS,
-  FIXED_DAY_OPTIONS,
-  FIXED_DAY_TYPES,
-  FIXED_DURATION_MAX_MIN,
-  FIXED_DURATION_MIN_MIN,
-  FIXED_INTERVAL_TYP,
-  fixedDayPickerValue,
   formFromLastPlan,
   ftpTestNote,
   LEVEL_DESCRIPTIONS,
@@ -69,7 +65,6 @@ import {
   suggestModel,
   WEEKDAY_LABELS,
   type DayEnvironment,
-  type FixedDay,
   type GeneratedPlan,
   type NewPlanFormState,
   type PlanFocus,
@@ -126,21 +121,11 @@ export function NewPlanDialog({ athleteId, onClose, onCreated }: NewPlanDialogPr
   const profile = useSessionProfile();
   const { createPlan, isPending: saving } = useCreateTrainingPlan(athleteId);
   const { isSelf, isLoading: isSelfLoading } = useIsSelfAthlete(athleteId);
-  // useFtpHistory() liest owner-only per RLS immer die Historie des
-  // EINGELOGGTEN Users — nur bei isSelf gehört sie also zu diesem Athleten.
-  // Für den Trainer-für-Athlet-Fall liefert der ohnehin geladene rideData
-  // dieselbe Historie öffentlich/read-only aus der JSON-Pipeline (analog
-  // HeroPage.tsx::ftpHistoryEntries). Solange isSelf selbst noch lädt: leer
-  // lassen statt zwischenzeitlich die falsche Quelle zu ziehen — sonst
-  // flippt ftpHistoryEntries einmal beim Laden und noch einmal, sobald
-  // isSelf feststeht, und würde dazwischen unbemerkt eine schon erzeugte
-  // Vorschau verwerfen (patch() unten).
-  const { entries: ownFtpHistoryEntries } = useFtpHistory();
-  const ftpHistoryEntries = isSelfLoading
-    ? []
-    : isSelf
-      ? ownFtpHistoryEntries
-      : (rideData?.ftpHistory ?? []);
+  const ftpHistoryEntries = useFtpHistoryEntries(athleteId);
+  const groupEstimates = useMemo(
+    () => groupRideEstimates((rideData?.ridesAll as Ride[] | undefined) ?? []),
+    [rideData?.ridesAll]
+  );
 
   const [form, setForm] = useState<NewPlanFormState>(() =>
     defaultFormState(cfg, today, ftpHistoryEntries)
@@ -393,27 +378,6 @@ export function NewPlanDialog({ athleteId, onClose, onCreated }: NewPlanDialogPr
       // erstellen" als Fehler auffiele.
       fixedDays: form.fixedDays.filter((f) => nextWeekdays.includes(f.weekday)),
     });
-  }
-
-  function addFixedDay() {
-    const freeWeekday = form.trainingWeekdays.find(
-      (iso) => !form.fixedDays.some((f) => f.weekday === iso)
-    );
-    if (freeWeekday == null) return;
-    patch({
-      fixedDays: [
-        ...form.fixedDays,
-        { weekday: freeWeekday, typ: FIXED_DAY_TYPES[0], keepInRecoveryWeek: false },
-      ],
-    });
-  }
-
-  function updateFixedDay(index: number, next: Partial<FixedDay>) {
-    patch({ fixedDays: form.fixedDays.map((f, i) => (i === index ? { ...f, ...next } : f)) });
-  }
-
-  function removeFixedDay(index: number) {
-    patch({ fixedDays: form.fixedDays.filter((_, i) => i !== index) });
   }
 
   return (
@@ -716,103 +680,12 @@ export function NewPlanDialog({ athleteId, onClose, onCreated }: NewPlanDialogPr
 
               {/* Feste Tage — nur Rad, FIXED_DAY_TYPES kennt nur das Rad-Vokabular. */}
               {effectiveSport === "ride" && (
-                <div style={LABEL_STYLE}>
-                  Feste Tage (optional)
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    {form.fixedDays.map((fd, i) => (
-                      <div
-                        key={i}
-                        style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}
-                      >
-                        <select
-                          style={{ ...FIELD_STYLE, width: "auto" }}
-                          value={fd.weekday}
-                          onChange={(e) => updateFixedDay(i, { weekday: Number(e.target.value) })}
-                        >
-                          {form.trainingWeekdays
-                            .filter(
-                              (iso) =>
-                                iso === fd.weekday || !form.fixedDays.some((f) => f.weekday === iso)
-                            )
-                            .map((iso) => (
-                              <option key={iso} value={iso}>
-                                {WEEKDAY_LABELS.find((w) => w.iso === iso)?.short}
-                              </option>
-                            ))}
-                        </select>
-                        <select
-                          style={{ ...FIELD_STYLE, width: "auto", flex: 1, minWidth: 120 }}
-                          value={fixedDayPickerValue(fd.typ)}
-                          onChange={(e) => updateFixedDay(i, { typ: e.target.value })}
-                        >
-                          {FIXED_DAY_OPTIONS.map((o) => (
-                            <option key={o.value} value={o.value}>
-                              {o.label}
-                            </option>
-                          ))}
-                        </select>
-                        {/* Dauer nur für feste Karten — ein Intervalltag bekommt seine
-                            Dauer aus Phase und Zeitbudget. Leer = Generator wählt. */}
-                        {fd.typ !== FIXED_INTERVAL_TYP && (
-                          <input
-                            type="number"
-                            inputMode="numeric"
-                            min={FIXED_DURATION_MIN_MIN}
-                            max={FIXED_DURATION_MAX_MIN}
-                            step={1}
-                            placeholder="Dauer (min)"
-                            aria-label="Dauer in Minuten (optional)"
-                            style={{ ...FIELD_STYLE, width: 110 }}
-                            value={fd.durationMin ?? ""}
-                            onChange={(e) =>
-                              updateFixedDay(i, {
-                                durationMin: e.target.value === "" ? undefined : Number(e.target.value),
-                              })
-                            }
-                          />
-                        )}
-                        {/* Intervalltage entfallen in Erholungswochen immer (keine
-                            Qualitätstage dort) — die Checkbox hätte keine Wirkung. */}
-                        {fd.typ !== FIXED_INTERVAL_TYP && (
-                          <label
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 4,
-                              fontSize: ".76rem",
-                              color: "var(--ink-3)",
-                            }}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={fd.keepInRecoveryWeek}
-                              onChange={(e) =>
-                                updateFixedDay(i, { keepInRecoveryWeek: e.target.checked })
-                              }
-                            />
-                            auch in Erholungswochen
-                          </label>
-                        )}
-                        <button
-                          type="button"
-                          style={PILL_STYLE}
-                          onClick={() => removeFixedDay(i)}
-                          aria-label="Festen Tag entfernen"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      style={PILL_STYLE}
-                      onClick={addFixedDay}
-                      disabled={form.fixedDays.length >= form.trainingWeekdays.length}
-                    >
-                      + Fester Tag
-                    </button>
-                  </div>
-                </div>
+                <FixedDaysEditor
+                  fixedDays={form.fixedDays}
+                  trainingWeekdays={form.trainingWeekdays}
+                  estimates={groupEstimates}
+                  onChange={(fixedDays) => patch({ fixedDays })}
+                />
               )}
 
               <label style={LABEL_STYLE}>

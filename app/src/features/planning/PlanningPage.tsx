@@ -782,7 +782,7 @@ export function PlanningPage() {
                     )}
                     {!!activeWeekModel && (
                       <button type="button" onClick={() => setRecomputeOpen(true)} style={SECTION_ACTION_BTN_STYLE}>
-                        Rest neu berechnen…
+                        Plan anpassen…
                       </button>
                     )}
                     <button type="button" onClick={() => setDialog("new")} style={SECTION_ACTION_BTN_STYLE}>

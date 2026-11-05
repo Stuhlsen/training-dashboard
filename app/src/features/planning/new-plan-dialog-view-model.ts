@@ -60,21 +60,52 @@ export function isValidFixedDuration(v: unknown): v is number {
  *  Plan passend zur Phase) zuerst, dann die festen Kartentypen. */
 export const FIXED_DAY_TYPES: readonly string[] = [FIXED_INTERVAL_TYP, ...KNOWN_PLAN_TYPES];
 
+const GROUP_RIDE_TYP = "Gruppenfahrt";
+/** Select-Wert der Zwift-Gruppenfahrt. Kein Kartentyp: gespeichert wird
+ *  `typ: "Gruppenfahrt"` + `environment: "indoor"`. */
+export const GROUP_ZWIFT_PICK = "Gruppenfahrt Zwift";
+
 /** Einträge des "Feste Tage"-Selects. Z2 gibt es nur einmal ("Z2", Wert
  *  "Z2 Dauer"): der Kartenname trägt die Dauer ("Z2 · 60 min"), wer eine
  *  Langfahrt will, trägt Minuten ein. "Z2 Lang" bleibt als Typ gültig
  *  (FIXED_DAY_TYPES, alte Formulare), wird aber nicht mehr angeboten. */
 export const FIXED_DAY_OPTIONS: ReadonlyArray<{ value: string; label: string }> = FIXED_DAY_TYPES.filter(
   (t) => t !== "Z2 Lang"
-).map((t) => ({
-  value: t,
-  label: t === FIXED_INTERVAL_TYP ? "Intervalle (passend zur Phase)" : t === "Z2 Dauer" ? "Z2" : t,
-}));
+).flatMap((t) => {
+  if (t === GROUP_RIDE_TYP) {
+    return [
+      { value: t, label: "Gruppenfahrt draußen" },
+      { value: GROUP_ZWIFT_PICK, label: "Gruppenfahrt Zwift" },
+    ];
+  }
+  return [{ value: t, label: t === FIXED_INTERVAL_TYP ? "Intervalle (passend zur Phase)" : t === "Z2 Dauer" ? "Z2" : t }];
+});
 
 /** Wert, den das Select für einen gespeicherten Typ anzeigt — ein altes
  *  "Z2 Lang" erscheint als der eine Z2-Eintrag. */
-export function fixedDayPickerValue(typ: string): string {
+export function fixedDayPickerValue(typ: string, environment?: "indoor"): string {
+  if (typ === GROUP_RIDE_TYP && environment === "indoor") return GROUP_ZWIFT_PICK;
   return typ === "Z2 Lang" ? "Z2 Dauer" : typ;
+}
+
+/** Dauer-Vorschläge für die beiden Gruppenfahrten, s. core/group-ride-duration.js. */
+export interface GroupRideEstimates {
+  indoor: number;
+  outdoor: number | null;
+}
+
+/** Auswahl im "Feste Tage"-Select anwenden. Eine Gruppenfahrt übernimmt den
+ *  Dauer-Vorschlag ihrer Umgebung; ohne Vorschlag wählt der Generator. Andere
+ *  Typen behalten eine eingetragene Dauer. */
+export function applyFixedDayPick(day: FixedDay, value: string, estimates: GroupRideEstimates): FixedDay {
+  const rest = { weekday: day.weekday, keepInRecoveryWeek: day.keepInRecoveryWeek };
+  if (value === GROUP_ZWIFT_PICK) {
+    return { ...rest, typ: GROUP_RIDE_TYP, environment: "indoor", durationMin: estimates.indoor };
+  }
+  if (value === GROUP_RIDE_TYP) {
+    return { ...rest, typ: value, ...(estimates.outdoor != null ? { durationMin: estimates.outdoor } : {}) };
+  }
+  return { ...rest, typ: value, ...(day.durationMin != null ? { durationMin: day.durationMin } : {}) };
 }
 
 /** Früherer Standard eines festen "Z2 Lang"-Tags ohne Minuten (≈ 207 min aus
@@ -144,6 +175,8 @@ export interface FixedDay {
   /** Optional, 15..300 min (Fahrplan 32 E2); fehlt → der Generator wählt die Dauer.
    *  Ohne Wirkung bei FIXED_INTERVAL_TYP. */
   durationMin?: number;
+  /** "indoor" = Gruppenfahrt auf Zwift. Nur der Kartenname ändert sich. */
+  environment?: "indoor";
 }
 
 /** Drinnen/Draußen-Wunsch je Trainingstag (Fahrplan 32 V2); nur Rad. */
@@ -562,6 +595,7 @@ export function savedFixedDays(plan: TrainingPlan): FixedDay[] {
         weekday: d.weekday,
         typ: d.typ,
         keepInRecoveryWeek: d.keepInRecoveryWeek === true,
+        ...(d.environment === "indoor" ? { environment: "indoor" as const } : {}),
         ...(hasDuration
           ? { durationMin: d.durationMin }
           : d.typ === "Z2 Lang"

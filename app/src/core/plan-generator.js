@@ -94,6 +94,8 @@ import { getSportStrategy } from "./plan-generator-sport.js";
  * @property {boolean} keepInRecoveryWeek  Default false — sonst pausiert die Fixierung in Erholungswochen
  * @property {number} [durationMin]  15..300 (Fahrplan 32 E2); fehlt → Ableitung aus TYPE_DEFAULT_TSS.
  *   Ohne Wirkung bei FIXED_INTERVAL_TYP (kein fester Karten-Tag)
+ * @property {"indoor"} [environment]  nur Anzeige: "indoor" nennt eine Gruppenfahrt
+ *   "Gruppenfahrt Zwift"; der Typ bleibt "Gruppenfahrt" (Stats/Matching)
  */
 
 /**
@@ -588,8 +590,9 @@ export const FIXED_DURATION_MAX_MIN = 300;
  *  (begrenzt auf FIXED_DURATION_MIN_MIN..MAX_MIN), die TSS folgt aus Dauer × IF².
  *  @param {string} typ  aus KNOWN_PLAN_TYPES @param {number|null} ftp
  *  @param {number} [fixedMin]  fehlt → Ableitung aus `TYPE_DEFAULT_TSS`
+ *  @param {"indoor"} [environment]  "indoor" = Gruppenfahrt auf Zwift, nur der Name ändert sich
  *  @returns {{name:string, typ:string, workout:object|null, workoutStructure:object|null, tssPlanned:number, durationMin:number}} */
-function fixedDayCard(typ, ftp, fixedMin) {
+function fixedDayCard(typ, ftp, fixedMin, environment) {
   const defaultTss = TYPE_DEFAULT_TSS[typ] ?? 50;
   if (defaultTss <= 0) {
     return { name: typ, typ, workout: null, workoutStructure: null, tssPlanned: 0, durationMin: 0 };
@@ -604,7 +607,11 @@ function fixedDayCard(typ, ftp, fixedMin) {
   const watts = ftp != null ? [Math.round((pct[0] / 100) * ftp), Math.round((pct[1] / 100) * ftp)] : undefined;
   // Z2-Tage heißen nach ihrer Dauer ("Z2 · 60 min") statt nach dem gewählten
   // Typ — der Typ bleibt unverändert (Stats/Matching/Altdaten).
-  const name = Z2_FIXED_TYPES.has(typ) ? `Z2 · ${fmtMinutesShort(durationMin)}` : typ;
+  const name = Z2_FIXED_TYPES.has(typ)
+    ? `Z2 · ${fmtMinutesShort(durationMin)}`
+    : typ === "Gruppenfahrt" && environment === "indoor"
+      ? "Gruppenfahrt Zwift"
+      : typ;
   const workout = {
     warmup: 0,
     intervals: 1,
@@ -711,7 +718,7 @@ function buildWeekCards(c) {
   for (const wd of effectiveWeekdays) {
     if (!dayIsFixed(wd)) continue;
     const entry = fixedByWeekday.get(wd);
-    const f = fixedDayCard(entry.typ, ftp, entry.durationMin);
+    const f = fixedDayCard(entry.typ, ftp, entry.durationMin, entry.environment);
     qTss += f.tssPlanned;
     cards.push(
       makeCard(addDaysISO(weekStart, wd - 1), phase, isoWeek, f, { isQuality: intensityClass(entry.typ) === "hart" })
@@ -734,7 +741,11 @@ function buildWeekCards(c) {
           `strategy.testCard fehlt (sport "${strategy.sport}").`
       );
     }
-    testWd = effectiveQuality.length && !isRecovery ? effectiveQuality[0] : effectiveWeekdays[0];
+    // Ein fester Tag bleibt, was er ist (Alex, 05.11.2026: der Test verdrängt
+    // keine Gruppenfahrt) — der Test ersetzt die Einheit am freien Qualitätstag.
+    const isFree = (wd) => !dayIsFixed(wd);
+    const freeQuality = isRecovery ? [] : effectiveQuality.filter(isFree);
+    testWd = freeQuality[0] ?? effectiveWeekdays.find(isFree) ?? effectiveWeekdays[0];
     const testDate = addDaysISO(weekStart, testWd - 1);
     for (let i = cards.length - 1; i >= 0; i--) {
       if (cards[i].date === testDate) {

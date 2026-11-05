@@ -190,6 +190,8 @@ export async function updateTrainingPlan(
     /** Nur setzen, wenn sich die Trainingstage geändert haben — die Spalte
      *  muss zum frischen `week_model` passen. */
     trainingWeekdays?: number[];
+    /** Nur setzen, wenn der Athlet das Ziel-FTP geändert hat. */
+    ftpTarget?: number;
   },
 ): Promise<Result<{ plan: TrainingPlan }>> {
   if (!supabase) return { ok: false, error: NOT_CONFIGURED };
@@ -200,6 +202,7 @@ export async function updateTrainingPlan(
       week_model: patch.weekModel,
       params: patch.params,
       ...(patch.trainingWeekdays ? { training_weekdays: patch.trainingWeekdays } : {}),
+      ...(patch.ftpTarget != null ? { ftp_target: patch.ftpTarget } : {}),
     })
     .eq("id", id)
     .select(SELECT_COLS)

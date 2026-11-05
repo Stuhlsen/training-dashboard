@@ -1321,3 +1321,60 @@ test("Z2-Name: andere feste Typen behalten ihren Namen", () => {
   const cards = fixedTuesdayCards({ weekday: 2, typ: "Gruppenfahrt", keepInRecoveryWeek: false, durationMin: 60 });
   for (const c of cards) assert.equal(c.name, "Gruppenfahrt");
 });
+
+// ── Plan anpassen: Gruppenfahrten an Mo + Mi (Alex, 05.11.2026) ─────────────
+
+const GROUP_DAYS = [
+  { weekday: 1, typ: "Gruppenfahrt", keepInRecoveryWeek: false, environment: "indoor", durationMin: 90 },
+  { weekday: 3, typ: "Gruppenfahrt", keepInRecoveryWeek: false, environment: "indoor", durationMin: 90 },
+];
+
+test("fixedDays FTP-Test: landet nicht auf einem festen Tag, sondern ersetzt die Einheit am freien Qualitätstag", () => {
+  const plan = generatePlan(
+    openInput({
+      trainingWeekdays: [1, 3, 6, 7],
+      fixedDays: GROUP_DAYS,
+      currentFtp: 210,
+      ftpMeasuredDate: null,
+      startWithFtpTest: true,
+    })
+  );
+  const week = plan.weeks.find((w) => w.cards.some((c) => c.isTest) && !w.isRecovery);
+  assert.ok(week, "es gibt eine Testwoche außerhalb der Erholung");
+  const weekday = (c) => ((new Date(c.date).getDay() + 6) % 7) + 1;
+  assert.equal(weekday(week.cards.find((c) => c.isTest)), 6);
+  assert.equal(week.cards.filter((c) => c.typ === "Gruppenfahrt").length, 2);
+});
+
+test("fixedDays FTP-Test: sind alle Tage fest, bleibt die Testkarte erhalten", () => {
+  const plan = generatePlan(
+    openInput({
+      trainingWeekdays: [1, 3],
+      fixedDays: GROUP_DAYS,
+      currentFtp: 210,
+      ftpMeasuredDate: null,
+      startWithFtpTest: true,
+    })
+  );
+  assert.ok(plan.weeks.some((w) => w.cards.some((c) => c.isTest)));
+});
+
+test("fixedDays environment indoor: Karte heißt Gruppenfahrt Zwift, der Typ bleibt Gruppenfahrt", () => {
+  const plan = generatePlan(openInput({ trainingWeekdays: [1, 3, 6, 7], fixedDays: GROUP_DAYS }));
+  const group = plan.weeks.flatMap((w) => w.cards).filter((c) => c.typ === "Gruppenfahrt");
+  assert.ok(group.length > 0);
+  assert.ok(group.every((c) => c.name === "Gruppenfahrt Zwift"));
+  assert.ok(group.every((c) => c.durationMin === 90));
+});
+
+test("fixedDays ohne environment: Kartenname bleibt wie bisher", () => {
+  const plan = generatePlan(
+    openInput({
+      trainingWeekdays: [1, 3, 6, 7],
+      fixedDays: [{ weekday: 1, typ: "Gruppenfahrt", keepInRecoveryWeek: false }],
+    })
+  );
+  const group = plan.weeks.flatMap((w) => w.cards).filter((c) => c.typ === "Gruppenfahrt");
+  assert.ok(group.length > 0);
+  assert.ok(group.every((c) => c.name === "Gruppenfahrt"));
+});

@@ -38,6 +38,7 @@ import { qk } from "../../api/keys";
 import { catchResult, ResultError_, toResultError, unwrap } from "../../api/result";
 import { localISODate } from "../../core/format.js";
 import { flattenPlanCards } from "./plan-persist";
+import { replaceFromISO } from "./recompute-plan-view-model";
 import type { GeneratedPlan, PlanGeneratorInput } from "./new-plan-dialog-view-model";
 import type { Result, TrainingPlan, WeekModelEntry } from "../../api/types";
 
@@ -58,6 +59,8 @@ export interface RecomputeRemainingPlanArgs {
   generated: GeneratedPlan;
   /** Der an `generatePlan()` übergebene V2-Input (trägt `regenerateFrom`/`history`). */
   input: PlanGeneratorInput;
+  /** Heute (lokal, ISO): Karten davor bleiben unberührt. */
+  todayISO: string;
 }
 
 export function useRecomputeRemainingPlan(athleteId: string) {
@@ -73,12 +76,15 @@ export function useRecomputeRemainingPlan(athleteId: string) {
       const planId = args.plan.id;
       const sport = args.plan.sport ?? "ride";
 
+      const replaceFrom = replaceFromISO(regenerateFrom, args.todayISO);
+
       let deletedFuture = false;
       try {
-        unwrap(await deleteFuturePlanCardsForPlan(planId, regenerateFrom));
+        unwrap(await deleteFuturePlanCardsForPlan(planId, replaceFrom));
         deletedFuture = true;
 
-        unwrap(await createPlanCards(profileId, planId, flattenPlanCards(args.generated)));
+        const cards = flattenPlanCards(args.generated).filter((c) => c.date >= replaceFrom);
+        unwrap(await createPlanCards(profileId, planId, cards));
 
         // Die tatsächlich bespielten Tage der ersten neu gerechneten Woche
         // (bei schwacher Planerfüllung kann der Generator einen streichen) —
@@ -109,6 +115,7 @@ export function useRecomputeRemainingPlan(athleteId: string) {
             weekModel,
             params,
             ...(tailWeekdays ? { trainingWeekdays: tailWeekdays } : {}),
+            ...(sport === "ride" && args.input.ftpTarget != null ? { ftpTarget: args.input.ftpTarget } : {}),
           }),
         );
 
@@ -125,7 +132,7 @@ export function useRecomputeRemainingPlan(athleteId: string) {
         if (deletedFuture) {
           throw new ResultError_({
             code: "UNKNOWN",
-            message: `${toResultError(err).message} — die alten künftigen Karten sind evtl. schon entfernt. Bitte den Plan prüfen und „Rest neu berechnen" erneut ausführen.`,
+            message: `${toResultError(err).message} — die alten künftigen Karten sind evtl. schon entfernt. Bitte den Plan prüfen und „Plan anpassen" erneut ausführen.`,
           });
         }
         throw err;

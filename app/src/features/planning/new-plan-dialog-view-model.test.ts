@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyFixedDayPick,
   buildGeneratorInput,
   defaultFormState,
+  GROUP_ZWIFT_PICK,
   FIXED_DAY_OPTIONS,
   FIXED_DAY_TYPES,
   FIXED_INTERVAL_TYP,
@@ -637,14 +639,68 @@ describe("Feste Tage: ein Z2-Eintrag statt Lang/Dauer", () => {
 
   it("Picker enthält sonst alle festen Typen, Intervall-Platzhalter mit Erklärung", () => {
     const values = FIXED_DAY_OPTIONS.map((o) => o.value);
-    expect(values).toEqual(FIXED_DAY_TYPES.filter((t) => t !== "Z2 Lang"));
+    for (const typ of FIXED_DAY_TYPES.filter((t) => t !== "Z2 Lang")) expect(values).toContain(typ);
     expect(FIXED_DAY_OPTIONS.find((o) => o.value === FIXED_INTERVAL_TYP)?.label).toBe("Intervalle (passend zur Phase)");
+  });
+
+  it("Picker bietet zwei Gruppenfahrten: draußen und Zwift", () => {
+    expect(FIXED_DAY_OPTIONS.filter((o) => o.label.startsWith("Gruppenfahrt"))).toEqual([
+      { value: "Gruppenfahrt", label: "Gruppenfahrt draußen" },
+      { value: GROUP_ZWIFT_PICK, label: "Gruppenfahrt Zwift" },
+    ]);
   });
 
   it("fixedDayPickerValue: \"Z2 Lang\" aus alten Formularen zeigt den Z2-Eintrag, alles andere bleibt", () => {
     expect(fixedDayPickerValue("Z2 Lang")).toBe("Z2 Dauer");
     expect(fixedDayPickerValue("Z2 Dauer")).toBe("Z2 Dauer");
     expect(fixedDayPickerValue("Gruppenfahrt")).toBe("Gruppenfahrt");
+    expect(fixedDayPickerValue("Gruppenfahrt", "indoor")).toBe(GROUP_ZWIFT_PICK);
+  });
+
+  describe("applyFixedDayPick", () => {
+    const base = { weekday: 1, typ: "Sweet Spot", keepInRecoveryWeek: false };
+    const estimates = { indoor: 75, outdoor: 135 };
+
+    it("Zwift: Typ Gruppenfahrt, Kennung indoor, Dauer aus der Schätzung", () => {
+      expect(applyFixedDayPick(base, GROUP_ZWIFT_PICK, estimates)).toEqual({
+        ...base,
+        typ: "Gruppenfahrt",
+        environment: "indoor",
+        durationMin: 75,
+      });
+    });
+
+    it("draußen: Dauer aus der Schätzung für draußen, keine Kennung", () => {
+      const out = applyFixedDayPick(
+        { ...base, typ: "Gruppenfahrt", environment: "indoor", durationMin: 75 },
+        "Gruppenfahrt",
+        estimates
+      );
+      expect(out).toEqual({ ...base, typ: "Gruppenfahrt", durationMin: 135 });
+    });
+
+    it("ohne Schätzung entfällt die alte Dauer, der Plan wählt selbst", () => {
+      const out = applyFixedDayPick({ ...base, durationMin: 60 }, "Gruppenfahrt", { indoor: 90, outdoor: null });
+      expect(out).toEqual({ ...base, typ: "Gruppenfahrt" });
+    });
+
+    it("anderer Typ: nur der Typ ändert sich, die Kennung fällt weg", () => {
+      const out = applyFixedDayPick(
+        { ...base, typ: "Gruppenfahrt", environment: "indoor", durationMin: 75 },
+        "Z2 Dauer",
+        estimates
+      );
+      expect(out).toEqual({ ...base, typ: "Z2 Dauer", durationMin: 75 });
+    });
+  });
+
+  it("savedFixedDays behält die Zwift-Kennung", () => {
+    const saved = savedFixedDays({
+      params: {
+        form: { fixedDays: [{ weekday: 1, typ: "Gruppenfahrt", keepInRecoveryWeek: false, environment: "indoor" }] },
+      },
+    } as unknown as TrainingPlan);
+    expect(saved[0].environment).toBe("indoor");
   });
 
   const planWith = (fixedDays: unknown[]) =>
