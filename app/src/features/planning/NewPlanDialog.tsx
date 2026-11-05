@@ -32,13 +32,19 @@ import { useActiveTrainingPlan } from "../../api/hooks/useActiveTrainingPlan";
 import { usePlanCards } from "../../api/hooks/usePlanCards";
 import { useSessionProfile } from "../../api/hooks/useSession";
 import { useIsSelfAthlete } from "../../api/hooks/useWriteAuthorization";
+import { useAthleteSports } from "../../api/hooks/useAthleteSports";
 import { useProfileBasics, useUpdateHasIndoorTrainer } from "../../api/hooks/useProfile";
 import { useCreateTrainingPlan } from "./useCreateTrainingPlan";
 import { useFtpHistoryEntries } from "./useFtpHistoryEntries";
 import { FixedDaysEditor } from "./FixedDaysEditor";
+import { PlanTimingFields } from "./PlanTimingFields";
+import { PlanSportPicker } from "./PlanSportPicker";
+import { MultiSportExtras } from "./MultiSportExtras";
+import { useMultiSportPlan } from "./useMultiSportPlan";
+import { selectableSports, toggleSport } from "./multi-sport-plan-view-model";
 import { groupRideEstimates } from "../../core/group-ride-duration.js";
 import { athleteConfig } from "../../config";
-import { localISODate, addDaysISO, diffDays, fmtDate } from "../../core/format.js";
+import { localISODate, addDaysISO, diffDays } from "../../core/format.js";
 import { generatePlan } from "../../core/plan-generator.js";
 import { eftpHistory, forecastFtp } from "../../core/ftp-forecast.js";
 import { PlanPreview } from "./PlanPreview";
@@ -105,14 +111,18 @@ interface NewPlanDialogProps {
   sport?: ActiveSport;
 }
 
-const NEW_EVENT_VALUE = "__new__";
-
 export function NewPlanDialog({ athleteId, onClose, onCreated, sport }: NewPlanDialogProps) {
   useEscapeToClose(onClose);
 
   const today = localISODate();
   const cfg = athleteConfig(athleteId);
-  const { effectiveSport } = useEffectiveSport(athleteId, sport);
+  // Fahrplan 44 E4: Sportarten-Auswahl nur bei mehr als einer Sportart. Die
+  // erste gewählte Sportart führt das Formular; eine allein gewählte läuft wie bisher.
+  const offeredSports = selectableSports(useAthleteSports(athleteId));
+  const [picked, setPicked] = useState<ActiveSport[] | null>(null);
+  const { effectiveSport } = useEffectiveSport(athleteId, picked ? picked[0] : sport);
+  const chosenSports = picked ?? [effectiveSport];
+  const multiSelected = chosenSports.length > 1;
   const { data: events } = useEvents(athleteId);
   const { data: rideData } = useRides(athleteId);
   const { aggregate } = usePlanHistoryAggregate(athleteId, effectiveSport);
@@ -125,7 +135,7 @@ export function NewPlanDialog({ athleteId, onClose, onCreated, sport }: NewPlanD
   );
   const { data: existingCards } = usePlanCards(athleteId, { sport });
   const profile = useSessionProfile();
-  const { createPlan, isPending: saving } = useCreateTrainingPlan(athleteId);
+  const { createPlan, createPlans, isPending: saving } = useCreateTrainingPlan(athleteId);
   const { isSelf, isLoading: isSelfLoading } = useIsSelfAthlete(athleteId);
   const ftpHistoryEntries = useFtpHistoryEntries(athleteId);
   const groupEstimates = useMemo(
@@ -215,7 +225,7 @@ export function NewPlanDialog({ athleteId, onClose, onCreated, sport }: NewPlanD
   const roleLoading = isSelfLoading || (isSelf && basicsLoading);
   // Wizard erst zeigen, wenn Plan und Rolle bekannt sind — sonst flackert die
   // Schrittfolge (Rolle-Schritt) bzw. der Start-Modus springt.
-  const guidedMode = guidedChoice ?? !activePlan;
+  const guidedMode = multiSelected ? false : (guidedChoice ?? !activePlan);
   const waiting = guidedChoice !== false && (planLoading || roleLoading || !goalPresetsReady);
   const hasIndoorTrainer = resolveHasIndoorTrainer(profileRole, form.hasIndoorTrainer);
   const showEnvironmentPills = effectiveSport === "ride" && hasIndoorTrainer === true;
@@ -318,6 +328,25 @@ export function NewPlanDialog({ athleteId, onClose, onCreated, sport }: NewPlanD
   });
   // Solange der Athlet das Modell nicht selbst gewählt hat, gilt der Vorschlag.
   const effectiveModel = modelTouched ? form.model : suggestion;
+
+  // Weitere Sportarten (Fahrplan 44 E4): Entwürfe, Verteilung, gemeinsame Vorschau, Speichern.
+  const multi = useMultiSportPlan({
+    athleteId,
+    sports: chosenSports,
+    form: { ...form, model: effectiveModel, hasIndoorTrainer },
+    rideModel: effectiveModel,
+    resolveEventDate,
+    createPlans,
+    saving,
+  });
+  const hasPreview = multi.active ? !!multi.bundle : !!preview;
+  async function handleAdoptAction() {
+    if (!multi.active) return handleAdopt();
+    if (await multi.adopt()) {
+      onCreated?.();
+      onClose();
+    }
+  }
 
   // Live-Vorschau (V3, E3) — komplett getrennt vom Klick-`preview`-State
   // oben, reagiert bewusst NUR auf Level/Fokus/Modell (Entscheidung 5), nicht
@@ -470,12 +499,20 @@ export function NewPlanDialog({ athleteId, onClose, onCreated, sport }: NewPlanD
         )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {offeredSports.length > 1 && (
+            <PlanSportPicker
+              offered={offeredSports}
+              chosen={chosenSports}
+              onToggle={(s) => setPicked(toggleSport(chosenSports, s))}
+            />
+          )}
+
           {/* Geführt/Erweitert */}
           <div style={{ display: "flex", gap: 8 }}>
             <button
               type="button"
               style={guidedMode ? PRIMARY_BTN_STYLE : PILL_STYLE}
-              disabled={planLoading || roleLoading}
+              disabled={planLoading || roleLoading || multiSelected}
               onClick={() => setGuidedChoice(true)}
             >
               Geführt
@@ -513,98 +550,7 @@ export function NewPlanDialog({ athleteId, onClose, onCreated, sport }: NewPlanD
             />
           ) : (
             <>
-              {/* Modus */}
-              <div style={{ display: "flex", gap: 8 }}>
-                <button
-                  type="button"
-                  style={form.mode === "open" ? PRIMARY_BTN_STYLE : PILL_STYLE}
-                  onClick={() => patch({ mode: "open" })}
-                >
-                  Ohne festes Ende
-                </button>
-                <button
-                  type="button"
-                  style={form.mode === "event" ? PRIMARY_BTN_STYLE : PILL_STYLE}
-                  onClick={() => patch({ mode: "event" })}
-                >
-                  Auf ein Event hin
-                </button>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <label style={LABEL_STYLE}>
-                  Startdatum (Montag)
-                  <input
-                    type="date"
-                    style={FIELD_STYLE}
-                    value={form.startDate}
-                    onChange={(e) => patch({ startDate: e.target.value })}
-                  />
-                </label>
-
-                {form.mode === "open" ? (
-                  <label style={LABEL_STYLE}>
-                    Planlänge (Wochen)
-                    <input
-                      type="number"
-                      min={3}
-                      max={40}
-                      style={FIELD_STYLE}
-                      value={form.weeks}
-                      onChange={(e) => patch({ weeks: Number(e.target.value) || 0 })}
-                    />
-                  </label>
-                ) : (
-                  <label style={LABEL_STYLE}>
-                    Ziel-Event
-                    <select
-                      style={FIELD_STYLE}
-                      value={form.eventId || NEW_EVENT_VALUE}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        if (v === NEW_EVENT_VALUE) {
-                          patch({ eventId: "" });
-                        } else {
-                          const ev = eventOptions.find((x) => x.id === v);
-                          patch({ eventId: v, ftpTarget: form.ftpTarget ?? ev?.ftpGoal ?? null });
-                        }
-                      }}
-                    >
-                      {eventOptions.map((e) => (
-                        <option key={e.id} value={e.id}>
-                          {fmtDate(e.eventDate)} — {e.title}
-                          {e.priority ? ` (${e.priority})` : ""}
-                        </option>
-                      ))}
-                      <option value={NEW_EVENT_VALUE}>Anderes Event anlegen …</option>
-                    </select>
-                  </label>
-                )}
-              </div>
-
-              {form.mode === "event" && !form.eventId && (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                  <label style={LABEL_STYLE}>
-                    Renntag
-                    <input
-                      type="date"
-                      style={FIELD_STYLE}
-                      value={form.newEventDate}
-                      onChange={(e) => patch({ newEventDate: e.target.value })}
-                    />
-                  </label>
-                  <label style={LABEL_STYLE}>
-                    Event-Name
-                    <input
-                      type="text"
-                      style={FIELD_STYLE}
-                      value={form.newEventName}
-                      onChange={(e) => patch({ newEventName: e.target.value })}
-                      placeholder="z. B. GFNY Hamburg"
-                    />
-                  </label>
-                </div>
-              )}
+              <PlanTimingFields form={form} patch={patch} eventOptions={eventOptions} />
 
               {/* Trainingstage */}
               <div style={LABEL_STYLE}>
@@ -927,7 +873,9 @@ export function NewPlanDialog({ athleteId, onClose, onCreated, sport }: NewPlanD
                 </div>
               </label>
 
-              {miniPreviewPlan && (
+              {multi.active && <MultiSportExtras ctl={multi} />}
+
+              {miniPreviewPlan && !multi.active && (
                 <div style={{ marginTop: 4 }}>
                   <div style={{ fontSize: ".72rem", color: "var(--ink-3)", marginBottom: 4 }}>
                     Wochenverlauf bei dieser Auswahl
@@ -936,7 +884,7 @@ export function NewPlanDialog({ athleteId, onClose, onCreated, sport }: NewPlanD
                 </div>
               )}
 
-              {(Object.keys(errors).length > 0 || saveError) && (
+              {!multi.active && (Object.keys(errors).length > 0 || saveError) && (
                 <ul
                   style={{
                     margin: 0,
@@ -955,7 +903,7 @@ export function NewPlanDialog({ athleteId, onClose, onCreated, sport }: NewPlanD
                 </ul>
               )}
 
-              {preview && (
+              {preview && !multi.active && (
                 <div style={{ borderTop: "1px solid var(--hair)", paddingTop: 14 }}>
                   <PlanPreview
                     plan={preview.plan}
@@ -1015,21 +963,34 @@ export function NewPlanDialog({ athleteId, onClose, onCreated, sport }: NewPlanD
           </button>
           {!guidedMode && (
             <>
-              <button type="button" style={BTN_STYLE} onClick={handlePreview} disabled={saving}>
+              <button
+                type="button"
+                style={BTN_STYLE}
+                onClick={multi.active ? multi.preview : handlePreview}
+                disabled={saving}
+              >
                 Vorschau erstellen
               </button>
               <button
                 type="button"
                 style={
-                  preview && !saving
+                  hasPreview && !saving
                     ? PRIMARY_BTN_STYLE
                     : { ...PRIMARY_BTN_STYLE, opacity: 0.5, cursor: "not-allowed" }
                 }
-                disabled={!preview || saving}
-                onClick={handleAdopt}
-                title={preview ? undefined : "Erst eine Vorschau erstellen"}
+                disabled={!hasPreview || saving}
+                onClick={handleAdoptAction}
+                title={hasPreview ? undefined : "Erst eine Vorschau erstellen"}
               >
-                {saving ? "Speichert…" : willReplace ? "Plan ersetzen" : "Übernehmen"}
+                {saving
+                  ? "Speichert…"
+                  : multi.active
+                    ? multi.notes.some((n) => n.replaces)
+                      ? "Pläne ersetzen"
+                      : "Pläne übernehmen"
+                    : willReplace
+                      ? "Plan ersetzen"
+                      : "Übernehmen"}
               </button>
             </>
           )}

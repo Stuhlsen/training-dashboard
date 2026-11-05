@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { TrainingPlan } from "../../api/types";
 
 /* Hooks der Daten-Schicht werden ersetzt — getestet wird die Verdrahtung des
@@ -11,6 +11,9 @@ const h = vi.hoisted(() => ({
   profileRole: null as boolean | null,
   updateRole: vi.fn(async () => ({ ok: true as const })),
   goals: [] as unknown[],
+  sports: ["ride"] as string[],
+  createPlan: vi.fn(async () => ({ ok: true as const, planId: "p1" })),
+  createPlans: vi.fn(async () => ({ ok: true as const, planIds: ["p1", "p2"] })),
 }));
 
 vi.mock("../../api/hooks/useEvents", () => ({ useEvents: () => ({ data: [] }) }));
@@ -44,8 +47,13 @@ vi.mock("./useGoalPlanContext", () => ({
   useGoalPlanContext: () => ({ goals: h.goals, interimFtp: null, isLoading: false }),
 }));
 vi.mock("./useCreateTrainingPlan", () => ({
-  useCreateTrainingPlan: () => ({ createPlan: vi.fn(), isPending: false }),
+  useCreateTrainingPlan: () => ({
+    createPlan: h.createPlan,
+    createPlans: h.createPlans,
+    isPending: false,
+  }),
 }));
+vi.mock("../../api/hooks/useAthleteSports", () => ({ useAthleteSports: () => h.sports }));
 vi.mock("../../config", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../config")>()),
   athleteConfig: () => null,
@@ -67,8 +75,8 @@ const plan = {
 
 const click = (name: string | RegExp) => fireEvent.click(screen.getByRole("button", { name }));
 
-function renderDialog() {
-  render(<NewPlanDialog athleteId="athlete1" onClose={() => {}} />);
+function renderDialog(props: { onClose?: () => void; onCreated?: () => void } = {}) {
+  render(<NewPlanDialog athleteId="athlete1" onClose={props.onClose ?? (() => {})} onCreated={props.onCreated} />);
 }
 
 /** Wizard bis zum Formular durchklicken (Rad, Rolle-Schritt + Drinnen/Draußen). */
@@ -92,6 +100,9 @@ beforeEach(() => {
   h.isSelf = true;
   h.profileRole = null;
   h.goals = [];
+  h.sports = ["ride"];
+  h.createPlan.mockClear();
+  h.createPlans.mockClear();
   h.updateRole.mockClear();
 });
 afterEach(cleanup);
@@ -166,5 +177,132 @@ describe("NewPlanDialog — Wizard-Start und Rolle", () => {
     h.profileRole = false;
     renderDialog();
     expect(screen.getByText("Schritt 1 von 5")).toBeTruthy();
+  });
+});
+
+/* Fahrplan 44 E4: mehrere Sportarten in einem Dialog. */
+describe("NewPlanDialog — mehrere Sportarten", () => {
+  // Rad auf den Standard-Radtagen: Laufen (Mo/Mi/So) bekommt eigene Tage.
+  const ridePlan = {
+    ...plan,
+    trainingWeekdays: [2, 4, 6],
+    weeklyHours: 6,
+    endDate: "2026-12-20",
+  } as unknown as TrainingPlan;
+  const picker = () => screen.queryByRole("group", { name: "Sportarten in diesem Plan" });
+  const chip = (name: RegExp) => screen.getByRole("button", { name });
+
+  it("mit nur einer Sportart gibt es keine Auswahl — der Dialog bleibt wie bisher", () => {
+    h.activePlan = ridePlan;
+    renderDialog();
+    expect(picker()).toBeNull();
+    expect(screen.getByRole("button", { name: "Vorschau erstellen" })).toBeTruthy();
+    expect(screen.queryByRole("group", { name: "Laufen-Plan" })).toBeNull();
+  });
+
+  it("mit mehreren Sportarten erscheint die Auswahl; gewählt ist zunächst nur Rad", () => {
+    h.sports = ["ride", "run"];
+    h.activePlan = ridePlan;
+    renderDialog();
+    expect(picker()).toBeTruthy();
+    expect(chip(/Rad/).getAttribute("aria-pressed")).toBe("true");
+    expect(chip(/Laufen/).getAttribute("aria-pressed")).toBe("false");
+    // Die einzige gewählte Sportart lässt sich nicht abwählen.
+    expect((chip(/Rad/) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByRole("group", { name: "Laufen-Plan" })).toBeNull();
+  });
+
+  it("eine Sportart allein gewählt läuft den heutigen Weg: speichert über createPlan, ohne Gruppe", async () => {
+    h.sports = ["ride", "run"];
+    h.activePlan = ridePlan;
+    renderDialog();
+    click("Vorschau erstellen");
+    click(/Plan ersetzen/);
+    await waitFor(() => expect(h.createPlan).toHaveBeenCalledTimes(1));
+    expect(h.createPlans).not.toHaveBeenCalled();
+  });
+
+  it("Laufen dazuwählen zeigt dessen Abschnitt; wieder abwählen entfernt ihn", () => {
+    h.sports = ["ride", "run"];
+    h.activePlan = ridePlan;
+    renderDialog();
+    click(/Laufen/);
+    const run = screen.getByRole("group", { name: "Laufen-Plan" });
+    expect(within(run).getByLabelText("Zeitbudget (h/Woche)")).toBeTruthy();
+    expect(within(run).getByLabelText(/Aktuelle Schwellenpace/)).toBeTruthy();
+    // Der Geführt-Modus gibt es für mehrere Sportarten nicht.
+    expect((screen.getByRole("button", { name: "Geführt" }) as HTMLButtonElement).disabled).toBe(true);
+    click(/Laufen/);
+    expect(screen.queryByRole("group", { name: "Laufen-Plan" })).toBeNull();
+  });
+
+  it("Vorschau: gemeinsames Raster, Last je Sportart, Summe als Näherung, Ersetzen je Sportart", () => {
+    h.sports = ["ride", "run"];
+    h.activePlan = ridePlan;
+    renderDialog();
+    click(/Laufen/);
+    click("Vorschau erstellen");
+    const region = screen.getByRole("region", { name: "Gemeinsame Vorschau" });
+    expect(within(region).getByRole("table", { name: "Wochenraster aller Sportarten" })).toBeTruthy();
+    expect(within(region).getByText("Summe (Näherung)")).toBeTruthy();
+    expect(within(region).getByText(/Rad: ersetzt den laufenden Plan/)).toBeTruthy();
+    expect(within(region).getByText(/Laufen: ersetzt den laufenden Plan/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Pläne ersetzen" })).toBeTruthy();
+  });
+
+  it("Übernehmen speichert beide Pläne in einem Lauf und schließt den Dialog", async () => {
+    h.sports = ["ride", "run"];
+    h.activePlan = ridePlan;
+    const onClose = vi.fn();
+    const onCreated = vi.fn();
+    renderDialog({ onClose, onCreated });
+    click(/Laufen/);
+    click("Vorschau erstellen");
+    click("Pläne ersetzen");
+    await waitFor(() => expect(h.createPlans).toHaveBeenCalledTimes(1));
+    const items = (h.createPlans.mock.calls[0] as unknown as [Array<{ input: { sport: string } }>])[0];
+    expect(items.map((i) => i.input.sport)).toEqual(["ride", "run"]);
+    expect(h.createPlan).not.toHaveBeenCalled();
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(onCreated).toHaveBeenCalled();
+  });
+
+  it("Eingabefehler einer Sportart zeigt das Formular, ohne Vorschau und ohne Speichern", () => {
+    h.sports = ["ride", "run"];
+    h.activePlan = ridePlan;
+    renderDialog();
+    click(/Laufen/);
+    const run = screen.getByRole("group", { name: "Laufen-Plan" });
+    fireEvent.change(within(run).getByLabelText("Zeitbudget (h/Woche)"), { target: { value: "0" } });
+    click("Vorschau erstellen");
+    expect(screen.getByText("Laufen: Zeitbudget in Stunden angeben.")).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "Gemeinsame Vorschau" })).toBeNull();
+    expect((screen.getByRole("button", { name: /Pläne|Plan ersetzen|Übernehmen/ }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("zeigt Hinweise der Verteilung, die nichts sperren", () => {
+    h.sports = ["ride", "run"];
+    h.activePlan = ridePlan;
+    renderDialog();
+    click(/Laufen/);
+    const run = screen.getByRole("group", { name: "Laufen-Plan" });
+    fireEvent.change(within(run).getByLabelText("Zeitbudget (h/Woche)"), { target: { value: "12" } });
+    const hints = screen.getByRole("status", { name: "Hinweise zur Verteilung" });
+    expect(hints.textContent).toMatch(/sperren nichts/);
+    expect(hints.textContent).toMatch(/viele Stunden pro Tag/);
+    click("Vorschau erstellen");
+    expect(screen.getByRole("region", { name: "Gemeinsame Vorschau" })).toBeTruthy();
+  });
+
+  it("eine Änderung nach der Vorschau macht sie ungültig — erst neu erstellen, dann speichern", () => {
+    h.sports = ["ride", "run"];
+    h.activePlan = ridePlan;
+    renderDialog();
+    click(/Laufen/);
+    click("Vorschau erstellen");
+    const run = screen.getByRole("group", { name: "Laufen-Plan" });
+    fireEvent.change(within(run).getByLabelText("Zeitbudget (h/Woche)"), { target: { value: "4" } });
+    expect(screen.queryByRole("region", { name: "Gemeinsame Vorschau" })).toBeNull();
+    expect((screen.getByRole("button", { name: /Pläne/ }) as HTMLButtonElement).disabled).toBe(true);
   });
 });

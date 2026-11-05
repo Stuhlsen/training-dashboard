@@ -544,7 +544,8 @@ export function PlanningPage() {
     else setShiftOpen(true);
   }
   function requestAction(kind: "new" | "recompute" | "shift") {
-    if (sharedMode) {
+    // „Neuer Plan" fragt die Sportarten im Dialog selbst ab (Fahrplan 44 E4).
+    if (sharedMode && kind !== "new") {
       setPickerFor(kind);
       return;
     }

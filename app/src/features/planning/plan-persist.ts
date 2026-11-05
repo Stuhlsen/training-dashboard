@@ -30,7 +30,13 @@ import type {
  * Reihenfolge bleibt erhalten) — dasselbe Feld, das die Karten-UI im Raster
  * sortiert.
  */
-export function flattenPlanCards(plan: GeneratedPlan): PlanCardBulkDraft[] {
+export function flattenPlanCards(
+  plan: GeneratedPlan,
+  /** Sportart des Plans. Ohne Angabe fehlt das Feld und die DB setzt „ride“ —
+   *  für Lauf-/Schwimmpläne muss der Aufrufer sie setzen, sonst stehen deren
+   *  Karten im Kalender als Rad. */
+  sport?: "ride" | "run" | "swim",
+): PlanCardBulkDraft[] {
   const out: PlanCardBulkDraft[] = [];
   const perDay = new Map<string, number>();
   for (const week of plan.weeks) {
@@ -49,6 +55,7 @@ export function flattenPlanCards(plan: GeneratedPlan): PlanCardBulkDraft[] {
         workout: c.workout ?? null,
         workoutStructure: c.workoutStructure ?? null,
         sortOrder: n,
+        ...(sport ? { sport } : {}),
       });
     }
   }

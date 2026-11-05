@@ -111,6 +111,15 @@ describe("flattenPlanCards", () => {
     expect(byDate("2026-09-15")).toEqual([0]);
   });
 
+  it("setzt die Sportart auf jede Karte, wenn sie angegeben ist (sonst würde der DB-Default „ride“ greifen)", () => {
+    const rows = flattenPlanCards(PLAN, "run");
+    expect(rows.every((r) => r.sport === "run")).toBe(true);
+  });
+
+  it("ohne Angabe bleibt das sport-Feld weg (Verhalten wie bisher)", () => {
+    expect(flattenPlanCards(PLAN).every((r) => !("sport" in r))).toBe(true);
+  });
+
   it("mappt isoWeek -> week und reicht workout/phase/tss durch", () => {
     const [first] = flattenPlanCards(PLAN);
     expect(first.week).toBe("2026-KW37");
