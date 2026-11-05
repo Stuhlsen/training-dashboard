@@ -27,8 +27,8 @@
      bikefit         — migration 0049 (storage policies with is_admin())
 
    Tabellen OHNE is_admin()-RLS (Admin wuerde 403 erhalten):
-     goals           — migration 0001 (nur uid/is_coach_of, FOR ALL)
      plan_cards      — migration 0001 + 0011 (nur uid/is_coach_of, UPDATE-T2)
+     goals           — migration 0084 (nur Athlet selbst schreibt; Coach liest nur)
      wellbeing       — migration 0001 (uid/is_coach_of fuer SELECT,
                        nur uid fuer INSERT/UPDATE/DELETE)
      ftp_history     — migration 0009 (uid/is_coach_of fuer SELECT,
@@ -42,8 +42,10 @@
 
    Der Gate gibt fuer Trainer ebenfalls true (resolveTrainerContext),
    aber die RLS granularisiert pro Tabelle und Aktion:
-     goals:          Coach darf FOR ALL (Insert/Update/Delete) —
-                     Gate trifft zu.
+     goals:          Coach darf SEIT MIGRATION 0084 NUR SELECT (Fahrplan 43 Z8,
+                     athlete-only). Gate ist zu grosszuegig; die einzige
+                     Schreibstelle (GoalsSection) schreibt ohnehin nur fuer
+                     die eigene ID.
      events:         Coach darf FOR ALL (Insert/Update/Delete) —
                      Gate trifft zu.
      plan_cards:     Coach darf SEIT MIGRATION 0011 NUR UPDATE

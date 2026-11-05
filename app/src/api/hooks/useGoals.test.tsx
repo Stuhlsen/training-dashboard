@@ -32,7 +32,7 @@ beforeEach(() => {
 
 describe("useGoals", () => {
   it("lädt die aktiven Ziele des eingeloggten Profils", async () => {
-    stored["athlete-1"] = [{ id: "g1", kind: "ftp", targetValue: 210, targetDate: null, note: null, isActive: true }];
+    stored["athlete-1"] = [{ id: "g1", kind: "ftp", targetValue: 210, targetDate: null, note: null, isActive: true, goalKey: null, role: null }];
     const { wrapper } = createHarness({ userId: "athlete-1" });
     const view = renderHook(() => useGoals(), { wrapper });
     await waitFor(() => expect(view.result.current.isLoading).toBe(false));
@@ -73,7 +73,7 @@ describe("useSaveGoal", () => {
 
 describe("useDeactivateGoal", () => {
   it("entfernt das Ziel aus dem Cache, statt es zu löschen", async () => {
-    stored["athlete-1"] = [{ id: "g1", kind: "ftp", targetValue: 210, targetDate: null, note: null, isActive: true }];
+    stored["athlete-1"] = [{ id: "g1", kind: "ftp", targetValue: 210, targetDate: null, note: null, isActive: true, goalKey: null, role: null }];
     const { wrapper, queryClient } = createHarness({ userId: "athlete-1" });
     const goalsView = renderHook(() => useGoals(), { wrapper });
     await waitFor(() => expect(goalsView.result.current.isLoading).toBe(false));

@@ -1,5 +1,5 @@
 import { supabase, getAuthedClient } from "./client";
-import type { Goal, GoalInput, Result } from "../types";
+import type { Goal, GoalInput, GoalKey, GoalRole, Result } from "../types";
 
 const NOT_CONFIGURED = { code: "UNKNOWN" as const, message: "Supabase nicht konfiguriert" };
 
@@ -10,6 +10,8 @@ interface GoalRow {
   target_date: string | null;
   note: string | null;
   is_active: boolean;
+  goal_key: GoalKey | null;
+  role: GoalRole | null;
 }
 
 function toGoal(row: GoalRow): Goal {
@@ -20,6 +22,8 @@ function toGoal(row: GoalRow): Goal {
     targetDate: row.target_date,
     note: row.note,
     isActive: row.is_active,
+    goalKey: row.goal_key ?? null,
+    role: row.role ?? null,
   };
 }
 
@@ -30,7 +34,7 @@ export async function getGoals(athleteId: string): Promise<Result<{ goals: Goal[
   const client = (await getAuthedClient()) ?? supabase;
   const { data, error } = await client
     .from("goals")
-    .select("id, kind, target_value, target_date, note, is_active")
+    .select("id, kind, target_value, target_date, note, is_active, goal_key, role")
     .eq("athlete_id", athleteId)
     .eq("is_active", true)
     .order("created_at", { ascending: true });
@@ -49,6 +53,8 @@ export async function saveGoal(athleteId: string, goal: GoalInput): Promise<Resu
       target_value: goal.targetValue ?? null,
       target_date: goal.targetDate ?? null,
       note: goal.note ?? null,
+      goal_key: goal.goalKey ?? null,
+      role: goal.role ?? null,
     })
     .select("id")
     .single<{ id: string }>();

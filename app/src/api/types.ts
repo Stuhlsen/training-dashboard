@@ -406,6 +406,23 @@ export type EventPatch = Partial<EventInput>;
 /** Ziel des eingeloggten Athleten (Settings, Etappe 9). Nur aktive Ziele
  *  werden je gelesen — ein Ziel wird nie gelöscht, nur deaktiviert
  *  (`goals.is_active`, s. Adapter). */
+/** Katalogschlüssel eines Ziels (Fahrplan 43 V1, Check in Migration 0084).
+ *  Der Katalog selbst (Labels, Zuordnung) kommt in E2 nach core/goals.js. */
+export type GoalKey =
+  | "ausdauer"
+  | "ftp"
+  | "fett_verlieren"
+  | "bergauf"
+  | "muskeln_kraft"
+  | "event"
+  | "laufen_starten"
+  | "fit_bleiben"
+  | "wiedereinstieg"
+  | "sonstiges";
+
+/** Hauptziel oder Nebenziel; je Athlet höchstens je eins aktiv (Unique-Index). */
+export type GoalRole = "main" | "side";
+
 export interface Goal {
   id: string;
   kind: string;
@@ -413,6 +430,9 @@ export interface Goal {
   targetDate: string | null;
   note: string | null;
   isActive: boolean;
+  /** null bei Altzeilen mit Freitext-`kind`. */
+  goalKey: GoalKey | null;
+  role: GoalRole | null;
 }
 
 export interface GoalInput {
@@ -420,6 +440,8 @@ export interface GoalInput {
   targetValue?: number | null;
   targetDate?: string | null;
   note?: string | null;
+  goalKey?: GoalKey | null;
+  role?: GoalRole | null;
 }
 
 export interface Checkin {
