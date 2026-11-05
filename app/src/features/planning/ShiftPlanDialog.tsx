@@ -15,11 +15,14 @@ import { useState } from "react";
 import { GlassCard } from "../../components/GlassCard";
 import { useEscapeToClose } from "../../hooks/useEscapeToClose";
 import { usePlanCards, useShiftPlan } from "../../api/hooks/usePlanCards";
+import type { ActiveSport } from "../../api/hooks/useActiveSport";
 import { useSessionProfile } from "../../api/hooks/useSession";
 import { fmtDate, localISODate } from "../../core/format.js";
 import { shiftPreview } from "./shift-plan-dialog-view-model";
 
 interface ShiftPlanDialogProps {
+  /** Fahrplan 44 E1: ausdrücklich gewählte Sportart (Modus "Alle"). */
+  sport?: ActiveSport;
   athleteId: string;
   onClose: () => void;
 }
@@ -43,10 +46,10 @@ const PRIMARY_BTN_STYLE: React.CSSProperties = {
   fontWeight: 600,
 };
 
-export function ShiftPlanDialog({ athleteId, onClose }: ShiftPlanDialogProps) {
-  const { data: cards } = usePlanCards(athleteId);
+export function ShiftPlanDialog({ athleteId, onClose, sport }: ShiftPlanDialogProps) {
+  const { data: cards } = usePlanCards(athleteId, { sport });
   const storedOffset = useSessionProfile()?.planOffsetWeeks ?? 0;
-  const { shift, isPending } = useShiftPlan(athleteId);
+  const { shift, isPending } = useShiftPlan(athleteId, sport);
 
   const [weeks, setWeeks] = useState(1);
   const [error, setError] = useState("");

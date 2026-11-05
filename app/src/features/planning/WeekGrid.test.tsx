@@ -179,3 +179,96 @@ describe("WeekGrid — Doppelbelegung im geschlossenen Raster (Bugreport 02.09.2
     expect(cell?.textContent).toContain("+1");
   });
 });
+
+/* ---------- Fahrplan 44 E1: gemeinsamer Kalender ---------- */
+
+describe("WeekGrid — gemeinsamer Kalender (Modus Alle)", () => {
+  const ride = (id: string, date: string, extra: Partial<PlanCard> = {}) =>
+    card({ id, date, sport: "ride", name: "Radfahrt", ...extra });
+  const run = (id: string, date: string, extra: Partial<PlanCard> = {}) =>
+    card({ id, date, sport: "run", name: "Dauerlauf", ...extra });
+
+  function renderShared(cards: PlanCard[], rides: unknown[] = []) {
+    const weeks = buildWeekGrid(cards, [], TODAY, undefined, undefined, 0, null, {
+      rides: rides as never,
+      weekModels: {},
+    });
+    return render(
+      <DndContext>
+        <WeekGrid
+          weeks={weeks}
+          today={TODAY}
+          canEdit
+          trainerProposalMode={false}
+          renderDetail={(cell) => <div data-testid="detail">{cell.entries.length}</div>}
+        />
+      </DndContext>,
+    );
+  }
+
+  it("zeigt Lauf und Rad am selben Tag als zwei Karten mit Sport-Text (nicht nur Farbe)", () => {
+    renderShared([ride("a", "2026-08-14"), run("b", "2026-08-14")]);
+    const cell = document.querySelector('[data-grid-cell-date="2026-08-14"]')!;
+    expect(cell.textContent).toContain("Radfahrt");
+    expect(cell.textContent).toContain("Dauerlauf");
+    // sichtbarer Sporttext je Karte
+    expect(cell.querySelectorAll("[data-sport-badge]")).toHaveLength(2);
+    expect(cell.textContent).toContain("Rad");
+    expect(cell.textContent).toContain("Lauf");
+  });
+
+  it("gibt jeder Karte einen Screenreader-Namen mit Sportart und Status", () => {
+    renderShared([ride("a", "2026-08-14"), run("b", "2026-08-14")]);
+    expect(screen.getByRole("button", { name: /Lauf, Dauerlauf, offen/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Rad, Radfahrt, offen/ })).toBeTruthy();
+  });
+
+  it("verschiedene Sportarten am Tag: keine Doppelbelegungs-Warnung", () => {
+    renderShared([ride("a", "2026-08-14"), run("b", "2026-08-14")]);
+    const cell = document.querySelector('[data-grid-cell-date="2026-08-14"]')!;
+    expect(cell.textContent).not.toContain("⚠");
+  });
+
+  it("dieselbe Sportart doppelt: Warnung bleibt (mit Text für Screenreader)", () => {
+    renderShared([run("a", "2026-08-14"), run("b", "2026-08-14", { sortOrder: 1 })]);
+    const cell = document.querySelector('[data-grid-cell-date="2026-08-14"]')!;
+    expect(cell.textContent).toContain("⚠");
+    expect(cell.textContent).toContain("Doppelbelegung");
+  });
+
+  it("erledigter Lauf trägt 'absolviert', nicht 'verpasst'", () => {
+    renderShared([run("a", "2026-08-10")], [{ dateISO: "2026-08-10", sport: "run" }]);
+    expect(screen.getByRole("button", { name: /Lauf, Dauerlauf, absolviert/ })).toBeTruthy();
+  });
+
+  it("jede Karte ist einzeln ziehbar, die Zelle bleibt Ablageziel", () => {
+    renderShared([ride("a", "2026-08-14"), run("b", "2026-08-14")]);
+    const chips = document.querySelectorAll('[data-grid-cell-date="2026-08-14"] [data-card-id]');
+    expect(chips).toHaveLength(2);
+    expect([...chips].every((c) => c.getAttribute("data-drag-enabled") === "true")).toBe(true);
+    expect(document.querySelector('[data-grid-cell-date="2026-08-14"]')?.getAttribute("data-drop-allowed")).toBe("true");
+  });
+
+  it("vergangene Karten sind nicht ziehbar", () => {
+    renderShared([run("a", "2026-08-10")]);
+    const chip = document.querySelector('[data-card-id="a"]')!;
+    expect(chip.getAttribute("data-drag-enabled")).toBe("false");
+  });
+
+  it("Klick auf eine Karte öffnet die Detailzeile des Tages mit allen Karten", () => {
+    renderShared([ride("a", "2026-08-14"), run("b", "2026-08-14")]);
+    fireEvent.click(screen.getByRole("button", { name: /Lauf, Dauerlauf/ }));
+    expect(screen.getByTestId("detail").textContent).toContain("2");
+  });
+
+  it("Wochenkopf nennt die Summe als Näherung", () => {
+    renderShared([ride("a", "2026-08-14")]);
+    expect(document.querySelector('[data-week]')?.textContent).toContain("Näherung");
+  });
+
+  it("Einzelsport-Raster bleibt ohne Sport-Abzeichen und ohne Näherungs-Hinweis", () => {
+    renderGrid([card({ id: "a", date: "2026-08-14" })]);
+    expect(document.querySelector("[data-sport-badge]")).toBeNull();
+    expect(document.querySelector("[data-week]")?.textContent).not.toContain("Näherung");
+  });
+});

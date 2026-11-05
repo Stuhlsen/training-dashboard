@@ -7,6 +7,7 @@ import {
   isCyclingActivity,
   onlyCyclingRides,
   ridesForSport,
+  sportBadge,
   sportEmoji,
 } from "./activity-sport.js";
 
@@ -76,4 +77,15 @@ test("sportEmoji: Rad ohne Symbol (Default, keine Ansichtsänderung für 1/2/4)"
   assert.equal(sportEmoji("run"), "🏃");
   assert.equal(sportEmoji("swim"), "🏊");
   assert.equal(sportEmoji("other"), "•");
+});
+
+test('sportBadge: Symbol + Text + Token je Sportart (Bedeutung nie nur über Farbe)', () => {
+  assert.deepEqual(sportBadge('ride'), { label: 'Rad', icon: '🚴', colorVar: 'var(--sport-ride)' });
+  assert.deepEqual(sportBadge('run'), { label: 'Lauf', icon: '🏃', colorVar: 'var(--sport-run)' });
+  assert.deepEqual(sportBadge('swim'), { label: 'Schwimmen', icon: '🏊', colorVar: 'var(--sport-swim)' });
+});
+
+test('sportBadge: unbekannt/fehlend ⇒ Rad (wie activitySport)', () => {
+  assert.equal(sportBadge(undefined).label, 'Rad');
+  assert.equal(sportBadge('other').label, 'Sonstiges');
 });

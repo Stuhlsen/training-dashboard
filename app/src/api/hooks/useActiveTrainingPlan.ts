@@ -21,7 +21,13 @@ import type { TrainingPlan, WeekModelEntry } from "../types";
  *  explizit. Seit Migration 0038 kann pro Sportart ein eigener aktiver Plan
  *  existieren, deshalb ist `sport` Teil des Query-Keys (s. `qk.
  *  activeTrainingPlan`). */
-export function useActiveTrainingPlan(athleteId: string, sport: "ride" | "run" | "swim" = "ride") {
+export function useActiveTrainingPlan(
+  athleteId: string,
+  sport: "ride" | "run" | "swim" = "ride",
+  /** `enabled: false` spart den Read für Sportarten, die der Athlet gar nicht
+   *  hat (gemeinsamer Kalender, Fahrplan 44 E1). */
+  opts?: { enabled?: boolean },
+) {
   const queryClient = useQueryClient();
   // `training_plans` hat keinen anon-GRANT — ohne Login kann der Read nur
   // 401en (nie ein nützliches Ergebnis). Der Planungstab ist aber öffentlich
@@ -31,7 +37,7 @@ export function useActiveTrainingPlan(athleteId: string, sport: "ride" | "run" |
   const userId = useAuthUserId();
   return useQuery({
     queryKey: qk.activeTrainingPlan(athleteId, sport),
-    enabled: !!userId,
+    enabled: !!userId && (opts?.enabled ?? true),
     queryFn: async (): Promise<TrainingPlan | null> => {
       const profileId = await fetchAthleteProfileId(queryClient, athleteId);
       if (!profileId) return null;
@@ -49,7 +55,8 @@ export function useActiveTrainingPlan(athleteId: string, sport: "ride" | "run" |
 export function useActiveWeekModel(
   athleteId: string,
   sport: "ride" | "run" | "swim" = "ride",
+  opts?: { enabled?: boolean },
 ): WeekModelEntry[] | null {
-  const model = useActiveTrainingPlan(athleteId, sport).data?.weekModel;
+  const model = useActiveTrainingPlan(athleteId, sport, opts).data?.weekModel;
   return model && model.length ? model : null;
 }

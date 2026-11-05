@@ -24,7 +24,8 @@ import { useEvents } from "../../api/hooks/useEvents";
 import { newPlanFormPatch, newPlanPresets } from "./goal-plan-view-model";
 import { useGoalPlanContext } from "./useGoalPlanContext";
 import { useRides } from "../../api/hooks/useRides";
-import { useEffectiveSport } from "../../api/hooks/useActiveSport";
+import { sportBadge } from "../../core/activity-sport.js";
+import { useEffectiveSport, type ActiveSport } from "../../api/hooks/useActiveSport";
 import { usePlanHistoryAggregate } from "../../api/hooks/usePlanHistoryAggregate";
 import { useAthleteFormats } from "../../api/hooks/useAthleteFormats";
 import { useActiveTrainingPlan } from "../../api/hooks/useActiveTrainingPlan";
@@ -99,16 +100,19 @@ interface NewPlanDialogProps {
   onClose: () => void;
   /** Nach erfolgreichem Speichern, direkt vor `onClose` — für den Hinweis „Plan verschieben…". */
   onCreated?: () => void;
+  /** Fahrplan 44 E1: ausdrücklich gewählte Sportart (Modus "Alle" bzw. Filter
+   *  der Planungsseite). Ohne Angabe gilt der globale Umschalter wie bisher. */
+  sport?: ActiveSport;
 }
 
 const NEW_EVENT_VALUE = "__new__";
 
-export function NewPlanDialog({ athleteId, onClose, onCreated }: NewPlanDialogProps) {
+export function NewPlanDialog({ athleteId, onClose, onCreated, sport }: NewPlanDialogProps) {
   useEscapeToClose(onClose);
 
   const today = localISODate();
   const cfg = athleteConfig(athleteId);
-  const { effectiveSport } = useEffectiveSport(athleteId);
+  const { effectiveSport } = useEffectiveSport(athleteId, sport);
   const { data: events } = useEvents(athleteId);
   const { data: rideData } = useRides(athleteId);
   const { aggregate } = usePlanHistoryAggregate(athleteId, effectiveSport);
@@ -119,7 +123,7 @@ export function NewPlanDialog({ athleteId, onClose, onCreated }: NewPlanDialogPr
     athleteId,
     effectiveSport
   );
-  const { data: existingCards } = usePlanCards(athleteId);
+  const { data: existingCards } = usePlanCards(athleteId, { sport });
   const profile = useSessionProfile();
   const { createPlan, isPending: saving } = useCreateTrainingPlan(athleteId);
   const { isSelf, isLoading: isSelfLoading } = useIsSelfAthlete(athleteId);
@@ -438,7 +442,7 @@ export function NewPlanDialog({ athleteId, onClose, onCreated }: NewPlanDialogPr
             color: "var(--ink)",
           }}
         >
-          Neuer Trainingsplan
+          Neuer Trainingsplan{sport ? ` — ${sportBadge(sport).label}` : ""}
         </div>
         <p style={{ margin: "8px 0 18px", fontSize: ".82rem", color: "var(--ink-3)" }}>
           Rahmenbedingungen festlegen, Vorschau prüfen, übernehmen. Der Plan lässt sich danach

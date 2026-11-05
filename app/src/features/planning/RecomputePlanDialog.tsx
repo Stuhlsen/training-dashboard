@@ -17,7 +17,8 @@ import { GlassCard } from "../../components/GlassCard";
 import { useEscapeToClose } from "../../hooks/useEscapeToClose";
 import { useActiveTrainingPlan } from "../../api/hooks/useActiveTrainingPlan";
 import { usePlanHistoryAggregate } from "../../api/hooks/usePlanHistoryAggregate";
-import { useEffectiveSport } from "../../api/hooks/useActiveSport";
+import { sportBadge } from "../../core/activity-sport.js";
+import { useEffectiveSport, type ActiveSport } from "../../api/hooks/useActiveSport";
 import { useAthleteFormats } from "../../api/hooks/useAthleteFormats";
 import { useRides } from "../../api/hooks/useRides";
 import { athleteConfig } from "../../config";
@@ -47,6 +48,9 @@ interface RecomputePlanDialogProps {
   /** Fahrplan 43 E5: „Ziele berücksichtigen" startet an — nur, wenn der Dialog
    *  über den Hinweis auf der Planungsseite geöffnet wird. Sonst aus. */
   withGoals?: boolean;
+  /** Fahrplan 44 E1: ausdrücklich gewählte Sportart (Modus "Alle" bzw. Filter
+   *  der Planungsseite). Ohne Angabe gilt der globale Umschalter wie bisher. */
+  sport?: ActiveSport;
 }
 
 const BTN_STYLE: React.CSSProperties = {
@@ -68,11 +72,11 @@ const PRIMARY_BTN_STYLE: React.CSSProperties = {
   fontWeight: 600,
 };
 
-export function RecomputePlanDialog({ athleteId, onClose, withGoals = false }: RecomputePlanDialogProps) {
+export function RecomputePlanDialog({ athleteId, onClose, withGoals = false, sport }: RecomputePlanDialogProps) {
   useEscapeToClose(onClose);
 
   const today = localISODate();
-  const { effectiveSport } = useEffectiveSport(athleteId);
+  const { effectiveSport } = useEffectiveSport(athleteId, sport);
   const { data: activePlan, isLoading: planLoading } = useActiveTrainingPlan(athleteId, effectiveSport);
   const { aggregate } = usePlanHistoryAggregate(athleteId, effectiveSport);
   const { entries: formatEntries } = useAthleteFormats();
@@ -214,7 +218,7 @@ export function RecomputePlanDialog({ athleteId, onClose, withGoals = false }: R
     >
       <GlassCard variant="strong" radius="22px" style={{ width: "100%", maxWidth: 560, padding: "26px 24px" }}>
         <div style={{ fontFamily: "var(--font-disp)", fontWeight: 700, fontSize: "1rem", color: "var(--ink)" }}>
-          Plan anpassen
+          Plan anpassen{sport ? ` — ${sportBadge(sport).label}` : ""}
         </div>
         <p style={{ margin: "8px 0 16px", fontSize: ".82rem", color: "var(--ink-3)" }}>
           Ändere Trainingstage, feste Tage oder dein Ziel. Die Restwochen werden mit deiner aktuellen

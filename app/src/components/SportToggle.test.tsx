@@ -44,4 +44,36 @@ describe("SportToggle", () => {
     expect(lauf.getAttribute("aria-pressed")).toBe("true");
     expect(localStorage.getItem("active_sport")).toBe("run");
   });
+
+  describe("Modus 'planning-filter' (Fahrplan 44 E1)", () => {
+    it("zeigt 'Alle' + die Sportarten, Standard 'Alle' aktiv", async () => {
+      const { SportToggle } = await load();
+      const { wrapper } = createHarness();
+      render(<SportToggle athleteId="athlete3" mode="planning-filter" />, { wrapper });
+      expect(screen.getByRole("button", { name: "Alle" }).getAttribute("aria-pressed")).toBe("true");
+      expect(screen.getByRole("button", { name: "Radfahren" }).getAttribute("aria-pressed")).toBe("false");
+      expect(screen.getByRole("button", { name: "Laufen" })).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Schwimmen" })).toBeTruthy();
+    });
+
+    it("Klick setzt NUR den Planungsfilter, nie den globalen Umschalter", async () => {
+      localStorage.setItem("active_sport", "ride");
+      const { SportToggle } = await load();
+      const { wrapper } = createHarness();
+      render(<SportToggle athleteId="athlete3" mode="planning-filter" />, { wrapper });
+      fireEvent.click(screen.getByRole("button", { name: "Laufen" }));
+      expect(localStorage.getItem("planning_sport_filter")).toBe("run");
+      expect(localStorage.getItem("active_sport")).toBe("ride");
+      fireEvent.click(screen.getByRole("button", { name: "Alle" }));
+      expect(localStorage.getItem("planning_sport_filter")).toBe("all");
+      expect(localStorage.getItem("active_sport")).toBe("ride");
+    });
+
+    it("rendert nichts für einen Einzelsport-Athleten (athlete1)", async () => {
+      const { SportToggle } = await load();
+      const { wrapper } = createHarness();
+      const { container } = render(<SportToggle athleteId="athlete1" mode="planning-filter" />, { wrapper });
+      expect(container.firstChild).toBeNull();
+    });
+  });
 });

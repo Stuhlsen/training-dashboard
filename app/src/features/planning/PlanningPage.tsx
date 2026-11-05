@@ -15,7 +15,8 @@ import { GlassCard } from "../../components/GlassCard";
 import { PageShell } from "../../components/PageShell";
 import { athleteConfig, hasGeneratedPlan } from "../../config";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
-import { useEffectiveSport } from "../../api/hooks/useActiveSport";
+import { useEffectiveSport, type ActiveSport } from "../../api/hooks/useActiveSport";
+import { usePlanningSportFilter } from "../../api/hooks/usePlanningSportFilter";
 import { useAthletePlanOffset } from "../../api/hooks/useAthletePlanOffset";
 import { useAthleteSports } from "../../api/hooks/useAthleteSports";
 import { useActiveTrainingPlan, useActiveWeekModel } from "../../api/hooks/useActiveTrainingPlan";
@@ -36,6 +37,7 @@ import { buildCopyInput } from "../../api/plan-cards/patch";
 import { useCreateTrainerProposal } from "../../api/hooks/useProposals";
 import { qk } from "../../api/keys";
 import { fmtDate, localISODate } from "../../core/format.js";
+import { activitySport, ridesForSport, sportBadge } from "../../core/activity-sport.js";
 import { resolveDrop } from "../../core/plan-drag.js";
 import { detectConflicts } from "../../core/conflicts.js";
 import { projectLoad } from "../../core/projection.js";
@@ -55,6 +57,8 @@ import { detectDoneFtpTest } from "./ftp-rescale-dialog-view-model";
 import { ExportImportBar } from "./ExportImportBar";
 import { BlockDialogGate } from "./BlockDialog";
 import { MoveCopyDialog } from "./MoveCopyDialog";
+import { ActionSportPicker } from "./ActionSportPicker";
+import { buildPlanningScope, buildSportScopes, type PlanningScope } from "./planning-scope-view-model";
 import { ProposalBanner } from "./ProposalBanner";
 import { ProposalList } from "./ProposalList";
 import { ProposalCompare } from "./ProposalCompare";
@@ -70,11 +74,8 @@ import { useCadenceTarget } from "../../api/hooks/useCadenceTarget";
 import { useProfileBasics } from "../../api/hooks/useProfile";
 import type { NutritionWellnessDay } from "../nutrition/nutrition-day-model";
 import { guideWeightKg } from "./session-guide-view-model";
-import { buildDoneRows, gapsChips, planFidelitySummary } from "./done-table-view-model";
 import {
-  buildPlanningSections,
   computePlanningDerivedSets,
-  matchRideForCard,
   resolvePlanningFtp,
   typeColor,
   typeIcon,
@@ -157,7 +158,21 @@ export function PlanningPage() {
   // Aktive Sportart des Umschalters (Fahrplan 12 E3) — steuert den
   // Leerzustand-Text für den Lauf-Tab. Die Kartenliste selbst filtert bereits
   // usePlanCards (select). Athlet 1/2/4 ⇒ immer "ride", kein Unterschied.
-  const { effectiveSport } = useEffectiveSport(activeAthleteId);
+  //
+  // Fahrplan 44 E1: gemeinsamer Kalender. `sportFilter` ist ein EIGENER Zustand
+  // der Planungsseite (Standard "Alle") und ändert den globalen Umschalter nie.
+  // Einzelsport-Athleten: isMultiSport=false ⇒ alles wie bisher.
+  //  - sharedMode:  "Alle" — Raster zeigt alle Sportarten, Fortschritt/Done je Sportart
+  //  - filterSport: eine Sportart gewählt — Seite verhält sich wie der alte Sport-Tab
+  const { filter: sportFilter, isMultiSport } = usePlanningSportFilter(activeAthleteId);
+  const sharedMode = isMultiSport && sportFilter === "all";
+  const filterSport: ActiveSport | undefined = isMultiSport && sportFilter !== "all" ? sportFilter : undefined;
+  const { effectiveSport } = useEffectiveSport(activeAthleteId, filterSport);
+  // Im Modus "Alle" wirken "Neuer Plan"/"Plan anpassen"/"Plan verschieben" nur
+  // auf eine ausdrücklich gewählte Sportart (ActionSportPicker) — nie still auf
+  // die zuletzt global gewählte.
+  const [actionSport, setActionSport] = useState<ActiveSport | undefined>(undefined);
+  const [pickerFor, setPickerFor] = useState<"new" | "recompute" | "shift" | null>(null);
   // Plan-Verschiebung (`profiles.plan_offset_weeks`, Migration 0026) — verschiebt
   // Ruhetag-Ableitung, Erholungs-Schattierung und Phasen-Überschriften im
   // Wochenraster + die Ruhe-Slot-Konfliktprüfung um N ganze Wochen mit. Zieht
@@ -170,7 +185,7 @@ export function PlanningPage() {
   // Fahrplan 14 E7: sport-bewusst — sonst zeigt der Lauf-/Schwimm-Tab
   // fälschlich den Status (u. a. den „Rest neu berechnen…"-Knopf) des Rad-Plans.
   const activeWeekModel = useActiveWeekModel(activeAthleteId, effectiveSport);
-  const { data: cards, isLoading, error } = usePlanCards(activeAthleteId);
+  const { data: cards, isLoading, error } = usePlanCards(activeAthleteId, { allSports: sharedMode, sport: filterSport });
   // Fahrplan 12 E6 (Nachtrag zu E4): NUR für Projektion/Konfliktprüfung —
   // K-HARTFOLGE muss einen harten Lauf nach hartem Rad übergreifend sehen.
   // Die sichtbar gerenderte Kartenliste (`cards` oben) bleibt sportgefiltert.
@@ -184,6 +199,11 @@ export function PlanningPage() {
   // `ridesAll` (ungefiltert über alle Sportarten) statt `rides`.
   const athleteSports = useAthleteSports(activeAthleteId);
   const showWeeklyVolume = athleteSports.length > 1;
+  // Fahrplan 44 E1: Wochenmodell je Sportart für Ruhetage/Phase im Kalender "Alle".
+  // Nur für Sportarten, die der Athlet hat (kein Zusatz-Read für Rad-only).
+  const rideWeekModel = useActiveWeekModel(activeAthleteId, "ride");
+  const runWeekModel = useActiveWeekModel(activeAthleteId, "run", { enabled: athleteSports.includes("run") });
+  const swimWeekModel = useActiveWeekModel(activeAthleteId, "swim", { enabled: athleteSports.includes("swim") });
   const weeklyVolume = useMemo(
     () => weeklyVolumeBySport((rideData?.ridesAll as Ride[] | undefined) ?? [], CURRENT_WEEK_KEY),
     [rideData?.ridesAll],
@@ -245,14 +265,20 @@ export function PlanningPage() {
   // computePlanningDerivedSets() (doneDates/recoveryWeeks) EINMAL geteilt
   // zwischen sections UND weekGrid unten — beide bräuchten sonst dieselbe
   // Set-/Gruppierungs-Berechnung doppelt pro Render-Zyklus.
-  const derivedSets = useMemo(() => {
-    const rides = (rideData?.rides as Ride[] | undefined) ?? [];
-    return computePlanningDerivedSets(cards ?? [], rides);
-  }, [cards, rideData]);
-  const sections = useMemo(() => {
-    const rides = (rideData?.rides as Ride[] | undefined) ?? [];
-    return buildPlanningSections(cards ?? [], rides, TODAY, derivedSets);
-  }, [cards, rideData, derivedSets]);
+  // Aktivitäten, gegen die Raster/Fortschritt rechnen: Einzelsport wie bisher
+  // (`rides`, vom globalen Umschalter gefiltert); gewählter Filter ⇒ genau diese
+  // Sportart; "Alle" ⇒ alle Sportarten (Fahrplan 44 E1) — sonst erschiene ein
+  // gelaufener Lauf als "verpasst". `ridesAll` ist ungefiltert (useRides).
+  const ridesAllList = useMemo(
+    () => (rideData?.ridesAll as Ride[] | undefined) ?? (rideData?.rides as Ride[] | undefined) ?? [],
+    [rideData],
+  );
+  const scopeRides = useMemo(() => {
+    if (sharedMode) return ridesAllList;
+    if (filterSport) return ridesForSport(ridesAllList, filterSport) as Ride[];
+    return (rideData?.rides as Ride[] | undefined) ?? [];
+  }, [sharedMode, filterSport, ridesAllList, rideData]);
+  const derivedSets = useMemo(() => computePlanningDerivedSets(cards ?? [], scopeRides), [cards, scopeRides]);
   // „Plan verschieben" ist self-only: der Offset lebt auf der eigenen
   // profiles-Zeile (RLS), ein Trainer kann ihn nicht für den Athleten setzen.
   const { isSelf } = useIsSelfAthlete(activeAthleteId);
@@ -312,40 +338,52 @@ export function PlanningPage() {
     return { projection, conflicts };
   }, [allSportCards, rideData, events, ftp, activeAthleteId, planOffsetWeeks, activeWeekModel, showWeeklyVolume]);
 
-  const doneRides = useMemo(
-    () => new Map(sections.done.map((c) => [c.id, matchRideForCard((rideData?.rides as Ride[] | undefined) ?? [], c, editable)])),
-    [sections.done, rideData, editable],
-  );
-
   // Etappe 13a: einheitliche Kalenderstruktur (alle Wochen mit ≥1 Karte,
   // Vergangenheit UND Zukunft) fürs Mo–So-Raster — ersetzt sections.weeks
   // als Datenquelle des Rasters, buildPlanningSections() bleibt weiter
   // Grundlage der Fortschritts-Statistik/Done-Liste oben.
-  const weekGrid = useMemo(() => {
-    const rides = (rideData?.rides as Ride[] | undefined) ?? [];
-    return buildWeekGrid(
-      cards ?? [],
-      rides,
-      TODAY,
+  const weekGrid = useMemo(
+    () =>
+      buildWeekGrid(
+        cards ?? [],
+        scopeRides,
+        TODAY,
+        activeAthleteId,
+        derivedSets,
+        planOffsetWeeks,
+        activeWeekModel,
+        sharedMode
+          ? { rides: scopeRides, weekModels: { ride: rideWeekModel, run: runWeekModel, swim: swimWeekModel } }
+          : undefined,
+      ),
+    [
+      cards,
+      scopeRides,
       activeAthleteId,
       derivedSets,
       planOffsetWeeks,
       activeWeekModel,
-    );
-  }, [cards, rideData, activeAthleteId, derivedSets, planOffsetWeeks, activeWeekModel]);
+      sharedMode,
+      rideWeekModel,
+      runWeekModel,
+      swimWeekModel,
+    ],
+  );
 
   // Etappe 13d: Soll/Ist-Tabellen-Projektion über sections.done — berechnet
   // nichts neu, reicht nur Zahlen aus buildDoneCompareRows()/visibleCompliance()
   // durch (s. done-table-view-model.ts Kopfkommentar).
-  const doneTableRows = useMemo(
-    () => buildDoneRows(sections.done, doneRides, activeAthleteId, ftp ?? null),
-    [sections.done, doneRides, activeAthleteId, ftp],
-  );
-  const fidelity = useMemo(
-    () => planFidelitySummary(sections.done, doneRides, TODAY),
-    [sections.done, doneRides],
-  );
-  const gaps = useMemo(() => gapsChips(sections.missed, sections.cancelled), [sections.missed, sections.cancelled]);
+  //
+  // Fahrplan 44 E1: je Sportart ein Block ("Alle"), sonst genau einer wie bisher.
+  const scopeBlocks: PlanningScope[] = useMemo(() => {
+    const common = { todayIso: TODAY, athleteId: activeAthleteId, ftp: ftp ?? null, canEdit: editable };
+    if (sharedMode) {
+      return buildSportScopes({ ...common, sports: athleteSports, cards: cards ?? [], rides: scopeRides });
+    }
+    return [buildPlanningScope({ ...common, sport: null, cards: cards ?? [], rides: scopeRides })];
+  }, [sharedMode, athleteSports, cards, scopeRides, activeAthleteId, ftp, editable]);
+  const totalDone = scopeBlocks.reduce((n, b) => n + b.sections.done.length, 0);
+  const totalUpcoming = scopeBlocks.reduce((n, b) => n + b.sections.stats.upcomingCount, 0);
 
   const forecast = (rideData?.forecast as Record<string, unknown> | undefined) ?? {};
   const wellness = (rideData?.wellness as WellnessDay[] | undefined) ?? [];
@@ -361,7 +399,7 @@ export function PlanningPage() {
   // Für TrainerBar (Etappe 7a) — die beiden useMemo-Blöcke oben halten ihr
   // eigenes, lokal geshadowtes `rides` bewusst unverändert, daher hier ein
   // eigener Name statt einer dritten Ableitung derselben Quelle.
-  const allRides = (rideData?.rides as Ride[] | undefined) ?? [];
+  const allRides = scopeRides;
   // Für ExportImportBar (Etappe 7c) — Bestwerte-Vergleich im Briefing
   // (core/progress-indicators.js::bestEffortComparison).
   const powerCurveBlocks =
@@ -374,13 +412,14 @@ export function PlanningPage() {
     () =>
       canWrite
         ? detectDoneFtpTest({
-            cards: cards ?? [],
-            rides: (rideData?.rides as Ride[] | undefined) ?? [],
-            hasActivePlan: !!activeWeekModel,
+            // FTP-Tests sind Radkarten — im gemeinsamen Kalender nur diese.
+            cards: sharedMode ? (cards ?? []).filter((c) => activitySport(c) === "ride") : (cards ?? []),
+            rides: sharedMode ? (ridesForSport(scopeRides, "ride") as Ride[]) : scopeRides,
+            hasActivePlan: !!(sharedMode ? rideWeekModel : activeWeekModel),
             todayISO: TODAY,
           })
         : null,
-    [canWrite, cards, rideData, activeWeekModel],
+    [canWrite, cards, scopeRides, activeWeekModel, sharedMode, rideWeekModel],
   );
   // localStorage direkt beim Rendern lesen (kein Effekt + setState) — der
   // Wert ändert sich nur mit `testCardId` und beim Wegklicken (das den
@@ -488,6 +527,32 @@ export function PlanningPage() {
     });
     setDeltaBanner(computeDeltaBanner(projection, afterProjection, events ?? [], TODAY, cardDateIso));
   }
+
+  // Fahrplan 44 E1: Aktionen je Sportart. Mit gewähltem Filter (oder bei einem
+  // Einzelsport-Athleten) ist die Sportart eindeutig; im Modus "Alle" fragt
+  // ActionSportPicker nach. Die Wahl gilt nur für diese eine Aktion.
+  const athleteSportList = athleteSports.filter(
+    (sp): sp is ActiveSport => sp === "ride" || sp === "run" || sp === "swim",
+  );
+  const modelledSports = athleteSportList.filter(
+    (sp) => !!{ ride: rideWeekModel, run: runWeekModel, swim: swimWeekModel }[sp],
+  );
+  const hasPlanModel = sharedMode ? modelledSports.length > 0 : !!activeWeekModel;
+  function openAction(kind: "new" | "recompute" | "shift") {
+    if (kind === "new") setNewPlanOpen(true);
+    else if (kind === "recompute") setRecomputeOpen(true);
+    else setShiftOpen(true);
+  }
+  function requestAction(kind: "new" | "recompute" | "shift") {
+    if (sharedMode) {
+      setPickerFor(kind);
+      return;
+    }
+    setActionSport(undefined);
+    openAction(kind);
+  }
+  const dialogSport = filterSport ?? actionSport;
+  const PICKER_ACTION_LABEL = { new: "Neuer Plan", recompute: "Plan anpassen", shift: "Plan verschieben" } as const;
 
   // Etappe 7a: im Vorschlagsmodus erzeugt ein Trainer über
   // createTrainerProposal(moveProposalArgs/cancelProposalArgs(...)) einen
@@ -601,7 +666,7 @@ export function PlanningPage() {
           </span>
         )}
         {canCreatePlan && (
-          <button type="button" onClick={() => setNewPlanOpen(true)} style={{ ...SECTION_ACTION_BTN_STYLE, marginLeft: "auto" }}>
+          <button type="button" onClick={() => requestAction("new")} style={{ ...SECTION_ACTION_BTN_STYLE, marginLeft: "auto" }}>
             + Neuer Plan
           </button>
         )}
@@ -676,11 +741,16 @@ export function PlanningPage() {
               color: "var(--ink)",
             }}
           >
-            <span style={{ fontSize: ".82rem", color: "var(--ink-2)", lineHeight: 1.45 }}>{goalHint.text}</span>
+            <span style={{ fontSize: ".82rem", color: "var(--ink-2)", lineHeight: 1.45 }}>
+              {sharedMode ? `${sportBadge(effectiveSport).label}: ` : ""}
+              {goalHint.text}
+            </span>
             <button
               type="button"
               onClick={() => {
                 setRecomputeWithGoals(true);
+                // Im Modus "Alle" gehört der Hinweis zur genannten Sportart.
+                setActionSport(sharedMode ? effectiveSport : undefined);
                 setRecomputeOpen(true);
               }}
               style={{ ...SECTION_ACTION_BTN_STYLE, fontWeight: 600, fontSize: ".8rem" }}
@@ -736,10 +806,10 @@ export function PlanningPage() {
         </p>
       )}
 
-      {!isLoading && !error && !weekGrid.length && !sections.done.length && (
+      {!isLoading && !error && !weekGrid.length && totalDone === 0 && (
         <GlassCard variant="soft" style={{ padding: "28px 24px", display: "flex", flexDirection: "column", gap: 12, alignItems: "flex-start" }}>
           <p style={{ margin: 0, color: "var(--ink-3)", fontSize: ".9rem" }}>
-            {effectiveSport === "run"
+            {!sharedMode && effectiveSport === "run"
               ? "Noch kein Laufplan — lege eine Karte an."
               : canCreatePlan
                 ? "Noch kein Trainingsplan angelegt."
@@ -751,13 +821,13 @@ export function PlanningPage() {
               „Plan erstellen" — für Schwimm ist das seit E6 real sport-bewusst
               statt implizit "ride" (der frühere Bug). */}
           <div style={{ display: "flex", gap: 10 }}>
-            {effectiveSport === "run" && editable && (
+            {!sharedMode && effectiveSport === "run" && editable && (
               <button type="button" onClick={() => setDialog("new")} style={SECTION_ACTION_BTN_STYLE}>
                 + Karte
               </button>
             )}
             {canCreatePlan && (
-              <button type="button" onClick={() => setNewPlanOpen(true)} style={SECTION_ACTION_BTN_STYLE}>
+              <button type="button" onClick={() => requestAction("new")} style={SECTION_ACTION_BTN_STYLE}>
                 Plan erstellen
               </button>
             )}
@@ -765,41 +835,58 @@ export function PlanningPage() {
         </GlassCard>
       )}
 
-      {!isLoading && !error && (weekGrid.length > 0 || sections.done.length > 0) && (
+      {!isLoading && !error && (weekGrid.length > 0 || totalDone > 0) && (
         <>
-          <GlassCard variant="soft" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: 16 }}>
+          {scopeBlocks.map((scope, idx) => (
+          <GlassCard
+            key={scope.sport ?? "single"}
+            variant="soft"
+            style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: 16 }}
+          >
             <div>
-              <h2 style={{ margin: "0 0 4px", fontFamily: "var(--font-disp)", fontSize: "1.15rem", color: "var(--ink)" }}>
-                {heroTitle}
-              </h2>
-              <p style={{ margin: 0, fontSize: ".84rem", color: "var(--ink-3)" }}>{heroDesc}</p>
+              {/* Fahrplan 44 E1: im Modus "Alle" je Sportart ein Block — Sportart
+                  steht als Symbol + Text in der Überschrift. */}
+              {scope.sport ? (
+                <h2 style={{ margin: "0 0 4px", fontFamily: "var(--font-disp)", fontSize: "1.15rem", color: "var(--ink)" }}>
+                  <span aria-hidden="true">{sportBadge(scope.sport).icon} </span>
+                  {heroTitle} — {sportBadge(scope.sport).label}
+                </h2>
+              ) : (
+                <h2 style={{ margin: "0 0 4px", fontFamily: "var(--font-disp)", fontSize: "1.15rem", color: "var(--ink)" }}>
+                  {heroTitle}
+                </h2>
+              )}
+              {(scope.sport === null || idx === 0) && (
+                <p style={{ margin: 0, fontSize: ".84rem", color: "var(--ink-3)" }}>{heroDesc}</p>
+              )}
             </div>
 
             <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-              <Stat value={sections.stats.doneCount} label="absolviert" />
-              <Stat value={sections.stats.upcomingCount} label="ausstehend" />
-              <Stat value={sections.stats.weeksLeft} label="Wochen" />
+              <Stat value={scope.sections.stats.doneCount} label="absolviert" />
+              <Stat value={scope.sections.stats.upcomingCount} label="ausstehend" />
+              <Stat value={scope.sections.stats.weeksLeft} label="Wochen" />
               <Stat
-                value={sections.stats.currentWeekLabel ? weekDisplayLabels([sections.stats.currentWeekLabel])[0] : "–"}
+                value={scope.sections.stats.currentWeekLabel ? weekDisplayLabels([scope.sections.stats.currentWeekLabel])[0] : "–"}
                 label="aktuell"
               />
-              {sections.stats.cancelledCount > 0 && (
-                <Stat value={sections.stats.cancelledCount} label="ausgefallen" color="var(--danger)" />
+              {scope.sections.stats.cancelledCount > 0 && (
+                <Stat value={scope.sections.stats.cancelledCount} label="ausgefallen" color="var(--danger)" />
               )}
-              {sections.stats.missedCount > 0 && (
-                <Stat value={sections.stats.missedCount} label="verpasst" color="var(--gold)" />
+              {scope.sections.stats.missedCount > 0 && (
+                <Stat value={scope.sections.stats.missedCount} label="verpasst" color="var(--gold)" />
               )}
             </div>
 
             <div>
               <div style={{ height: 6, borderRadius: 3, background: "rgba(255,255,255,.08)", overflow: "hidden" }}>
-                <div style={{ height: "100%", width: `${sections.stats.pct}%`, background: "var(--ss)" }} />
+                <div style={{ height: "100%", width: `${scope.sections.stats.pct}%`, background: "var(--ss)" }} />
               </div>
               <div style={{ marginTop: 6, fontSize: ".76rem", color: "var(--ink-3)" }}>
-                {sections.stats.pct}% abgeschlossen · {sections.stats.totalSessions} Sessions gesamt
+                {scope.sections.stats.pct}% abgeschlossen · {scope.sections.stats.totalSessions} Sessions gesamt
               </div>
             </div>
           </GlassCard>
+          ))}
 
           {shiftHintFor === activeAthleteId && editable && canShiftPlan && (
             <GlassCard
@@ -843,20 +930,20 @@ export function PlanningPage() {
           {weekGrid.length > 0 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                <span style={SECTION_TITLE_STYLE}>📅 Ausstehend — {sections.stats.upcomingCount} Sessions</span>
+                <span style={SECTION_TITLE_STYLE}>📅 Ausstehend — {totalUpcoming} Sessions</span>
                 {editable && (
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {canShiftPlan && (
-                      <button type="button" onClick={() => setShiftOpen(true)} style={SECTION_ACTION_BTN_STYLE}>
+                      <button type="button" onClick={() => requestAction("shift")} style={SECTION_ACTION_BTN_STYLE}>
                         Plan verschieben…
                       </button>
                     )}
-                    {!!activeWeekModel && (
+                    {hasPlanModel && (
                       <button
                         type="button"
                         onClick={() => {
                           setRecomputeWithGoals(false);
-                          setRecomputeOpen(true);
+                          requestAction("recompute");
                         }}
                         style={SECTION_ACTION_BTN_STYLE}
                       >
@@ -903,7 +990,9 @@ export function PlanningPage() {
                           weightKg={weightKg}
                           intervalsCredentials={intervalsCredentials}
                           trainerProposalMode={trainerProposalMode}
-                          rides={allRides}
+                          // Im Modus "Alle" nur Aktivitäten der Karten-Sportart — sonst
+                          // fände eine Radkarte die Lauf-Aktivität desselben Tages.
+                          rides={sharedMode ? (ridesForSport(ridesAllList, activitySport(card)) as Ride[]) : allRides}
                           conflicts={conflicts}
                           projection={projection}
                           ftp={ftp}
@@ -934,12 +1023,24 @@ export function PlanningPage() {
             </div>
           )}
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <span style={SECTION_TITLE_STYLE}>✅ Absolviert — {sections.done.length}</span>
+          {scopeBlocks.map((scope) => (
+          <div key={scope.sport ?? "single"} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <span style={SECTION_TITLE_STYLE}>
+              ✅ Absolviert
+              {scope.sport && (
+                <>
+                  {" · "}
+                  <span aria-hidden="true">{sportBadge(scope.sport).icon} </span>
+                  {sportBadge(scope.sport).label}
+                </>
+              )}
+              {" — "}
+              {scope.sections.done.length}
+            </span>
             <DoneTable
-              rows={doneTableRows}
-              fidelity={fidelity}
-              gaps={gaps}
+              rows={scope.doneRows}
+              fidelity={scope.fidelity}
+              gaps={scope.gaps}
               athleteId={activeAthleteId}
               ftp={ftp ?? null}
               cadenceTarget={cadenceTarget}
@@ -949,6 +1050,7 @@ export function PlanningPage() {
               )}
             />
           </div>
+          ))}
         </>
       )}
 
@@ -959,12 +1061,14 @@ export function PlanningPage() {
           onClose={() => setDialog("closed")}
           isTrainerSaving={isTrainer}
           saveMode={saveMode}
+          defaultSport={filterSport}
         />
       )}
 
       {newPlanOpen && (
         <NewPlanDialog
           athleteId={activeAthleteId}
+          sport={dialogSport}
           onClose={() => setNewPlanOpen(false)}
           onCreated={() => setShiftHintFor(activeAthleteId)}
         />
@@ -974,7 +1078,22 @@ export function PlanningPage() {
         <RecomputePlanDialog
           athleteId={activeAthleteId}
           withGoals={recomputeWithGoals}
+          sport={dialogSport}
           onClose={() => setRecomputeOpen(false)}
+        />
+      )}
+
+      {pickerFor && (
+        <ActionSportPicker
+          action={PICKER_ACTION_LABEL[pickerFor]}
+          sports={pickerFor === "recompute" ? modelledSports : athleteSportList}
+          onClose={() => setPickerFor(null)}
+          onPick={(picked) => {
+            const kind = pickerFor;
+            setActionSport(picked);
+            setPickerFor(null);
+            openAction(kind);
+          }}
         />
       )}
 
@@ -989,6 +1108,7 @@ export function PlanningPage() {
       {shiftOpen && (
         <ShiftPlanDialog
           athleteId={activeAthleteId}
+          sport={dialogSport}
           onClose={() => {
             setShiftOpen(false);
             recordDelta();

@@ -62,4 +62,18 @@ describe("useEffectiveSport", () => {
     expect(result.current.effectiveSport).toBe("run");
     expect(result.current.sports).toEqual(["ride", "run", "swim"]);
   });
+
+  it("sportOverride (Fahrplan 44 E1) wirkt, ohne den globalen Umschalter zu ändern", () => {
+    localStorage.setItem("active_sport", "ride");
+    const { wrapper } = createHarness();
+    const { result } = renderHook(() => useEffectiveSport("athlete3", "run"), { wrapper });
+    expect(result.current.effectiveSport).toBe("run");
+    expect(localStorage.getItem("active_sport")).toBe("ride");
+  });
+
+  it("sportOverride, den der Athlet nicht hat, wird ignoriert (athlete1 ⇒ ride)", () => {
+    const { wrapper } = createHarness();
+    const { result } = renderHook(() => useEffectiveSport("athlete1", "run"), { wrapper });
+    expect(result.current.effectiveSport).toBe("ride");
+  });
 });

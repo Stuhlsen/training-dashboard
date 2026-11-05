@@ -4,7 +4,7 @@ import { InfoTooltip } from "../../components/InfoTooltip";
 import { addProposalArgs, replaceProposalArgs } from "../../core/proposal-payload.js";
 import { useCreatePlanCard, useDeletePlanCard, useUpdatePlanCard } from "../../api/hooks/usePlanCards";
 import { useCreateTrainerProposal } from "../../api/hooks/useProposals";
-import { useEffectiveSport } from "../../api/hooks/useActiveSport";
+import { useEffectiveSport, type ActiveSport } from "../../api/hooks/useActiveSport";
 import { useAthleteSports } from "../../api/hooks/useAthleteSports";
 import { fmtPace, paceSecFromSpeedKmh } from "../../core/format.js";
 import type { PlanCard, PlanCardInput } from "../../api/types";
@@ -40,6 +40,9 @@ interface PlanCardFormProps {
    *  für den Trainer IMMER Vorschlag). */
   isTrainerSaving?: boolean;
   saveMode?: SaveMode;
+  /** Fahrplan 44 E1: Vorbelegung des Sport-Pickers aus dem Planungsfilter
+   *  (nur bei einer gewählten Sportart); sonst der globale Umschalter. */
+  defaultSport?: ActiveSport;
 }
 
 const LABEL_STYLE: React.CSSProperties = {
@@ -80,6 +83,7 @@ export function PlanCardForm({
   onClose,
   isTrainerSaving = false,
   saveMode = "proposal",
+  defaultSport,
 }: PlanCardFormProps) {
   // Sport-Picker nur bei Athleten mit > 1 Sportart (Fahrplan 12 E3/G20) —
   // Athlet 1/2/4 sehen ihn nie, `sport` bleibt für sie fest "ride". Eine
@@ -90,7 +94,7 @@ export function PlanCardForm({
   // bliebe ein über Settings freigeschalteter Sport im Formular unsichtbar.
   const sports = useAthleteSports(athleteId);
   const pickerVisible = showSportPicker(sports) && !isSwimCard;
-  const { effectiveSport } = useEffectiveSport(athleteId);
+  const { effectiveSport } = useEffectiveSport(athleteId, defaultSport);
   const initialSport: PlanFormSport =
     editingCard?.sport === "run"
       ? "run"

@@ -66,6 +66,15 @@
   --thr: #d94f4f;
   --vo2: #a24ad0;
 
+  /* Sportarten (Fahrplan 44 E1, gemeinsamer Kalender). Eigener Namensraum
+     neben den Zonenfarben: Farbtöne (oklch-H) liegen ≥ 30° von allen Zonen-/
+     Status-Farben und voneinander entfernt (Test: styles/sport-tokens.test.ts).
+     Nur als Abzeichen-Text/-Punkt neben Symbol + Beschriftung — die Farbe
+     trägt nie allein die Bedeutung. */
+  --sport-ride: oklch(0.8 0.1 200);
+  --sport-run: oklch(0.8 0.12 350);
+  --sport-swim: oklch(0.8 0.1 280);
+
   /* Radien */
   --radius: 12px;
   --radius-sm: 8px;
