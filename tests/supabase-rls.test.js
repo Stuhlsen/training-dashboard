@@ -1617,7 +1617,10 @@ if (!HAS_CREDS) {
   test("training_plans.plan_group_id: Athlet schreibt und liest die Gruppe der eigenen Zeile; ohne Angabe bleibt sie null (0085)", async (t) => {
     if (planSkip()) return t.skip(planSkip());
     const groupId = randomUUID();
-    const grouped = await insertPlanRow(athlete.token, { is_active: false, plan_group_id: groupId });
+    const grouped = await insertPlanRow(athlete.token, {
+      is_active: false,
+      plan_group_id: groupId,
+    });
     const plain = await insertPlanRow(athlete.token, { is_active: false });
 
     const read = await rest(
@@ -1625,7 +1628,11 @@ if (!HAS_CREDS) {
       `training_plans?id=in.(${grouped},${plain})&select=id,plan_group_id`,
       { token: athlete.token }
     );
-    assert.equal(read.ok, true, `plan_group_id nicht lesbar — Migration 0085 eingespielt? ${JSON.stringify(read.data)}`);
+    assert.equal(
+      read.ok,
+      true,
+      `plan_group_id nicht lesbar — Migration 0085 eingespielt? ${JSON.stringify(read.data)}`
+    );
     assert.equal(read.data.find((r) => r.id === grouped).plan_group_id, groupId);
     assert.equal(
       read.data.find((r) => r.id === plain).plan_group_id,
@@ -1672,11 +1679,19 @@ if (!HAS_CREDS) {
       token: stranger.token,
       body: { plan_group_id: randomUUID() },
     });
-    assert.equal(patch.ok && patch.data.length > 0, false, "Fremder darf plan_group_id nicht ändern");
+    assert.equal(
+      patch.ok && patch.data.length > 0,
+      false,
+      "Fremder darf plan_group_id nicht ändern"
+    );
     const after = await rest("GET", `training_plans?id=eq.${id}&select=plan_group_id`, {
       token: athlete.token,
     });
-    assert.equal(after.data[0].plan_group_id, groupId, "plan_group_id der fremden Zeile blieb unverändert");
+    assert.equal(
+      after.data[0].plan_group_id,
+      groupId,
+      "plan_group_id der fremden Zeile blieb unverändert"
+    );
 
     const insert = await rest("POST", "training_plans", {
       token: stranger.token,
@@ -1691,7 +1706,9 @@ if (!HAS_CREDS) {
 
   test("training_plans.plan_group_id: anon kann die Spalte nicht lesen (kein GRANT, 0085)", async (t) => {
     if (planSkip()) return t.skip(planSkip());
-    const anonRead = await rest("GET", "training_plans?select=plan_group_id&limit=1", { token: null });
+    const anonRead = await rest("GET", "training_plans?select=plan_group_id&limit=1", {
+      token: null,
+    });
     assert.equal(anonRead.ok, false);
   });
 
