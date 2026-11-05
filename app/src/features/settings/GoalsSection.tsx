@@ -13,6 +13,8 @@
 
 import { useMemo, useState } from "react";
 import { useGoals, useReplaceGoal, useDeactivateGoal } from "../../api/hooks/useGoals";
+import { useAddNutritionGoal } from "../../api/hooks/useNutritionGoals";
+import { useProfileBasics } from "../../api/hooks/useProfile";
 import { useSessionProfile } from "../../api/hooks/useSession";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
 import { useAthleteSports } from "../../api/hooks/useAthleteSports";
@@ -22,6 +24,16 @@ import { useIsSelfAthlete } from "../../api/hooks/useWriteAuthorization";
 import { useFtpHistoryEntries } from "../planning/useFtpHistoryEntries";
 import { resolveMeasuredFtp } from "../planning/new-plan-dialog-view-model";
 import { localISODate } from "../../core/format.js";
+import { resolveWeight, type NutritionWellnessDay } from "../nutrition/nutrition-day-model";
+import {
+  buildLoseInput,
+  endGoalWithNutrition,
+  paceFieldFor,
+  planOnEnd,
+  planOnSave,
+  saveGoalWithNutrition,
+  setsDeficit,
+} from "./goal-nutrition-sync";
 import type { Goal, GoalKey, GoalRole } from "../../api/types";
 import {
   buildFtpCheck,
@@ -86,7 +98,7 @@ const GHOST_BUTTON_STYLE = {
 } as const;
 
 function emptyForm(role: GoalRole): GoalFormState {
-  return { goalKey: "", role, targetValue: "", targetDate: "", freeText: "" };
+  return { goalKey: "", role, targetValue: "", targetDate: "", freeText: "", pace: "", targetWeight: "" };
 }
 
 function FtpCheck({ view }: { view: FtpCheckView }) {
@@ -165,6 +177,8 @@ export function GoalsSection() {
   const { goals, isLoading } = useGoals();
   const { replace, isPending: isSaving } = useReplaceGoal();
   const { deactivate, isPending: isEnding } = useDeactivateGoal();
+  const { add: addNutritionGoal, isPending: isWritingNutrition } = useAddNutritionGoal();
+  const { data: basics } = useProfileBasics();
 
   // Sportarten und eFTP-Daten: wie Hero/Analyse über den aktiven Athleten.
   // Ziele hängen am eingeloggten Profil — Sportfilter und Check nur anwenden,
@@ -205,8 +219,22 @@ export function GoalsSection() {
   const fields = fieldsFor(form.goalKey);
   const hint = conflictHint(groups, open ? { goalKey: form.goalKey, role: form.role } : null);
   const replacing = open && form.goalKey ? replaceNotice(groups, form.role) : "";
-  const busy = isSaving || isEnding;
+  const busy = isSaving || isEnding || isWritingNutrition;
+  // Fahrplan 43 E6: Tempo und Zielgewicht nur, wenn der Entwurf ein Defizit setzt
+  // (Fett verlieren, und das Profil des Hauptziels lässt die Energie offen).
+  const weightKg =
+    resolveWeight((wellness ?? []) as unknown as NutritionWellnessDay[], basics?.weightKg ?? null, todayISO)?.weightKg ??
+    null;
+  const draft = form.goalKey ? { goalKey: form.goalKey, role: form.role } : null;
+  const deficit = draft ? setsDeficit(groups, draft) : false;
+  const paceField = deficit ? paceFieldFor(weightKg) : null;
+  const deficitIsSideNote =
+    open && form.goalKey === "fett_verlieren" && !deficit
+      ? "Als Nebenziel hinter deinem Hauptziel bleibt die Ernährung bei „halten“. Es gibt kein Tempo und kein Defizit."
+      : "";
   const isEmpty = !groups.main && !groups.side && groups.legacy.length === 0;
+
+  const syncDeps = { replace, deactivate, addNutritionGoal };
 
   function patch(update: Partial<GoalFormState>) {
     setError("");
@@ -228,9 +256,28 @@ export function GoalsSection() {
       return;
     }
     const old = replacementFor(groups, form.role);
-    const result = await replace(old?.id ?? null, built.input);
-    if (!result.ok) {
-      setError(saveErrorMessage(result.error?.message, old != null));
+
+    // Ernährung nachziehen (Fahrplan 43 E6): bei Defizit zuerst Tempo und Zielgewicht prüfen.
+    // Ein zu hoher Wert wird abgelehnt, nie still geändert.
+    let lose = null;
+    if (built.input.goalKey && setsDeficit(groups, { goalKey: built.input.goalKey, role: form.role })) {
+      const l = buildLoseInput({
+        pace: form.pace ?? "",
+        targetWeight: form.targetWeight ?? "",
+        targetDate: form.targetDate,
+        weightKg,
+      });
+      if (!l.ok) {
+        setError(l.message);
+        return;
+      }
+      lose = l.input;
+    }
+    const plan = planOnSave(groups, { goalKey: built.input.goalKey!, role: form.role }, lose);
+
+    const outcome = await saveGoalWithNutrition(syncDeps, { oldGoalId: old?.id ?? null, goalInput: built.input, plan });
+    if (!outcome.ok) {
+      setError(outcome.stage === "goal" ? saveErrorMessage(outcome.message, old != null) : outcome.message);
       return;
     }
     setOpen(false);
@@ -238,8 +285,12 @@ export function GoalsSection() {
 
   async function handleEnd(goalId: string) {
     setEndError("");
-    const result = await deactivate(goalId);
-    if (!result.ok) setEndError("Das Ziel konnte nicht beendet werden.");
+    const outcome = await endGoalWithNutrition(syncDeps, { goalId, plan: planOnEnd(groups, goalId) });
+    if (!outcome.ok) {
+      setEndError(
+        outcome.stage === "maintain" ? outcome.message : "Das Ziel konnte nicht beendet werden.",
+      );
+    }
   }
 
   return (
@@ -366,6 +417,42 @@ export function GoalsSection() {
               style={INPUT_STYLE}
             />
           </label>
+
+          {paceField?.kind === "ok" && (
+            <>
+              <label style={LABEL_STYLE}>
+                Tempo (kg pro Woche)
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step="0.05"
+                  min="0.05"
+                  required
+                  value={form.pace ?? ""}
+                  onChange={(e) => patch({ pace: e.target.value })}
+                  aria-describedby="goal-pace-hint"
+                  style={INPUT_STYLE}
+                />
+              </label>
+              <p id="goal-pace-hint" style={INFO_STYLE}>
+                {paceField.text}
+              </p>
+              <label style={LABEL_STYLE}>
+                Zielgewicht in kg (optional)
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step="any"
+                  min="1"
+                  value={form.targetWeight ?? ""}
+                  onChange={(e) => patch({ targetWeight: e.target.value })}
+                  style={INPUT_STYLE}
+                />
+              </label>
+            </>
+          )}
+          {paceField?.kind === "no-weight" && <p style={INFO_STYLE}>{paceField.text}</p>}
+          {deficitIsSideNote && <p style={INFO_STYLE}>{deficitIsSideNote}</p>}
 
           {fields.notice && <p style={INFO_STYLE}>{fields.notice}</p>}
           {replacing && <p style={INFO_STYLE}>{replacing}</p>}

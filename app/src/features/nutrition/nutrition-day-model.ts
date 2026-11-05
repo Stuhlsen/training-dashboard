@@ -19,7 +19,9 @@
      aus dem geplanten TSS. Kein Karteneintrag = Ruhetag.
    ============================================================ */
 
-import { estimateDailyGoal } from "../../core/nutrition.js";
+import { estimateCarbTarget, estimateDailyGoal, proteinRangeG } from "../../core/nutrition.js";
+import { intensityClassForCard } from "../../core/plan-config.js";
+import { addDaysISO } from "../../core/format.js";
 import { expandWorkoutPhases } from "../../core/workout-math.js";
 import { activitySport } from "../../core/activity-sport.js";
 import type { NutritionGoal, PlanCard } from "../../api/types";
@@ -45,6 +47,31 @@ export interface NutritionProfileInput {
   sex: "m" | "f" | null;
 }
 
+/** Was die aktiven Ziele (`goals`, Fahrplan 43) für die Ernährung bedeuten.
+ *  Fehlt das Feld, rechnet alles wie vor E6. */
+export interface DayGoalProfile {
+  /** Ziel „Fett verlieren“ ist aktiv (Haupt- oder Nebenziel): strenger Boden, Defizit-Regeln. */
+  fatLoss: boolean;
+  /** Eiweiß in g pro kg Körpergewicht, falls das Profil einen Bereich liefert */
+  protein: { min: number; max: number } | null;
+  carbs: { followLoad?: boolean; hardDaysFueled?: boolean } | null;
+}
+
+/** Zusatzangaben zum Tagesziel, nur mit `goals`. */
+export interface DayGoalInfo {
+  strictFloor: boolean;
+  /** Warum ein geplantes Defizit heute entfällt, sonst null */
+  deficitBlockedReason: "no-body-fat" | "hard-day" | null;
+  /** Für den Folgetag steht nichts im Plan; ein Defizit bleibt deshalb bestehen */
+  nextDayUnknown: boolean;
+  /** Energieverfügbarkeit im Bereich 30 bis 45 kcal/kg Magermasse */
+  eaWarn: boolean;
+  /** Das gespeicherte Tempo lag über dem Deckel und wurde dafür gekürzt */
+  paceCapped: boolean;
+  proteinG: { min: number; max: number } | null;
+  carbsG: [number, number] | null;
+}
+
 export interface NutritionDayInput {
   dateISO: string;
   profile: NutritionProfileInput | null;
@@ -54,6 +81,8 @@ export interface NutritionDayInput {
   cards: readonly PlanCard[];
   /** Aktuelle FTP in Watt, oder null */
   ftpWatts: number | null;
+  /** Wirkung der aktiven Ziele; fehlt = wie vor Fahrplan 43 E6 */
+  goals?: DayGoalProfile | null;
 }
 
 export type MissingField = "Gewicht" | "Körpergröße" | "Geburtsdatum";
@@ -77,6 +106,8 @@ export type NutritionDay =
       weightKg: number;
       weightSource: "wellness" | "profile";
       sourceKeys: string[];
+      /** Nur wenn `goals` übergeben wurde */
+      goalInfo?: DayGoalInfo;
     }
   | { ok: false; missing: MissingField[]; hint: string | null };
 
@@ -184,10 +215,42 @@ export function sessionForDay(
   return { session: { watt: (totalKJ * 1000) / (totalMin * 60), min: totalMin }, unknown };
 }
 
+/* ── Härte der Tage (Fahrplan 43 E6) ─────────────────────── */
+
+/** Härte kommt aus der Intensitätsklasse der Karte (PlanCard trägt kein `isQuality`;
+ *  das gibt es nur im Plan-Generator). Abgesagte Karten zählen nicht. */
+const isHardCard = (card: PlanCard): boolean => !card.cancelled && intensityClassForCard(card) === "hart";
+
+/** `hardTomorrow` ist `null`, wenn der Plan nichts ab morgen enthält: dann ist der
+ *  Folgetag unbekannt (kein Karteneintrag heißt sonst Ruhetag, hier aber nur „Plan zu Ende“). */
+function hardDayFlags(
+  cards: readonly PlanCard[],
+  dateISO: string,
+): { hardDay: boolean; hardTomorrow: boolean | null } {
+  const tomorrow = addDaysISO(dateISO, 1) as string;
+  const hardDay = cards.some((c) => c.date === dateISO && isHardCard(c));
+  const planReachesTomorrow = cards.some((c) => c.date >= tomorrow && !c.cancelled);
+  if (!planReachesTomorrow) return { hardDay, hardTomorrow: null };
+  return { hardDay, hardTomorrow: cards.some((c) => c.date === tomorrow && isHardCard(c)) };
+}
+
+/** Kohlenhydrat-Band aus estimateCarbTarget (keine zweite Rechnung), nach Profil:
+ *  followLoad = jeden Tag, hardDaysFueled = nur an harten Tagen. */
+function carbsForDay(
+  carbs: DayGoalProfile["carbs"],
+  weightKg: number,
+  plannedDurationMin: number,
+  hardDay: boolean,
+): [number, number] | null {
+  if (!carbs || !(carbs.followLoad || (carbs.hardDaysFueled && hardDay))) return null;
+  const r = estimateCarbTarget({ weightKg, plannedDurationMin });
+  return r.ok ? (r.gramRange as [number, number]) : null;
+}
+
 /* ── Hauptfunktion ─────────────────────────────────────────── */
 
 export function buildNutritionDay(input: NutritionDayInput): NutritionDay {
-  const { dateISO, profile, wellness, goal, cards, ftpWatts } = input;
+  const { dateISO, profile, wellness, goal, cards, ftpWatts, goals } = input;
 
   const weight = resolveWeight(wellness, profile?.weightKg ?? null, dateISO);
   const age = ageOn(profile?.birthdate ?? null, dateISO);
@@ -204,6 +267,7 @@ export function buildNutritionDay(input: NutritionDayInput): NutritionDay {
   // Nur gemessenes Körperfett (Prozent → Dezimal), nie ein Standardwert
   const bodyFat = latestWellness(wellness, dateISO, (w) => w.bodyFat);
   const { session, unknown } = sessionForDay(cards, dateISO, ftpWatts);
+  const flags = goals ? hardDayFlags(cards, dateISO) : null;
 
   const r = estimateDailyGoal({
     profile: {
@@ -222,10 +286,11 @@ export function buildNutritionDay(input: NutritionDayInput): NutritionDay {
         }
       : undefined,
     session: session ?? undefined,
+    goalContext: goals?.fatLoss && flags ? { fatLoss: true, ...flags } : undefined,
   });
   if (!r.ok) return { ok: false, missing: [], hint: r.hint };
 
-  return {
+  const day: Extract<NutritionDay, { ok: true }> = {
     ok: true,
     dateISO,
     target: r.target,
@@ -241,5 +306,27 @@ export function buildNutritionDay(input: NutritionDayInput): NutritionDay {
     weightKg: weight.weightKg,
     weightSource: weight.source,
     sourceKeys: r.source,
+  };
+  if (!goals || !flags) return day;
+
+  // Die Zusatzfelder liefert estimateDailyGoal nur mit Zielkontext (Fett verlieren).
+  const extra = r as {
+    strictFloor?: boolean;
+    deficitBlockedReason?: "no-body-fat" | "hard-day" | null;
+    nextDayUnknown?: boolean;
+    eaWarn?: boolean;
+    paceCapped?: boolean;
+  };
+  return {
+    ...day,
+    goalInfo: {
+      strictFloor: extra.strictFloor ?? false,
+      deficitBlockedReason: extra.deficitBlockedReason ?? null,
+      nextDayUnknown: extra.nextDayUnknown ?? false,
+      eaWarn: extra.eaWarn ?? false,
+      paceCapped: extra.paceCapped ?? false,
+      proteinG: proteinRangeG(goals.protein, weight.weightKg),
+      carbsG: carbsForDay(goals.carbs, weight.weightKg, session?.min ?? 0, flags.hardDay),
+    },
   };
 }

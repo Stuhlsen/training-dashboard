@@ -126,6 +126,10 @@ export interface GoalFormState {
   targetValue: string;
   targetDate: string;
   freeText: string;
+  /** Tempo in kg pro Woche (nur bei Ziel „Fett verlieren“, Fahrplan 43 E6) */
+  pace?: string;
+  /** Zielgewicht in kg, optional (nur bei Ziel „Fett verlieren“) */
+  targetWeight?: string;
 }
 
 export type BuildGoalResult = { ok: true; input: GoalInput } | { ok: false; message: string };

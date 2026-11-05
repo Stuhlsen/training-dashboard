@@ -31,6 +31,7 @@ import { WeekView } from "./WeekView";
 import { ShoppingListView } from "./ShoppingListView";
 import { RecipesView } from "./RecipesView";
 import { DecisionBanner } from "./DecisionBanner";
+import { LoadWarningNote } from "./LoadWarningNote";
 
 const CARD_STYLE: CSSProperties = { padding: "28px 32px", marginBottom: 20 };
 const HEADING_STYLE: CSSProperties = {
@@ -140,7 +141,7 @@ export function NutritionPage() {
 function NutritionDayView({ athleteId, userId }: { athleteId: string; userId: string }) {
   const today = localISODate();
   const { data: basics } = useProfileBasics();
-  const { day, isLoading } = useNutritionDay(athleteId, today);
+  const { day, loadWarning, isLoading } = useNutritionDay(athleteId, today);
 
   // localStorage direkt beim Rendern lesen (kein Effekt + setState — Lint-Regel
   // react-hooks/set-state-in-effect), Muster wie PlanningPage.tsx. Der Wert
@@ -198,6 +199,7 @@ function NutritionDayView({ athleteId, userId }: { athleteId: string; userId: st
       {day.ok ? (
         <>
           <DecisionBanner key={userId} userId={userId} />
+          {loadWarning && <LoadWarningNote key={loadWarning.weekKey} warning={loadWarning} userId={userId} />}
           <ViewSwitch view={view} onChange={setView} />
           {view === "week" ? (
             // die Tagesziel-Karte sitzt im Kopf der Tagesbühne (WeekView)

@@ -13,6 +13,7 @@ import { useMemo } from "react";
 import { useProfileBasics } from "../../api/hooks/useProfile";
 import { useRides } from "../../api/hooks/useRides";
 import { useActiveNutritionGoal } from "../../api/hooks/useNutritionGoals";
+import { useGoals } from "../../api/hooks/useGoals";
 import { usePlanCards } from "../../api/hooks/usePlanCards";
 import { useFtpHistory } from "../../api/hooks/useFtpHistory";
 import { athleteConfig } from "../../config";
@@ -24,9 +25,11 @@ import {
   type NutritionDay,
   type NutritionWellnessDay,
 } from "./nutrition-day-model";
+import { buildLoadWarning, dayGoalProfileFrom, type LoadRide } from "./nutrition-goal-model";
 
 const EMPTY_WELLNESS: readonly NutritionWellnessDay[] = [];
 const EMPTY_CARDS: readonly PlanCard[] = [];
+const EMPTY_RIDES: readonly LoadRide[] = [];
 
 /** Tagesziel für `dateISO` des angezeigten Athleten. `day` ist `null`, solange
  *  die Profil-Basisdaten noch laden. */
@@ -34,6 +37,9 @@ export function useNutritionDay(athleteId: string, dateISO: string) {
   const basics = useProfileBasics();
   const rides = useRides(athleteId);
   const { goal, isLoading: goalLoading } = useActiveNutritionGoal();
+  // Aktive Ziele (Fahrplan 43 E6): ohne passendes Ziel bleibt `goalProfile` null und alles rechnet wie zuvor.
+  const { goals, isLoading: goalsLoading } = useGoals();
+  const goalProfile = useMemo(() => dayGoalProfileFrom(goals), [goals]);
   // allSports: die Rad-Karten sind für die Trainingsenergie nötig, egal welcher
   // Sport im Umschalter steht (die Filterung auf "ride" macht das Modell).
   const cards = usePlanCards(athleteId, { allSports: true });
@@ -41,6 +47,7 @@ export function useNutritionDay(athleteId: string, dateISO: string) {
 
   const wellness = (rides.data?.wellness as NutritionWellnessDay[] | undefined) ?? EMPTY_WELLNESS;
   const planCards = cards.data ?? EMPTY_CARDS;
+  const rideList = (rides.data?.rides as LoadRide[] | undefined) ?? EMPTY_RIDES;
   const basicsData = basics.data;
 
   const ftpWatts = useMemo(() => {
@@ -63,11 +70,18 @@ export function useNutritionDay(athleteId: string, dateISO: string) {
       goal,
       cards: planCards,
       ftpWatts,
+      goals: goalProfile,
     });
-  }, [basicsData, dateISO, wellness, goal, planCards, ftpWatts]);
+  }, [basicsData, dateISO, wellness, goal, planCards, ftpWatts, goalProfile]);
+
+  const loadWarning = useMemo(
+    () => buildLoadWarning({ goals: goalProfile, goal, todayISO: dateISO, cards: planCards, rides: rideList }),
+    [goalProfile, goal, dateISO, planCards, rideList],
+  );
 
   return {
     day,
-    isLoading: basics.isLoading || rides.isLoading || cards.isLoading || goalLoading,
+    loadWarning,
+    isLoading: basics.isLoading || rides.isLoading || cards.isLoading || goalLoading || goalsLoading,
   };
 }

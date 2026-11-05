@@ -14,6 +14,7 @@ import { useMemo } from "react";
 import { useProfileBasics } from "../../api/hooks/useProfile";
 import { useRides } from "../../api/hooks/useRides";
 import { useActiveNutritionGoal } from "../../api/hooks/useNutritionGoals";
+import { useGoals } from "../../api/hooks/useGoals";
 import { usePlanCards } from "../../api/hooks/usePlanCards";
 import { useFtpHistory } from "../../api/hooks/useFtpHistory";
 import { useMealPlan } from "../../api/hooks/useMealPlan";
@@ -24,6 +25,7 @@ import { effectiveSex } from "../../core/profile-sex.js";
 import type { PlanCard } from "../../api/types";
 import { buildNutritionDay, type NutritionDay, type NutritionWellnessDay } from "./nutrition-day-model";
 import { buildBanners, weekDates } from "./nutrition-week-model";
+import { dayGoalProfileFrom } from "./nutrition-goal-model";
 
 const EMPTY_WELLNESS: readonly NutritionWellnessDay[] = [];
 const EMPTY_CARDS: readonly PlanCard[] = [];
@@ -34,6 +36,9 @@ export function useNutritionWeek(athleteId: string, todayISO: string) {
   const basics = useProfileBasics();
   const rides = useRides(athleteId);
   const { goal, isLoading: goalLoading } = useActiveNutritionGoal();
+  // Aktive Ziele (Fahrplan 43 E6); ohne passendes Ziel null = Rechnung wie zuvor
+  const { goals, isLoading: goalsLoading } = useGoals();
+  const goalProfile = useMemo(() => dayGoalProfileFrom(goals), [goals]);
   const cards = usePlanCards(athleteId, { allSports: true });
   const { entries: ftpEntries } = useFtpHistory();
   const plan = useMealPlan(dates[0], dates[dates.length - 1]);
@@ -64,9 +69,10 @@ export function useNutritionWeek(athleteId: string, todayISO: string) {
         goal,
         cards: planCards,
         ftpWatts,
+        goals: goalProfile,
       }),
     );
-  }, [basicsData, dates, wellness, goal, planCards, ftpWatts]);
+  }, [basicsData, dates, wellness, goal, planCards, ftpWatts, goalProfile]);
 
   const banners = useMemo(() => {
     const first = days[0];
@@ -89,6 +95,6 @@ export function useNutritionWeek(athleteId: string, todayISO: string) {
     recipesById,
     intolerances: basicsData?.intolerances ?? NO_INTOLERANCES,
     banners,
-    isLoading: basics.isLoading || rides.isLoading || cards.isLoading || goalLoading || plan.isLoading || recipesLoading,
+    isLoading: basics.isLoading || rides.isLoading || cards.isLoading || goalLoading || goalsLoading || plan.isLoading || recipesLoading,
   };
 }
