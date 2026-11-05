@@ -19,6 +19,9 @@
    Vergleichen darf laut RLS ("proposals: Athlet entscheidet") nur der
    Athlet selbst, der Trainer sieht dort nur zur Kontrolle (Port von
    ui/trainer-bar.js::proposalsTile()s Klick-Handler).
+
+   Ziele (Fahrplan 43 E7): unter den Kacheln zeigt <TrainerGoals> Haupt- und
+   Nebenziel samt Ziel-Check, nur lesend und ohne Gewichtswerte (Z6, Z8).
    ============================================================ */
 
 import { useState } from "react";
@@ -36,6 +39,7 @@ import { currentPmc } from "../../core/pmc.js";
 import { projectLoad } from "../../core/projection.js";
 import { detectConflicts } from "../../core/conflicts.js";
 import { buildBriefingInfo, doneDatesOf } from "../hero/hero-view-model";
+import { TrainerGoals } from "./TrainerGoals";
 import {
   CATEGORY_LABELS,
   OPTIONAL_CATEGORIES,
@@ -256,6 +260,8 @@ export function TrainerBar({
           }
         })}
       </div>
+
+      <TrainerGoals athleteId={athleteId} athleteProfileId={athleteProfileId} rides={rides} wellness={wellness} />
     </GlassCard>
   );
 }

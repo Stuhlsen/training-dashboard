@@ -8,7 +8,8 @@
    stehen in goals-view-model.ts (mit Tests).
 
    Schreiben darf nur der Athlet selbst (Z8): wer nicht schreiben darf, sieht
-   keine Formulare. Die Trainer-Ansicht kommt in E7.
+   keine Formulare. Die lesende Trainer-Ansicht steht in der Trainer-Leiste
+   (features/planning/TrainerGoals.tsx).
    ============================================================ */
 
 import { useMemo, useState } from "react";
@@ -35,6 +36,8 @@ import {
   setsDeficit,
 } from "./goal-nutrition-sync";
 import type { Goal, GoalKey, GoalRole } from "../../api/types";
+import { FtpCheck } from "./FtpCheck";
+import { OrientationNotice } from "./OrientationNotice";
 import {
   buildFtpCheck,
   buildGoalInput,
@@ -99,28 +102,6 @@ const GHOST_BUTTON_STYLE = {
 
 function emptyForm(role: GoalRole): GoalFormState {
   return { goalKey: "", role, targetValue: "", targetDate: "", freeText: "", pace: "", targetWeight: "" };
-}
-
-function FtpCheck({ view }: { view: FtpCheckView }) {
-  if (view.kind !== "result") {
-    return <p style={INFO_STYLE}>{view.text}</p>;
-  }
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <div style={{ fontFamily: "var(--font-disp)", fontWeight: 600, fontSize: ".82rem", color: "var(--ink)" }}>
-        {view.headline}
-      </div>
-      <dl style={{ margin: 0, display: "flex", flexDirection: "column", gap: 4 }}>
-        {view.rows.map((row) => (
-          <div key={row.label} style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: "2px 12px" }}>
-            <dt style={{ ...LABEL_STYLE, display: "inline", marginBottom: 0 }}>{row.label}</dt>
-            <dd style={{ margin: 0, fontSize: ".82rem", color: "var(--ink)" }}>{row.value}</dd>
-          </div>
-        ))}
-      </dl>
-      {view.confidence && <p style={INFO_STYLE}>{view.confidence}</p>}
-    </div>
-  );
 }
 
 function GoalCard({
@@ -300,6 +281,9 @@ export function GoalsSection() {
         Wähle ein Hauptziel und höchstens ein Nebenziel. Das Datum ist optional. Ein FTP-Ziel erscheint im
         Hero-Tab als Saisonziel.
       </p>
+      <div style={{ margin: "0 0 10px" }}>
+        <OrientationNotice />
+      </div>
       {isLoading && <p style={MUTED_STYLE}>Lädt …</p>}
       {!isLoading && isEmpty && <p style={MUTED_STYLE}>Noch kein Ziel gesetzt.</p>}
 

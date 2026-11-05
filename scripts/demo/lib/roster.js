@@ -35,6 +35,29 @@
  * @property {"einsteiger"|"fortgeschritten"} level
  * @property {DemoSportPlan[]} plans
  * @property {string[]} raceNames  fiktive Rennnamen, ohne Ortsbezug
+ * @property {DemoGoal[]} goals  Hauptziel zuerst, höchstens ein Nebenziel (Fahrplan 43 E7)
+ * @property {DemoNutritionGoal|null} nutritionGoal  Ernährungsziel passend zu "Fett verlieren", sonst null
+ */
+
+/**
+ * Ein Ziel der Demo. `key` = Katalogschlüssel (app/src/core/goals.js), `kind` =
+ * Freitext-Art in goals.kind (für FTP fest "FTP", sonst das Katalog-Label).
+ * `ftpValue`: Zielwert = ftpGoal der Besetzung; `dated`: Zieldatum = nächstes
+ * Hauptrennen. Gewichtswerte stehen nie hier, nur in DemoNutritionGoal.
+ * @typedef {Object} DemoGoal
+ * @property {string} key
+ * @property {"main"|"side"} role
+ * @property {string} kind
+ * @property {boolean} [ftpValue]
+ * @property {boolean} [dated]
+ */
+
+/**
+ * Erfundene Werte, append-only in nutrition_goals (Tempo als Betrag in kg/Woche).
+ * @typedef {Object} DemoNutritionGoal
+ * @property {"lose"} goalType
+ * @property {number} targetWeightKg
+ * @property {number} pacePerWeekKg
  */
 
 /** @type {DemoAthlete[]} */
@@ -64,6 +87,11 @@ export const DEMO_ROSTER = [
       "Gravel-Marathon",
       "Saisonfinale-Kriterium",
     ],
+    goals: [
+      { key: "ftp", role: "main", kind: "FTP", ftpValue: true, dated: true },
+      { key: "bergauf", role: "side", kind: "Besser bergauf" },
+    ],
+    nutritionGoal: null,
   },
   {
     id: "demo2",
@@ -88,6 +116,13 @@ export const DEMO_ROSTER = [
       { sport: "swim", trainingWeekdays: [2, 5], weeklyHours: 2, thresholdSpeed: 3.6 },
     ],
     raceNames: ["Sprint-Triathlon", "Duathlon-Cup", "Olympische Distanz", "Mitteldistanz"],
+    // Ausdauer als Hauptziel; "Fett verlieren" als Nebenziel füllt die offene Energie-Zeile
+    // (goalNutritionProfile) — dazu passt die lose-Zeile in nutrition_goals.
+    goals: [
+      { key: "ausdauer", role: "main", kind: "Ausdauer", dated: true },
+      { key: "fett_verlieren", role: "side", kind: "Fett verlieren" },
+    ],
+    nutritionGoal: { goalType: "lose", targetWeightKg: 70, pacePerWeekKg: 0.3 },
   },
 ];
 
@@ -120,6 +155,8 @@ export const DEMO_TABLE_ONLY = [
     plans: [{ sport: "ride", trainingWeekdays: [3, 6, 7], weeklyHours: 5, thresholdSpeed: null }],
     // Genau CYCLES_PER_SEASON (4) Namen — ein fehlender macht das Event-Insert ungleich.
     raceNames: ["Stadtrunde-Kriterium", "Uferweg-Rennen", "Sommer-Rundfahrt", "Herbst-Tour"],
+    goals: [{ key: "ftp", role: "main", kind: "FTP", ftpValue: true, dated: true }],
+    nutritionGoal: null,
   },
 ];
 

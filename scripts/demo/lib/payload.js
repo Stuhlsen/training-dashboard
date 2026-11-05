@@ -300,15 +300,15 @@ function buildRows({ timeline, athlete, today, rides, wellness }) {
       Map.groupBy(rides, (r) => r.date),
       today
     ),
-    goals: [
-      {
-        kind: "FTP",
-        target_value: athlete.ftpGoal,
-        target_date: nextMain?.raceDate ?? null,
-        note: null,
-        is_active: true,
-      },
-    ],
+    goals: athlete.goals.map((g) => ({
+      kind: g.kind,
+      goal_key: g.key,
+      role: g.role,
+      target_value: g.ftpValue ? athlete.ftpGoal : null,
+      target_date: g.dated ? (nextMain?.raceDate ?? null) : null,
+      note: null,
+      is_active: true,
+    })),
     ftp_history: timeline.ftpSteps.map((s) => ({
       ftp_watt: s.watts,
       valid_from: s.date,
@@ -411,7 +411,7 @@ export function buildDemoAthlete(timeline, roster) {
     athleteName: athlete.displayName,
     ftpPublic: true,
     ftp: ftpAtDate(timeline.ftpSteps, today),
-    ftpGoal: rows.goals[0].target_value,
+    ftpGoal: athlete.ftpGoal,
     ftpHistory: timeline.ftpSteps.map((s) => ({
       id: `ramp-${s.date}`,
       ftpWatt: s.watts,

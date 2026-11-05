@@ -31,6 +31,11 @@ describe("GoalInfoNotes", () => {
     expect(container.childNodes.length).toBe(0);
   });
 
+  it("hängt an die Hinweise den ruhigen Satz: Orientierung, kein Ersatz für Fachberatung (E7)", () => {
+    renderNotes({ proteinG: { min: 144, max: 176 } });
+    expect(screen.getByText("Die Werte sind Orientierung und kein Ersatz für Fachberatung.")).toBeTruthy();
+  });
+
   it("zeigt den Eiweiß-Bereich in Gramm", () => {
     renderNotes({ proteinG: { min: 144, max: 176 } });
     expect(screen.getByText(/Eiweiß/).textContent).toContain("144–176 g");

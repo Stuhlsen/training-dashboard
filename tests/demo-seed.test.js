@@ -22,6 +22,7 @@ const TABLES = [
   "ftp_history",
   "wellbeing",
   "goals",
+  "nutrition_goals",
   "events",
   "training_plans",
   "plan_cards",
@@ -45,6 +46,13 @@ function fakeBackend({ users = [], maxRows = Infinity, withoutGrants = false } =
     new Response(body === undefined ? null : JSON.stringify(body), { status });
   const eqParam = (u, name) => u.searchParams.get(name)?.replace(/^eq\./, "");
   const owns = (row, id) => row.athlete_id === id || row.profile_id === id;
+  // Partielle Unique-Indizes aus Migration 0084: je Athlet ein aktives main/side.
+  const roleClash = (row) =>
+    row.is_active !== false &&
+    !!row.role &&
+    db.tables.goals.some(
+      (g) => g.athlete_id === row.athlete_id && g.is_active && g.role === row.role && g.id !== row.id
+    );
 
   function insert(table, rows, prefer) {
     const out = [];
@@ -63,6 +71,9 @@ function fakeBackend({ users = [], maxRows = Infinity, withoutGrants = false } =
         )
       ) {
         return res(409, { code: "23505", message: "training_plans_one_active" });
+      }
+      if (table === "goals" && roleClash(row)) {
+        return res(409, { code: "23505", message: `goals_one_active_${row.role}_per_athlete` });
       }
       const stored = { id: uid(), ...row };
       db.tables[table].push(stored);
@@ -127,10 +138,10 @@ function fakeBackend({ users = [], maxRows = Infinity, withoutGrants = false } =
       return res(204);
     }
     if (method === "GET") {
-      const id = eqParam(u, "athlete_id");
+      const id = eqParam(u, "athlete_id") ?? eqParam(u, "profile_id");
       const offset = Number(u.searchParams.get("offset") ?? 0);
       const limit = Math.min(Number(u.searchParams.get("limit") ?? Infinity), maxRows);
-      const rows = db.tables[table].filter((r) => r.athlete_id === id);
+      const rows = db.tables[table].filter((r) => owns(r, id));
       return res(200, rows.slice(offset, offset + limit));
     }
     if (method === "POST") return insert(table, body, init.headers.Prefer);
@@ -138,6 +149,9 @@ function fakeBackend({ users = [], maxRows = Infinity, withoutGrants = false } =
       const row = db.tables[table].find(
         (r) => r.id === eqParam(u, "id") && r.athlete_id === eqParam(u, "athlete_id")
       );
+      if (row && table === "goals" && body.role && roleClash({ ...row, ...body })) {
+        return res(409, { code: "23505", message: `goals_one_active_${body.role}_per_athlete` });
+      }
       if (row) Object.assign(row, body);
       return res(204);
     }
@@ -565,6 +579,160 @@ test("Profil-Grunddaten (E7): nur leere Felder, als eingeloggter Athlet", async 
   await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor });
   assert.equal(byEmail.get(DEMO_ROSTER[0].email).height_cm, 170);
   assert.equal(calls.filter((c) => c.method === "PATCH" && c.body?.birthdate).length, 0);
+});
+
+// ── Ziele (Fahrplan 43 E7) ───────────────────────────────────
+
+const GOAL_ROWS = [
+  { kind: "FTP", goal_key: "ftp", role: "main", target_value: 230, target_date: null, note: null, is_active: true },
+  { kind: "Besser bergauf", goal_key: "bergauf", role: "side", target_value: null, target_date: null, note: null, is_active: true },
+];
+// Das Ernährungsziel kommt aus der Besetzung (roster.nutritionGoal), nicht aus rows.
+const goalRowsFor = (athlete) => ({ ...rowsFor(athlete), goals: GOAL_ROWS });
+const idOf = (db, athlete) => db.users.find((u) => u.email === athlete.email).id;
+const activeGoals = (db, id) => db.tables.goals.filter((g) => g.athlete_id === id && g.is_active);
+
+test("Ziele: Haupt- und Nebenziel entstehen, zweiter Lauf legt nichts doppelt an (Falle A)", async () => {
+  const { db, calls, fetchImpl } = fakeBackend();
+  await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor: goalRowsFor });
+  const lena = idOf(db, DEMO_ROSTER[0]);
+  assert.deepEqual(
+    activeGoals(db, lena).map((g) => [g.goal_key, g.role]),
+    [
+      ["ftp", "main"],
+      ["bergauf", "side"],
+    ]
+  );
+
+  calls.length = 0;
+  const second = await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor: goalRowsFor });
+  assert.deepEqual(second.tables.goals, { added: 0, updated: 0 });
+  assert.equal(calls.filter((c) => c.path === "/rest/v1/goals" && c.method !== "GET").length, 0);
+  assert.equal(activeGoals(db, lena).length, 2);
+});
+
+test("Ziele: ein lokal gesetztes Hauptziel bleibt, der Seed scheitert nicht am Unique-Index", async () => {
+  const { db, fetchImpl } = fakeBackend();
+  await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor: goalRowsFor });
+  const lena = idOf(db, DEMO_ROSTER[0]);
+  // Lokal: Seed-Ziele beendet, eigene Ziele gesetzt
+  for (const g of db.tables.goals.filter((x) => x.athlete_id === lena)) g.is_active = false;
+  db.tables.goals.push(
+    { id: "mein-main", athlete_id: lena, kind: "Ausdauer", goal_key: "ausdauer", role: "main", is_active: true },
+    { id: "mein-side", athlete_id: lena, kind: "Fit bleiben", goal_key: "fit_bleiben", role: "side", is_active: true }
+  );
+  await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor: goalRowsFor });
+  assert.deepEqual(
+    activeGoals(db, lena).map((g) => g.id),
+    ["mein-main", "mein-side"]
+  );
+});
+
+test("Ziele: ein neues Seed-Ziel wird nicht eingefügt, solange die Rolle lokal belegt ist", async () => {
+  const { db, fetchImpl } = fakeBackend();
+  const mainOnly = (a) => ({ ...goalRowsFor(a), goals: GOAL_ROWS.slice(0, 1) });
+  await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor: mainOnly });
+  const lena = idOf(db, DEMO_ROSTER[0]);
+  db.tables.goals.push({
+    id: "mein-side",
+    athlete_id: lena,
+    kind: "Event",
+    goal_key: "event",
+    role: "side",
+    is_active: true,
+  });
+  await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor: goalRowsFor });
+  const sides = activeGoals(db, lena).filter((g) => g.role === "side");
+  assert.deepEqual(
+    sides.map((g) => g.id),
+    ["mein-side"]
+  );
+});
+
+test("Ziele: ein altes Seed-FTP-Ziel ohne Rolle wird Hauptziel, nur wenn die Rolle frei ist", async () => {
+  const legacy = (a) => ({
+    ...rowsFor(a),
+    goals: [{ kind: "FTP", target_value: 230, target_date: null, note: null, is_active: true }],
+  });
+  const { db, fetchImpl } = fakeBackend();
+  await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor: legacy });
+  const lena = idOf(db, DEMO_ROSTER[0]);
+  const jonas = idOf(db, DEMO_ROSTER[1]);
+  // jonas hat lokal schon ein Hauptziel
+  db.tables.goals.push({
+    id: "jonas-main",
+    athlete_id: jonas,
+    kind: "Event",
+    goal_key: "event",
+    role: "main",
+    is_active: true,
+  });
+
+  await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor: goalRowsFor });
+  const ftpOf = (id) => db.tables.goals.find((g) => g.athlete_id === id && g.kind === "FTP");
+  assert.deepEqual([ftpOf(lena).goal_key, ftpOf(lena).role], ["ftp", "main"]);
+  assert.equal(ftpOf(jonas).role ?? null, null, "belegte Rolle: kein Patch");
+  assert.equal(activeGoals(db, jonas).filter((g) => g.role === "main").length, 1);
+  assert.equal(db.tables.goals.filter((g) => g.athlete_id === lena && g.kind === "FTP").length, 1);
+});
+
+test("Ernährungsziel: genau eine Zeile je Profil, danach nie wieder (append-only)", async () => {
+  const { db, calls, fetchImpl } = fakeBackend();
+  await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor: goalRowsFor });
+  const jonas = idOf(db, DEMO_ROSTER[1]);
+  const rowsOf = (id) => db.tables.nutrition_goals.filter((r) => r.profile_id === id);
+  assert.equal(rowsOf(jonas).length, 1);
+  assert.equal(rowsOf(jonas)[0].goal_type, "lose");
+  assert.equal(db.tables.nutrition_goals.length, 1, "nur jonas bekommt ein Ernährungsziel");
+
+  calls.length = 0;
+  const second = await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor: goalRowsFor });
+  assert.deepEqual(second.tables.nutrition_goals, { added: 0, updated: 0 });
+  assert.equal(
+    calls.filter((c) => c.path === "/rest/v1/nutrition_goals" && c.method !== "GET").length,
+    0
+  );
+
+  // Lokal eingetragenes Ziel: der Seed ergänzt nichts
+  db.tables.nutrition_goals = [
+    { id: "lokal", profile_id: jonas, goal_type: "maintain", created_at: "2026-11-01" },
+  ];
+  await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor: goalRowsFor });
+  assert.deepEqual(
+    rowsOf(jonas).map((r) => r.id),
+    ["lokal"]
+  );
+});
+
+test("Ziele schreibt der Seed nur mit dem service_role-Key, nie als Trainer (Falle B)", async () => {
+  const { calls, fetchImpl } = fakeBackend();
+  await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor: goalRowsFor });
+  const writes = calls.filter(
+    (c) => /\/rest\/v1\/(goals|nutrition_goals)$/.test(c.path) && c.method !== "GET"
+  );
+  assert.ok(writes.length > 0);
+  assert.ok(writes.every((c) => c.auth === `Bearer ${KEY}`));
+});
+
+test("Ziele: Besetzung hat gültige Katalogschlüssel und je Athlet ein Hauptziel, eine Rolle einmal", async () => {
+  const { GOAL_CATALOG } = await import("../app/src/core/goals.js");
+  for (const a of ALL_DEMO_ATHLETES) {
+    const roles = a.goals.map((g) => g.role);
+    assert.deepEqual(roles, [...new Set(roles)], `${a.id}: Rolle doppelt`);
+    assert.ok(roles.includes("main"), `${a.id}: kein Hauptziel`);
+    for (const g of a.goals) {
+      assert.ok(
+        GOAL_CATALOG.some((e) => e.key === g.key),
+        `${a.id}: ${g.key} nicht im Katalog`
+      );
+    }
+  }
+  assert.deepEqual(
+    DEMO_ROSTER[0].goals.map((g) => g.key),
+    ["ftp", "bergauf"]
+  );
+  assert.equal(DEMO_ROSTER[1].goals.at(-1).key, "fett_verlieren");
+  assert.equal(DEMO_ROSTER[1].nutritionGoal.goalType, "lose");
 });
 
 // ── Reset ────────────────────────────────────────────────────

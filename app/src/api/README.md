@@ -106,6 +106,17 @@ Hooks unter `hooks/`:
 | `meal-plan.ts` | `meal_plan_entries` (je Athlet/Tag/Slot ein Rezept, Upsert) | `useMealPlan.ts` (`useMealPlan`, `useUpsertMealPlanEntry`, `useDeleteMealPlanEntry`) |
 | `recipes.ts` | `recipes` (`containsTags` aus den Zutaten abgeleitet) | `useRecipes.ts` (`useRecipes`) |
 
+## Ziele (Fahrplan 43)
+
+| Adapter | Tabelle | Hooks |
+|---|---|---|
+| `goals.ts` | `goals` (Katalogschlüssel `goal_key`, Rolle `main`/`side`, je Athlet höchstens ein aktives Haupt- und Nebenziel; Schreiben nur der Athlet selbst, Migration 0084) | `useGoals.ts`: `useGoals` (eigene Ziele), `useAthleteGoals(profileId)` (nur lesen, für die Trainer-Ansicht), `useReplaceGoal`, `useDeactivateGoal` |
+
+Gewichtswerte stehen ausschließlich in `nutrition_goals` und bleiben für
+Trainer unlesbar (owner-only). Die Trainer-Ansicht der Ziele
+(`features/planning/TrainerGoals.tsx`) lädt deshalb nur `goals`, nie
+`nutrition_goals` oder Profil-Körperwerte.
+
 ## JSON-Pipeline (Konzept 5.5)
 
 In dieser Etappe bestätigt: die per Cron erzeugten `data/*.json` bleiben

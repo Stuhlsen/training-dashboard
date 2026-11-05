@@ -24,15 +24,21 @@ import type { Goal, GoalInput, Result } from "../types";
 
 const NOT_LOGGED_IN = { code: "UNKNOWN" as const, message: "Nicht eingeloggt" };
 
+/** Aktive Ziele eines Profils (Lesen). Für die Trainer-Ansicht (Fahrplan 43 E7,
+ *  Z8): `goals` ist per RLS für den Trainer lesbar, schreiben darf nur der
+ *  Athlet — dieser Hook liefert deshalb nur Lesedaten, keine Mutationen. */
+export function useAthleteGoals(profileId: string | null) {
+  const query = useQuery({
+    queryKey: qk.goals(profileId ?? "anonymous"),
+    enabled: !!profileId,
+    queryFn: async () => unwrap(await getGoals(profileId!)).goals,
+  });
+  return { goals: query.data ?? [], isLoading: query.isLoading, isError: query.isError };
+}
+
 /** Aktive Ziele des eingeloggten Profils. */
 export function useGoals() {
-  const userId = useAuthUserId();
-  const query = useQuery({
-    queryKey: qk.goals(userId ?? "anonymous"),
-    enabled: !!userId,
-    queryFn: async () => unwrap(await getGoals(userId!)).goals,
-  });
-  return { goals: query.data ?? [], isLoading: query.isLoading };
+  return useAthleteGoals(useAuthUserId());
 }
 
 export function useSaveGoal() {

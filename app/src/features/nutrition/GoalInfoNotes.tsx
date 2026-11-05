@@ -14,6 +14,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import type { DayGoalInfo } from "./nutrition-day-model";
 import { TEXT_STYLE } from "./nutrition-styles";
+import { ORIENTATION_NOTICE_TEXT } from "../settings/OrientationNotice";
 
 const LINK_STYLE = { color: "var(--accent)", fontWeight: 600 } as const;
 
@@ -78,6 +79,7 @@ export function GoalInfoNotes({ info }: { info: DayGoalInfo }) {
           {l.node}
         </p>
       ))}
+      <p style={TEXT_STYLE}>{ORIENTATION_NOTICE_TEXT}</p>
     </>
   );
 }

@@ -40,7 +40,8 @@ const NOTICE_NEEDS_STRENGTH = "Wirkt bis zum Kraftbereich nur auf die Ernährung
 /* ── Rechte ─────────────────────────────────────────────────────── */
 
 /** Z8: Ziele schreibt nur der Athlet selbst. Wer nicht schreiben darf, sieht
- *  keine Formulare. (Die Trainer-Ansicht mit Ziel und Check kommt in E7.) */
+ *  keine Formulare. (Die lesende Trainer-Ansicht mit Ziel und Check:
+ *  features/planning/trainer-goals-view-model.ts.) */
 export function canEditGoals(profile: { role?: string } | null | undefined): boolean {
   return profile?.role === "athlete";
 }

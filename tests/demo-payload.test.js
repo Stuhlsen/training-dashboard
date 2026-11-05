@@ -366,12 +366,34 @@ test("Morgen-Check-in (E7): gesunde Tage meist fit, Krankheitswoche nie", () => 
   }
 });
 
-test("FTP-Ziel (E7): goals, json.ftpGoal und Besetzung stimmen überein", () => {
+test("FTP-Ziel (E7): json.ftpGoal = Besetzung, ein FTP-Ziel in goals trägt denselben Wert", () => {
   for (const { rows, json, timeline } of BOTH) {
     const { ftpGoal } = demoAthlete(timeline.athleteId);
-    assert.equal(rows.goals[0].target_value, ftpGoal);
     assert.equal(json.ftpGoal, ftpGoal);
+    for (const g of rows.goals.filter((x) => x.goal_key === "ftp")) {
+      assert.equal(g.target_value, ftpGoal);
+    }
   }
+});
+
+test("Ziele (Fahrplan 43 E7): Haupt-/Nebenziel aus der Besetzung, Katalogschlüssel, nur ein main", () => {
+  for (const { rows, timeline } of BOTH) {
+    const athlete = demoAthlete(timeline.athleteId);
+    assert.deepEqual(
+      rows.goals.map((g) => [g.goal_key, g.role, g.kind]),
+      athlete.goals.map((g) => [g.key, g.role, g.kind])
+    );
+    assert.equal(rows.goals.filter((g) => g.role === "main").length, 1);
+    assert.ok(rows.goals.every((g) => g.is_active === true && g.note === null));
+    // Gewichtswerte gehören nur nach nutrition_goals, nie in ein Ziel
+    assert.ok(
+      rows.goals.filter((g) => g.goal_key === "fett_verlieren").every((g) => g.target_value === null)
+    );
+  }
+  const lena = BOTH.find((b) => b.timeline.athleteId === "demo1");
+  const main = lena.rows.goals.find((g) => g.role === "main");
+  assert.equal(main.goal_key, "ftp");
+  assert.match(main.target_date, /^\d{4}-\d{2}-\d{2}$/);
 });
 
 test("FTP-Historie (E7): kein Eintrag nach heute, DB-Zeilen = JSON", () => {
