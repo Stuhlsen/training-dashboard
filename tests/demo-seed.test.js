@@ -51,7 +51,8 @@ function fakeBackend({ users = [], maxRows = Infinity, withoutGrants = false } =
     row.is_active !== false &&
     !!row.role &&
     db.tables.goals.some(
-      (g) => g.athlete_id === row.athlete_id && g.is_active && g.role === row.role && g.id !== row.id
+      (g) =>
+        g.athlete_id === row.athlete_id && g.is_active && g.role === row.role && g.id !== row.id
     );
 
   function insert(table, rows, prefer) {
@@ -584,8 +585,24 @@ test("Profil-Grunddaten (E7): nur leere Felder, als eingeloggter Athlet", async 
 // ── Ziele (Fahrplan 43 E7) ───────────────────────────────────
 
 const GOAL_ROWS = [
-  { kind: "FTP", goal_key: "ftp", role: "main", target_value: 230, target_date: null, note: null, is_active: true },
-  { kind: "Besser bergauf", goal_key: "bergauf", role: "side", target_value: null, target_date: null, note: null, is_active: true },
+  {
+    kind: "FTP",
+    goal_key: "ftp",
+    role: "main",
+    target_value: 230,
+    target_date: null,
+    note: null,
+    is_active: true,
+  },
+  {
+    kind: "Besser bergauf",
+    goal_key: "bergauf",
+    role: "side",
+    target_value: null,
+    target_date: null,
+    note: null,
+    is_active: true,
+  },
 ];
 // Das Ernährungsziel kommt aus der Besetzung (roster.nutritionGoal), nicht aus rows.
 const goalRowsFor = (athlete) => ({ ...rowsFor(athlete), goals: GOAL_ROWS });
@@ -618,8 +635,22 @@ test("Ziele: ein lokal gesetztes Hauptziel bleibt, der Seed scheitert nicht am U
   // Lokal: Seed-Ziele beendet, eigene Ziele gesetzt
   for (const g of db.tables.goals.filter((x) => x.athlete_id === lena)) g.is_active = false;
   db.tables.goals.push(
-    { id: "mein-main", athlete_id: lena, kind: "Ausdauer", goal_key: "ausdauer", role: "main", is_active: true },
-    { id: "mein-side", athlete_id: lena, kind: "Fit bleiben", goal_key: "fit_bleiben", role: "side", is_active: true }
+    {
+      id: "mein-main",
+      athlete_id: lena,
+      kind: "Ausdauer",
+      goal_key: "ausdauer",
+      role: "main",
+      is_active: true,
+    },
+    {
+      id: "mein-side",
+      athlete_id: lena,
+      kind: "Fit bleiben",
+      goal_key: "fit_bleiben",
+      role: "side",
+      is_active: true,
+    }
   );
   await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor: goalRowsFor });
   assert.deepEqual(

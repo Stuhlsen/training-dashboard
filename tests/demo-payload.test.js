@@ -387,7 +387,9 @@ test("Ziele (Fahrplan 43 E7): Haupt-/Nebenziel aus der Besetzung, Katalogschlüs
     assert.ok(rows.goals.every((g) => g.is_active === true && g.note === null));
     // Gewichtswerte gehören nur nach nutrition_goals, nie in ein Ziel
     assert.ok(
-      rows.goals.filter((g) => g.goal_key === "fett_verlieren").every((g) => g.target_value === null)
+      rows.goals
+        .filter((g) => g.goal_key === "fett_verlieren")
+        .every((g) => g.target_value === null)
     );
   }
   const lena = BOTH.find((b) => b.timeline.athleteId === "demo1");
