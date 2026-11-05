@@ -64,12 +64,13 @@ function baseFlow(over: Record<string, unknown> = {}) {
 function setup() {
   const onBack = vi.fn();
   const onClose = vi.fn();
-  render(
+  const onBusyChange = vi.fn();
+  const { container } = render(
     <MemoryRouter>
-      <AddSportFlow athleteId="athlete1" onBack={onBack} onClose={onClose} />
+      <AddSportFlow athleteId="athlete1" onBack={onBack} onClose={onClose} onBusyChange={onBusyChange} />
     </MemoryRouter>,
   );
-  return { onBack, onClose };
+  return { onBack, onClose, onBusyChange, backdrop: container.firstElementChild as HTMLElement };
 }
 
 const addButton = () => screen.getByRole("button", { name: "Sportart hinzufügen" }) as HTMLButtonElement;
@@ -78,6 +79,28 @@ beforeEach(() => {
   confirm.mockReset();
   confirm.mockResolvedValue(true);
   flow = baseFlow();
+});
+
+describe("AddSportFlow — Schließen während des Speicherns", () => {
+  it("ein Klick auf den Hintergrund schließt nicht, solange gespeichert wird", () => {
+    flow = baseFlow({ isPending: true });
+    const { onClose, backdrop } = setup();
+    fireEvent.click(backdrop);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("ein Klick auf den Hintergrund schließt, wenn nichts gespeichert wird", () => {
+    const { onClose, backdrop } = setup();
+    fireEvent.click(backdrop);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("meldet dem Eltern-Dialog „beschäftigt“ von Beginn bis Ende des Speicherns", async () => {
+    const { onBusyChange } = setup();
+    fireEvent.click(addButton());
+    await vi.waitFor(() => expect(onBusyChange).toHaveBeenCalledWith(false));
+    expect(onBusyChange.mock.calls.map((c) => c[0])).toEqual([true, false]);
+  });
 });
 
 describe("AddSportFlow", () => {

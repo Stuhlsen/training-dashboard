@@ -96,9 +96,15 @@ export function useCreateTrainingPlan(athleteId: string) {
         await invalidate();
         return { planIds };
       } catch (err) {
-        await rollbackRun(run);
+        const rollback = await rollbackRun(run);
         await queryClient.invalidateQueries({ queryKey: qk.planCards(athleteId) }).catch(() => {});
 
+        if (!rollback.complete) {
+          throw new ResultError_({
+            code: "UNKNOWN",
+            message: `${toResultError(err).message} — Das Zurücknehmen ist nicht vollständig gelungen. Bitte prüfe deine Pläne und den Kalender.`,
+          });
+        }
         if (run.touchedExisting) {
           const what = items.length > 1 ? "Die neuen Pläne wurden" : "Der neue Plan wurde";
           throw new ResultError_({

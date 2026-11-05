@@ -13,6 +13,7 @@ let activeRunPlan: string | null = null;
 let failCards = false;
 let failActivate = false;
 let failSetGroup = false;
+let failUnsetGroup = false;
 
 const ok = { ok: true } as const;
 const fail = (message: string): Result<never> =>
@@ -45,6 +46,7 @@ vi.mock("../../api/supabase/training-plans", () => ({
   setTrainingPlanGroup: async (id: string, group: string | null) => {
     calls.push(`setGroup(${id},${group})`);
     if (group !== null && failSetGroup) return fail("gruppe kaputt");
+    if (group === null && failUnsetGroup) return fail("lösen kaputt");
     return { ok: true, plan: {} };
   },
   deleteTrainingPlan: async (id: string) => {
@@ -150,6 +152,38 @@ beforeEach(() => {
   failCards = false;
   failActivate = false;
   failSetGroup = false;
+  failUnsetGroup = false;
+});
+
+describe("useAddSportToPlan — Cache und Rollback-Ehrlichkeit", () => {
+  it("leert nach Erfolg auch die Gruppen-Abfrage des Athleten (sonst fehlt die neue Sportart in „Plan anpassen“)", async () => {
+    const { wrapper, queryClient } = createHarness({ userId: "prof-a" });
+    const spy = vi.spyOn(queryClient, "invalidateQueries");
+    const { result } = renderHook(() => useAddSportToPlan("athlete1"), { wrapper });
+    const res = await result.current.addSport({ runningPlans: [ridePlan(null)], item: runItem });
+    expect(res.ok).toBe(true);
+    expect(spy.mock.calls.map((c) => c[0]?.queryKey)).toContainEqual(["plan-group", "athlete1"]);
+  });
+
+  it("scheitert auch der Rückbau, steht in der Meldung nicht „unverändert“, sondern dass der Plan zu prüfen ist", async () => {
+    failActivate = true;
+    failUnsetGroup = true;
+    const { result } = setup();
+    const res = await result.current.addSport({ runningPlans: [ridePlan(null)], item: runItem });
+    expect(res.ok).toBe(false);
+    if (res.ok) return;
+    expect(res.error.message).not.toContain("unverändert");
+    expect(res.error.message).toContain("nicht vollständig");
+  });
+
+  it("gelingt der Rückbau, bleibt die ruhige Meldung „unverändert“", async () => {
+    failActivate = true;
+    const { result } = setup();
+    const res = await result.current.addSport({ runningPlans: [ridePlan(null)], item: runItem });
+    expect(res.ok).toBe(false);
+    if (res.ok) return;
+    expect(res.error.message).toContain("unverändert");
+  });
 });
 
 describe("useAddSportToPlan", () => {

@@ -69,7 +69,8 @@ export function useAddSportToPlan(athleteId: string) {
         Promise.all([
           queryClient.invalidateQueries({ queryKey: qk.planCards(athleteId) }),
           queryClient.invalidateQueries({ queryKey: qk.activeTrainingPlan(athleteId, run.plans[0].sport) }),
-          // Die Gruppe der laufenden Pläne kann sich geändert haben.
+          // Die Gruppe der laufenden Pläne kann sich geändert haben; „Plan anpassen" liest sie aus diesem Cache.
+          queryClient.invalidateQueries({ queryKey: qk.planGroups(athleteId) }),
           ...runningPlans.map((p) =>
             queryClient.invalidateQueries({ queryKey: qk.activeTrainingPlan(athleteId, p.sport ?? "ride") }),
           ),
@@ -82,8 +83,14 @@ export function useAddSportToPlan(athleteId: string) {
         await invalidate();
         return { planId };
       } catch (err) {
-        await rollbackRun(run);
+        const rollback = await rollbackRun(run);
         await invalidate().catch(() => {});
+        if (!rollback.complete) {
+          throw new ResultError_({
+            code: "UNKNOWN",
+            message: `${toResultError(err).message} — Das Zurücknehmen ist nicht vollständig gelungen. Bitte prüfe deine Pläne und den Kalender.`,
+          });
+        }
         if (run.touchedExisting) {
           throw new ResultError_({
             code: "UNKNOWN",

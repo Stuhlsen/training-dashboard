@@ -35,6 +35,8 @@ interface AddSportFlowProps {
   onBack: () => void;
   /** Ganzen Dialog schließen (nach dem Speichern oder „Abbrechen"). */
   onClose: () => void;
+  /** Meldet dem Eltern-Dialog, ob gerade gespeichert wird — er sperrt dann Escape. */
+  onBusyChange?: (busy: boolean) => void;
 }
 
 const BOX: React.CSSProperties = {
@@ -56,7 +58,7 @@ const ERROR_BOX: React.CSSProperties = {
 const LINK_STYLE: React.CSSProperties = { color: "var(--ss)" };
 const numberOrNull = (v: string): number | null => (v ? Number(v) : null);
 
-export function AddSportFlow({ athleteId, onBack, onClose }: AddSportFlowProps) {
+export function AddSportFlow({ athleteId, onBack, onClose, onBusyChange }: AddSportFlowProps) {
   const flow = useAddSportFlow(athleteId);
   const { options, sport, draft, preview } = flow;
   const ok = preview?.ok ? preview : null;
@@ -67,7 +69,12 @@ export function AddSportFlow({ athleteId, onBack, onClose }: AddSportFlowProps) 
     options.offered.length === 0 && options.missingInProfile.length === 0 && options.outranked.length === 0;
 
   async function handleConfirm() {
-    if (await flow.confirm()) onClose();
+    onBusyChange?.(true);
+    try {
+      if (await flow.confirm()) onClose();
+    } finally {
+      onBusyChange?.(false);
+    }
   }
 
   function toggleDay(iso: number) {
@@ -93,7 +100,8 @@ export function AddSportFlow({ athleteId, onBack, onClose }: AddSportFlowProps) 
         zIndex: 1000,
       }}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        // Während des Speicherns bleibt der Dialog offen, damit ein Fehler sichtbar wird.
+        if (e.target === e.currentTarget && !flow.isPending) onClose();
       }}
     >
       <GlassCard variant="strong" radius="22px" style={{ width: "100%", maxWidth: 560, padding: "26px 24px" }}>

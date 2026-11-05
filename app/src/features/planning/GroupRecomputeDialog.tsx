@@ -17,7 +17,6 @@
 
 import { useMemo, useState } from "react";
 import { GlassCard } from "../../components/GlassCard";
-import { useEscapeToClose } from "../../hooks/useEscapeToClose";
 import { useRides } from "../../api/hooks/useRides";
 import type { ActiveSport } from "../../api/hooks/useActiveSport";
 import type { TrainingPlan } from "../../api/types";
@@ -39,6 +38,9 @@ interface GroupRecomputeDialogProps {
   /** Sportart des Plans, über den der Dialog geöffnet wurde — steht vorn. */
   callerSport: ActiveSport;
   onClose: () => void;
+  /** Meldet dem Eltern-Dialog, ob gerade gespeichert wird — er sperrt dann Escape
+   *  (Escape fängt `RecomputePlanDialog` ab, dieser Dialog hat keinen eigenen Listener). */
+  onBusyChange?: (busy: boolean) => void;
   /** Fahrplan 43 E5: „Ziele berücksichtigen" startet an. */
   withGoals?: boolean;
 }
@@ -61,9 +63,9 @@ export function GroupRecomputeDialog({
   plans,
   callerSport,
   onClose,
+  onBusyChange,
   withGoals = false,
 }: GroupRecomputeDialogProps) {
-  useEscapeToClose(onClose);
   const flow = useGroupRecomputeFlow(athleteId, plans, callerSport, withGoals);
   const { data: rideData } = useRides(athleteId);
   const estimates = useMemo(
@@ -78,11 +80,23 @@ export function GroupRecomputeDialog({
   const untouched = ok ? ok.items.filter((i) => !i.affected).map((i) => i.sport) : [];
 
   async function handleApply() {
-    if (await flow.apply()) onClose();
+    onBusyChange?.(true);
+    try {
+      if (await flow.apply()) onClose();
+    } finally {
+      onBusyChange?.(false);
+    }
   }
 
   if (adding) {
-    return <AddSportFlow athleteId={athleteId} onBack={() => setAdding(false)} onClose={onClose} />;
+    return (
+      <AddSportFlow
+        athleteId={athleteId}
+        onBack={() => setAdding(false)}
+        onClose={onClose}
+        onBusyChange={onBusyChange}
+      />
+    );
   }
 
   return (
@@ -100,7 +114,8 @@ export function GroupRecomputeDialog({
         zIndex: 1000,
       }}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        // Während des Speicherns bleibt der Dialog offen, damit ein Fehler sichtbar wird.
+        if (e.target === e.currentTarget && !flow.isPending) onClose();
       }}
     >
       <GlassCard variant="strong" radius="22px" style={{ width: "100%", maxWidth: 560, padding: "26px 24px" }}>

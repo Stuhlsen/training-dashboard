@@ -219,27 +219,48 @@ export async function activatePlans(run: WriteRun): Promise<void> {
   }
 }
 
+/** Ergebnis des Rückbaus: `complete` ist nur wahr, wenn jeder Schritt gelang. */
+export interface RollbackOutcome {
+  complete: boolean;
+}
+
 /** Best-Effort-Rückbau aller neuen Artefakte dieses Laufs (beide Phasen).
- *  Wirft nie; Einzelfehler werden verschluckt, weil nichts Besseres bleibt. */
-export async function rollbackRun(run: WriteRun): Promise<void> {
+ *  Wirft nie und macht bei einem Fehler mit den übrigen Schritten weiter,
+ *  merkt sich aber jeden Fehlschlag (`{ ok: false }` oder Wurf) — die Aufrufer
+ *  dürfen „zurückgenommen" nur melden, wenn `complete` wahr ist. */
+export async function rollbackRun(run: WriteRun): Promise<RollbackOutcome> {
+  let complete = true;
+  const step = async (action: () => Promise<{ ok: boolean }>) => {
+    try {
+      if (!(await action()).ok) complete = false;
+    } catch {
+      complete = false;
+    }
+  };
+
   for (const p of [...run.plans].reverse()) {
     if (p.activatedNew && p.newPlanId) {
-      await setTrainingPlanActive(p.newPlanId, false).catch(() => {});
+      const id = p.newPlanId;
+      await step(() => setTrainingPlanActive(id, false));
     }
     if (p.deactivatedOld && p.replacePlanId) {
-      await setTrainingPlanActive(p.replacePlanId, true).catch(() => {});
+      const id = p.replacePlanId;
+      await step(() => setTrainingPlanActive(id, true));
     }
     if (p.newPlanId) {
-      await deletePlanCardsForPlan(p.newPlanId).catch(() => {});
-      await deleteTrainingPlan(p.newPlanId).catch(() => {});
+      const id = p.newPlanId;
+      await step(() => deletePlanCardsForPlan(id));
+      await step(() => deleteTrainingPlan(id));
     }
   }
   // Gruppe nur dort lösen, wo DIESER Lauf sie gesetzt hat — eine vorher
   // bestehende Gruppe bleibt immer stehen.
   for (const g of run.groupAttach ?? []) {
-    if (g.attached) await setTrainingPlanGroup(g.planId, null).catch(() => {});
+    if (g.attached) await step(() => setTrainingPlanGroup(g.planId, null));
   }
   if (run.createdEventId) {
-    await removeEvent(run.createdEventId).catch(() => {});
+    const id = run.createdEventId;
+    await step(() => removeEvent(id));
   }
+  return { complete };
 }

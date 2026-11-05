@@ -12,7 +12,7 @@
    Reine Eingabe-Logik in recompute-plan-view-model.ts.
    ============================================================ */
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { GlassCard } from "../../components/GlassCard";
 import { useEscapeToClose } from "../../hooks/useEscapeToClose";
 import { useActivePlanGroup } from "../../api/hooks/useActivePlanGroup";
@@ -77,7 +77,13 @@ const PRIMARY_BTN_STYLE: React.CSSProperties = {
 };
 
 export function RecomputePlanDialog({ athleteId, onClose, withGoals = false, sport }: RecomputePlanDialogProps) {
-  useEscapeToClose(onClose);
+  // Escape schließt nicht, solange ein Kind-Dialog (Gruppe, Sportart hinzufügen) speichert —
+  // sonst verschwindet ein Fehler, den der Nutzer sehen muss.
+  const [childBusy, setChildBusy] = useState(false);
+  const closeIfIdle = useCallback(() => {
+    if (!childBusy) onClose();
+  }, [childBusy, onClose]);
+  useEscapeToClose(closeIfIdle);
 
   const today = localISODate();
   const { effectiveSport } = useEffectiveSport(athleteId, sport);
@@ -215,13 +221,21 @@ export function RecomputePlanDialog({ athleteId, onClose, withGoals = false, spo
         plans={groupPlans}
         callerSport={effectiveSport}
         onClose={onClose}
+        onBusyChange={setChildBusy}
         withGoals={withGoals}
       />
     );
   }
 
   if (adding) {
-    return <AddSportFlow athleteId={athleteId} onBack={() => setAdding(false)} onClose={onClose} />;
+    return (
+      <AddSportFlow
+        athleteId={athleteId}
+        onBack={() => setAdding(false)}
+        onClose={onClose}
+        onBusyChange={setChildBusy}
+      />
+    );
   }
 
   return (

@@ -17,6 +17,7 @@ let oldPlans: Record<string, string> = {};
 let failCreatePlanFor: string | null = null;
 let failCardsFor: string | null = null;
 let failActivateFor: string | null = null;
+let failDeleteFor: string | null = null;
 
 const ok = { ok: true } as const;
 const fail = (message: string): Result<never> =>
@@ -56,6 +57,7 @@ vi.mock("../../api/supabase/training-plans", () => ({
   },
   deleteTrainingPlan: async (id: string) => {
     calls.push(`deleteTrainingPlan(${id})`);
+    if (failDeleteFor && id === `new-${failDeleteFor}`) return fail("löschen kaputt");
     return ok;
   },
 }));
@@ -174,6 +176,7 @@ beforeEach(() => {
   failCreatePlanFor = null;
   failCardsFor = null;
   failActivateFor = null;
+  failDeleteFor = null;
 });
 
 describe("useCreateTrainingPlan — createPlans (mehrere Sportarten)", () => {
@@ -282,6 +285,18 @@ describe("useCreateTrainingPlan — createPlans (mehrere Sportarten)", () => {
     expect(calls).toContain("deletePlanCardsForPlan(new-run)");
     expect(calls).toContain("deleteTrainingPlan(new-run)");
     if (!res.ok) expect(res.error.message).toMatch(/künftige Karten/);
+  });
+
+  it("scheitert auch der Rückbau, sagt die Meldung nicht „zurückgenommen“, sondern dass zu prüfen ist", async () => {
+    oldPlans = { ride: "old-ride", run: "old-run" };
+    failActivateFor = "run";
+    failDeleteFor = "run";
+    const { result } = setup();
+    const res = await result.current.createPlans([item("ride"), item("run")]);
+    expect(res.ok).toBe(false);
+    if (res.ok) return;
+    expect(res.error.message).toContain("nicht vollständig");
+    expect(res.error.message).not.toMatch(/wurden zurückgenommen/);
   });
 
   it("eine einzige Sportart: keine plan_group_id, gleicher Ablauf wie createPlan", async () => {

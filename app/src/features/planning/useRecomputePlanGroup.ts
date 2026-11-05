@@ -38,7 +38,7 @@ export function useRecomputePlanGroup(athleteId: string) {
       Promise.all([
         queryClient.invalidateQueries({ queryKey: qk.planCards(athleteId) }),
         ...SPORTS.map((s) => queryClient.invalidateQueries({ queryKey: qk.activeTrainingPlan(athleteId, s) })),
-        queryClient.invalidateQueries({ queryKey: ["plan-group", athleteId] }),
+        queryClient.invalidateQueries({ queryKey: qk.planGroups(athleteId) }),
       ]),
     [queryClient, athleteId],
   );
