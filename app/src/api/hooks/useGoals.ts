@@ -11,7 +11,12 @@
 
 import { useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getGoals, saveGoal as saveGoalAdapter, deactivateGoal as deactivateGoalAdapter } from "../supabase/goals";
+import {
+  getGoals,
+  saveGoal as saveGoalAdapter,
+  deactivateGoal as deactivateGoalAdapter,
+  replaceGoal as replaceGoalAdapter,
+} from "../supabase/goals";
 import { useAuthUserId } from "./useSession";
 import { qk } from "../keys";
 import { catchResult, unwrap } from "../result";
@@ -51,6 +56,36 @@ export function useSaveGoal() {
   );
 
   return { save, isPending: mutation.isPending };
+}
+
+/** Ersetzt das aktive Ziel einer Rolle (Fahrplan 43 E4): altes zuerst
+ *  deaktivieren, dann speichern, bei Fehler das alte wieder aktivieren —
+ *  die Ablauflogik steckt in supabase/goals.ts::replaceGoal. `oldGoalId`
+ *  `null` = Rolle ist frei, es wird nur gespeichert. Die Ziele werden auch
+ *  nach einem Fehler neu geladen, weil sich der Stand serverseitig geändert
+ *  haben kann (z. B. wenn das Reaktivieren scheitert). */
+export function useReplaceGoal() {
+  const queryClient = useQueryClient();
+  const userId = useAuthUserId();
+  const key = qk.goals(userId ?? "anonymous");
+
+  const mutation = useMutation({
+    mutationFn: async ({ oldGoalId, goal }: { oldGoalId: string | null; goal: GoalInput }) =>
+      unwrap(await replaceGoalAdapter(userId!, oldGoalId, goal)),
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: key });
+    },
+  });
+
+  const replace = useCallback(
+    async (oldGoalId: string | null, goal: GoalInput): Promise<Result<{ id: string }>> => {
+      if (!userId) return { ok: false, error: NOT_LOGGED_IN };
+      return catchResult(() => mutation.mutateAsync({ oldGoalId, goal }));
+    },
+    [mutation, userId],
+  );
+
+  return { replace, isPending: mutation.isPending };
 }
 
 export function useDeactivateGoal() {

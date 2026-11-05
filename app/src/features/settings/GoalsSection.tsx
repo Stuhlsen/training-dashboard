@@ -1,11 +1,46 @@
 /* ============================================================
-   FEATURES/SETTINGS/GOALSSECTION.TSX — Ziele (athletengated), Port von
-   ui/settings-panel.js::buildGoalsSection()
+   FEATURES/SETTINGS/GOALSSECTION.TSX — Ziele (athletengated), Fahrplan 43 E4
+
+   Ein Hauptziel und höchstens ein Nebenziel aus dem Katalog (core/goals.js),
+   Datum optional, Zielwert nur wo der Katalog ihn vorsieht. Für das FTP-Ziel
+   zeigt der Ziel-Check Trend, nötiges Tempo und Prognose aus der eigenen
+   eFTP-Historie. Die Komponente rendert nur — Regeln, Validierung und Texte
+   stehen in goals-view-model.ts (mit Tests).
+
+   Schreiben darf nur der Athlet selbst (Z8): wer nicht schreiben darf, sieht
+   keine Formulare. Die Trainer-Ansicht kommt in E7.
    ============================================================ */
 
-import { useState } from "react";
-import { useGoals, useSaveGoal, useDeactivateGoal } from "../../api/hooks/useGoals";
-import { fmtDate } from "../../core/format.js";
+import { useMemo, useState } from "react";
+import { useGoals, useReplaceGoal, useDeactivateGoal } from "../../api/hooks/useGoals";
+import { useSessionProfile } from "../../api/hooks/useSession";
+import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
+import { useAthleteSports } from "../../api/hooks/useAthleteSports";
+import { useAthleteConfig } from "../../api/hooks/useAthleteConfig";
+import { useRides } from "../../api/hooks/useRides";
+import { useIsSelfAthlete } from "../../api/hooks/useWriteAuthorization";
+import { useFtpHistoryEntries } from "../planning/useFtpHistoryEntries";
+import { resolveMeasuredFtp } from "../planning/new-plan-dialog-view-model";
+import { localISODate } from "../../core/format.js";
+import type { Goal, GoalKey, GoalRole } from "../../api/types";
+import {
+  buildFtpCheck,
+  buildGoalInput,
+  canEditGoals,
+  catalogChoices,
+  conflictHint,
+  defaultRole,
+  describeGoal,
+  fieldsFor,
+  groupGoals,
+  mergedEftpHistory,
+  pickCheckGoal,
+  replaceNotice,
+  saveErrorMessage,
+  replacementFor,
+  type FtpCheckView,
+  type GoalFormState,
+} from "./goals-view-model";
 import {
   SECTION_STYLE,
   SECTION_DESC_STYLE,
@@ -16,152 +51,352 @@ import {
   ERROR_STYLE,
 } from "./section-styles";
 
-function goalUnitLabel(kind: string): string {
-  return kind === "ftp" || kind === "watt" ? "W" : "";
+type Ride = import("../../types.js").Ride;
+type WellnessDay = import("../../types.js").WellnessDay;
+
+const MUTED_STYLE = { color: "var(--ink-3)", fontSize: ".78rem", margin: "0 0 10px" } as const;
+
+const NOTE_STYLE = {
+  margin: 0,
+  padding: "6px 0 6px 10px",
+  borderLeft: "2px solid var(--warn)",
+  color: "var(--ink-2)",
+  fontFamily: "var(--font-body)",
+  fontSize: ".78rem",
+  lineHeight: 1.5,
+} as const;
+
+const INFO_STYLE = {
+  margin: 0,
+  color: "var(--ink-3)",
+  fontFamily: "var(--font-body)",
+  fontSize: ".74rem",
+  lineHeight: 1.5,
+} as const;
+
+const GHOST_BUTTON_STYLE = {
+  padding: "6px 14px",
+  borderRadius: "var(--pill)",
+  border: "1px solid var(--hair)",
+  background: "transparent",
+  color: "var(--ink-3)",
+  font: "inherit",
+  fontSize: ".72rem",
+  cursor: "pointer",
+} as const;
+
+function emptyForm(role: GoalRole): GoalFormState {
+  return { goalKey: "", role, targetValue: "", targetDate: "", freeText: "" };
+}
+
+function FtpCheck({ view }: { view: FtpCheckView }) {
+  if (view.kind !== "result") {
+    return <p style={INFO_STYLE}>{view.text}</p>;
+  }
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ fontFamily: "var(--font-disp)", fontWeight: 600, fontSize: ".82rem", color: "var(--ink)" }}>
+        {view.headline}
+      </div>
+      <dl style={{ margin: 0, display: "flex", flexDirection: "column", gap: 4 }}>
+        {view.rows.map((row) => (
+          <div key={row.label} style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: "2px 12px" }}>
+            <dt style={{ ...LABEL_STYLE, display: "inline", marginBottom: 0 }}>{row.label}</dt>
+            <dd style={{ margin: 0, fontSize: ".82rem", color: "var(--ink)" }}>{row.value}</dd>
+          </div>
+        ))}
+      </dl>
+      {view.confidence && <p style={INFO_STYLE}>{view.confidence}</p>}
+    </div>
+  );
+}
+
+function GoalCard({
+  goal,
+  check,
+  busy,
+  onEnd,
+}: {
+  goal: Goal;
+  check?: FtpCheckView | null;
+  busy: boolean;
+  onEnd: (id: string) => void;
+}) {
+  const d = describeGoal(goal);
+  const meta = [d.dateText, d.valueText].filter(Boolean).join(" · ");
+  return (
+    <li
+      style={{
+        listStyle: "none",
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+        padding: "10px 12px",
+        border: "1px solid var(--hair)",
+        borderRadius: "var(--radius-sm)",
+      }}
+    >
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        <div style={{ minWidth: 0 }}>
+          {d.roleLabel && <div style={{ ...LABEL_STYLE, marginBottom: 2 }}>{d.roleLabel}</div>}
+          <div style={{ fontFamily: "var(--font-disp)", fontWeight: 600, fontSize: ".88rem", color: "var(--ink)", overflowWrap: "anywhere" }}>
+            {d.title}
+          </div>
+          {meta && <div style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", color: "var(--ink-3)" }}>{meta}</div>}
+        </div>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => onEnd(goal.id)}
+          aria-label={`Ziel beenden: ${d.title}`}
+          style={{ ...GHOST_BUTTON_STYLE, opacity: busy ? 0.6 : 1 }}
+        >
+          Beenden
+        </button>
+      </div>
+      {d.notice && <p style={INFO_STYLE}>{d.notice}</p>}
+      {check && <FtpCheck view={check} />}
+    </li>
+  );
 }
 
 export function GoalsSection() {
+  const profile = useSessionProfile();
   const { goals, isLoading } = useGoals();
-  const { save, isPending } = useSaveGoal();
-  const { deactivate } = useDeactivateGoal();
+  const { replace, isPending: isSaving } = useReplaceGoal();
+  const { deactivate, isPending: isEnding } = useDeactivateGoal();
+
+  // Sportarten und eFTP-Daten: wie Hero/Analyse über den aktiven Athleten.
+  // Ziele hängen am eingeloggten Profil — Sportfilter und Check nur anwenden,
+  // wenn der angezeigte Athlet der eingeloggte Selbst ist.
+  const { activeAthleteId } = useActiveAthlete();
+  const { isSelf } = useIsSelfAthlete(activeAthleteId);
+  const sports = useAthleteSports(activeAthleteId);
+  const athleteCfg = useAthleteConfig(activeAthleteId);
+  const { data: rideData } = useRides(activeAthleteId);
+  const ftpHistoryEntries = useFtpHistoryEntries(activeAthleteId);
+
+  const todayISO = localISODate();
+  const groups = useMemo(() => groupGoals(goals), [goals]);
 
   const [open, setOpen] = useState(false);
-  // „FTP" ist die Art, die die Hero-Kachel & Co. als FTP-Ziel erkennen
-  // (core/ftp-goal.js::pickFtpGoal) — als feste Auswahl, damit niemand
-  // „Ftp ziel" o. ä. tippt und unerkannt bleibt. „Sonstiges" = Freitext.
-  const [kindChoice, setKindChoice] = useState<"ftp" | "other">("ftp");
-  const [kind, setKind] = useState("");
-  const [targetValue, setTargetValue] = useState("");
-  const [targetDate, setTargetDate] = useState("");
-  const [note, setNote] = useState("");
+  const [form, setForm] = useState<GoalFormState>(() => emptyForm("main"));
   const [error, setError] = useState("");
+  const [endError, setEndError] = useState("");
+
+  const checkGoal = pickCheckGoal(groups);
+  const rides = rideData?.rides as Ride[] | undefined;
+  const wellness = rideData?.wellness as WellnessDay[] | undefined;
+  const currentFtp = resolveMeasuredFtp(athleteCfg, ftpHistoryEntries, todayISO).ftpMeasured;
+  const check = useMemo<FtpCheckView | null>(() => {
+    if (!checkGoal || !isSelf) return null;
+    return buildFtpCheck({
+      goal: checkGoal,
+      current: currentFtp,
+      history: mergedEftpHistory(rides ?? [], wellness ?? []),
+      todayISO,
+    });
+  }, [checkGoal, isSelf, currentFtp, rides, wellness, todayISO]);
+
+  // Z8: wer nicht schreiben darf, sieht keine Formulare.
+  if (!canEditGoals(profile)) return null;
+
+  const choices = catalogChoices(isSelf ? sports : [], form.goalKey || null);
+  const fields = fieldsFor(form.goalKey);
+  const hint = conflictHint(groups, open ? { goalKey: form.goalKey, role: form.role } : null);
+  const replacing = open && form.goalKey ? replaceNotice(groups, form.role) : "";
+  const busy = isSaving || isEnding;
+  const isEmpty = !groups.main && !groups.side && groups.legacy.length === 0;
+
+  function patch(update: Partial<GoalFormState>) {
+    setError("");
+    setForm((f) => ({ ...f, ...update }));
+  }
+
+  function openForm() {
+    setError("");
+    setForm(emptyForm(defaultRole(groups)));
+    setOpen(true);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    const result = await save({
-      kind: kindChoice === "ftp" ? "FTP" : kind.trim(),
-      targetValue: targetValue ? Number(targetValue) : null,
-      targetDate: targetDate || null,
-      note: note || null,
-    });
-    if (!result.ok) {
-      setError("Ziel konnte nicht gespeichert werden.");
+    const built = buildGoalInput(form, todayISO);
+    if (!built.ok) {
+      setError(built.message);
       return;
     }
-    setKindChoice("ftp");
-    setKind("");
-    setTargetValue("");
-    setTargetDate("");
-    setNote("");
+    const old = replacementFor(groups, form.role);
+    const result = await replace(old?.id ?? null, built.input);
+    if (!result.ok) {
+      setError(saveErrorMessage(result.error?.message, old != null));
+      return;
+    }
     setOpen(false);
+  }
+
+  async function handleEnd(goalId: string) {
+    setEndError("");
+    const result = await deactivate(goalId);
+    if (!result.ok) setEndError("Das Ziel konnte nicht beendet werden.");
   }
 
   return (
     <div style={SECTION_STYLE}>
       <div style={HEADING_STYLE}>Ziele</div>
       <p style={SECTION_DESC_STYLE}>
-        Ziele mit Zielwert und optionalem Datum. Ein Ziel der Art „FTP“ erscheint als Saisonziel im
-        Hero-Tab. Klick auf ein Ziel deaktiviert es.
+        Wähle ein Hauptziel und höchstens ein Nebenziel. Das Datum ist optional. Ein FTP-Ziel erscheint im
+        Hero-Tab als Saisonziel.
       </p>
-      {isLoading && <p style={{ color: "var(--ink-3)", fontSize: ".78rem", margin: "0 0 10px" }}>Lädt …</p>}
+      {isLoading && <p style={MUTED_STYLE}>Lädt …</p>}
+      {!isLoading && isEmpty && <p style={MUTED_STYLE}>Noch kein Ziel gesetzt.</p>}
 
-      {!isLoading && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 10 }}>
-          {goals.map((goal) => (
-            <button
-              key={goal.id}
-              type="button"
-              title="Klicken zum Deaktivieren"
-              onClick={() => void deactivate(goal.id)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                cursor: "pointer",
-                padding: "6px 8px",
-                borderRadius: 8,
-                border: "none",
-                background: "transparent",
-                textAlign: "left",
-              }}
-            >
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", color: "var(--ink-3)" }}>
-                {goal.kind}
-                {goal.targetDate ? ` · ${fmtDate(goal.targetDate)}` : ""}
-              </span>
-              <span style={{ fontFamily: "var(--font-disp)", fontWeight: 600, fontSize: ".8rem", color: "var(--ss)" }}>
-                {goal.targetValue != null ? `${goal.targetValue}${goalUnitLabel(goal.kind)}` : ""}
-              </span>
-            </button>
-          ))}
+      {!isLoading && (groups.main || groups.side) && (
+        <ul style={{ display: "flex", flexDirection: "column", gap: 8, margin: "0 0 10px", padding: 0 }}>
+          {[groups.main, groups.side].map(
+            (g) =>
+              g && (
+                <GoalCard
+                  key={g.id}
+                  goal={g}
+                  check={checkGoal?.id === g.id ? check : null}
+                  busy={busy}
+                  onEnd={(id) => void handleEnd(id)}
+                />
+              ),
+          )}
+        </ul>
+      )}
+
+      {!isLoading && groups.legacy.length > 0 && (
+        <div style={{ margin: "0 0 10px" }}>
+          <div style={{ ...LABEL_STYLE, marginBottom: 4 }}>Frühere Ziele</div>
+          <p style={{ ...INFO_STYLE, marginBottom: 6 }}>
+            Frühere Freitext-Ziele zählen nicht als Haupt- oder Nebenziel. Du kannst sie beenden.
+          </p>
+          <ul style={{ display: "flex", flexDirection: "column", gap: 8, margin: 0, padding: 0 }}>
+            {groups.legacy.map((g) => (
+              <GoalCard key={g.id} goal={g} busy={busy} onEnd={(id) => void handleEnd(id)} />
+            ))}
+          </ul>
         </div>
       )}
 
+      {endError && (
+        <div role="alert" style={{ ...ERROR_STYLE, marginBottom: 8 }}>
+          {endError}
+        </div>
+      )}
+
+      {hint && (
+        <p role="note" style={{ ...NOTE_STYLE, marginBottom: 10 }}>
+          {hint}
+        </p>
+      )}
+
       {!open && (
-        <button type="button" onClick={() => setOpen(true)} style={LINK_BUTTON_STYLE}>
+        <button type="button" onClick={openForm} style={LINK_BUTTON_STYLE}>
           + Ziel hinzufügen
         </button>
       )}
 
       {open && (
-        <form
-          onSubmit={(e) => void handleSubmit(e)}
-          style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}
-        >
+        <form onSubmit={(e) => void handleSubmit(e)} style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
           <label style={LABEL_STYLE}>
-            Art
+            Ziel
             <select
-              value={kindChoice}
-              onChange={(e) => setKindChoice(e.target.value as "ftp" | "other")}
+              value={form.goalKey}
+              onChange={(e) => patch({ goalKey: e.target.value as GoalKey | "" })}
               style={INPUT_STYLE}
             >
-              <option value="ftp">FTP (zeigt sich im Hero-Tab)</option>
-              <option value="other">Sonstiges</option>
+              <option value="">Bitte wählen</option>
+              {choices.map((c) => (
+                <option key={c.key} value={c.key}>
+                  {c.label}
+                </option>
+              ))}
             </select>
           </label>
-          {kindChoice === "other" && (
+
+          <label style={LABEL_STYLE}>
+            Rolle
+            <select value={form.role} onChange={(e) => patch({ role: e.target.value as GoalRole })} style={INPUT_STYLE}>
+              <option value="main">Hauptziel</option>
+              <option value="side">Nebenziel</option>
+            </select>
+          </label>
+
+          {fields.showFreeText && (
             <label style={LABEL_STYLE}>
-              Bezeichnung
-              <input type="text" required value={kind} onChange={(e) => setKind(e.target.value)} style={INPUT_STYLE} />
+              Beschreibung
+              <input
+                type="text"
+                maxLength={80}
+                value={form.freeText}
+                onChange={(e) => patch({ freeText: e.target.value })}
+                style={INPUT_STYLE}
+              />
             </label>
           )}
+
+          {fields.showValue && (
+            <label style={LABEL_STYLE}>
+              Zielwert ({fields.valueUnit})
+              <input
+                type="number"
+                inputMode="decimal"
+                step="any"
+                min="1"
+                required={fields.valueRequired}
+                value={form.targetValue}
+                onChange={(e) => patch({ targetValue: e.target.value })}
+                style={INPUT_STYLE}
+              />
+            </label>
+          )}
+
           <label style={LABEL_STYLE}>
-            Zielwert
+            Zieldatum (optional)
             <input
-              type="number"
-              step="any"
-              value={targetValue}
-              onChange={(e) => setTargetValue(e.target.value)}
+              type="date"
+              min={todayISO}
+              value={form.targetDate}
+              onChange={(e) => patch({ targetDate: e.target.value })}
               style={INPUT_STYLE}
             />
           </label>
-          <label style={LABEL_STYLE}>
-            Zieldatum
-            <input type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} style={INPUT_STYLE} />
-          </label>
-          <label style={LABEL_STYLE}>
-            Notiz (optional)
-            <input type="text" value={note} onChange={(e) => setNote(e.target.value)} style={INPUT_STYLE} />
-          </label>
-          {error && <div style={ERROR_STYLE}>{error}</div>}
-          <button
-            type="submit"
-            disabled={isPending}
-            style={{
-              alignSelf: "flex-start",
-              padding: "9px 18px",
-              borderRadius: "var(--pill)",
-              border: "none",
-              background: "var(--ss)",
-              color: "#17110a",
-              fontWeight: 600,
-              cursor: isPending ? "default" : "pointer",
-              opacity: isPending ? 0.7 : 1,
-            }}
-          >
-            {isPending ? "Speichern …" : "Speichern"}
-          </button>
+
+          {fields.notice && <p style={INFO_STYLE}>{fields.notice}</p>}
+          {replacing && <p style={INFO_STYLE}>{replacing}</p>}
+
+          {error && (
+            <div role="alert" style={ERROR_STYLE}>
+              {error}
+            </div>
+          )}
+
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
+            <button
+              type="submit"
+              disabled={isSaving}
+              style={{
+                padding: "9px 18px",
+                borderRadius: "var(--pill)",
+                border: "none",
+                background: "var(--ss)",
+                color: "#17110a",
+                fontWeight: 600,
+                cursor: isSaving ? "default" : "pointer",
+                opacity: isSaving ? 0.7 : 1,
+              }}
+            >
+              {isSaving ? "Speichern …" : "Speichern"}
+            </button>
+            <button type="button" onClick={() => setOpen(false)} style={LINK_BUTTON_STYLE}>
+              Abbrechen
+            </button>
+          </div>
         </form>
       )}
     </div>

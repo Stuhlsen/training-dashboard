@@ -13,7 +13,7 @@ vi.mock("./client", () => ({
   isSupabaseConfigured: true,
 }));
 
-const { getGoals, saveGoal, deactivateGoal } = await import("./goals");
+const { getGoals, saveGoal, deactivateGoal, replaceGoal } = await import("./goals");
 
 describe("getGoals", () => {
   it("mappt nur aktive Ziele, älteste zuerst", async () => {
@@ -117,5 +117,81 @@ describe("deactivateGoal", () => {
     expect(result).toEqual({ ok: true });
     expect(payload).toEqual({ is_active: false });
     expect(filters).toEqual([{ op: "eq", col: "id", val: "g1" }]);
+  });
+});
+
+describe("replaceGoal (Rolle belegt: altes zuerst deaktivieren, dann speichern)", () => {
+  type Step = { method?: string; payload?: unknown; filters: unknown[] };
+  const NEW_GOAL = { kind: "FTP", goalKey: "ftp" as const, role: "main" as const, targetValue: 280 };
+
+  it("deaktiviert das alte Ziel VOR dem Speichern des neuen", async () => {
+    const steps: Step[] = [];
+    fakeClient.handlers.goals = (calls) => {
+      steps.push({ method: calls.method, payload: calls.payload, filters: calls.filters });
+      return calls.method === "insert" ? { data: { id: "g-new" }, error: null } : { data: null, error: null };
+    };
+    const result = await replaceGoal("athlete-1", "g-old", NEW_GOAL);
+    expect(result).toEqual({ ok: true, id: "g-new" });
+    expect(steps.map((s) => s.method)).toEqual(["update", "insert"]);
+    expect(steps[0].payload).toEqual({ is_active: false });
+    expect(steps[0].filters).toEqual([{ op: "eq", col: "id", val: "g-old" }]);
+  });
+
+  it("ohne altes Ziel wird nur gespeichert", async () => {
+    const methods: Array<string | undefined> = [];
+    fakeClient.handlers.goals = (calls) => {
+      methods.push(calls.method);
+      return { data: { id: "g-new" }, error: null };
+    };
+    const result = await replaceGoal("athlete-1", null, NEW_GOAL);
+    expect(result).toEqual({ ok: true, id: "g-new" });
+    expect(methods).toEqual(["insert"]);
+  });
+
+  it("Speichern scheitert: altes Ziel wird wieder aktiviert, Fehler wird gemeldet", async () => {
+    const steps: Step[] = [];
+    fakeClient.handlers.goals = (calls) => {
+      steps.push({ method: calls.method, payload: calls.payload, filters: calls.filters });
+      return calls.method === "insert"
+        ? { data: null, error: { message: "insert kaputt" } }
+        : { data: null, error: null };
+    };
+    const result = await replaceGoal("athlete-1", "g-old", NEW_GOAL);
+    expect(result).toEqual({ ok: false, error: { code: "UNKNOWN", message: "insert kaputt" } });
+    expect(steps.map((s) => s.method)).toEqual(["update", "insert", "update"]);
+    expect(steps[2].payload).toEqual({ is_active: true });
+    expect(steps[2].filters).toEqual([{ op: "eq", col: "id", val: "g-old" }]);
+  });
+
+  it("Deaktivieren scheitert: es wird nichts gespeichert", async () => {
+    const methods: Array<string | undefined> = [];
+    fakeClient.handlers.goals = (calls) => {
+      methods.push(calls.method);
+      return { data: null, error: { message: "update kaputt" } };
+    };
+    const result = await replaceGoal("athlete-1", "g-old", NEW_GOAL);
+    expect(result).toEqual({ ok: false, error: { code: "UNKNOWN", message: "update kaputt" } });
+    expect(methods).toEqual(["update"]);
+  });
+
+  it("Speichern UND Reaktivieren scheitern: Fehler nennt, dass das alte Ziel inaktiv blieb", async () => {
+    fakeClient.handlers.goals = (calls) =>
+      calls.method === "update" && (calls.payload as { is_active: boolean }).is_active === false
+        ? { data: null, error: null }
+        : { data: null, error: { message: "boom" } };
+    const result = await replaceGoal("athlete-1", "g-old", NEW_GOAL);
+    expect(result.ok).toBe(false);
+    expect(!result.ok && result.error.message).toContain("boom");
+    expect(!result.ok && result.error.message).toContain("inaktiv");
+  });
+
+  it("schreibt kind, goal_key und role des neuen Ziels", async () => {
+    let payload: Record<string, unknown> = {};
+    fakeClient.handlers.goals = (calls) => {
+      if (calls.method === "insert") payload = calls.payload as Record<string, unknown>;
+      return calls.method === "insert" ? { data: { id: "x" }, error: null } : { data: null, error: null };
+    };
+    await replaceGoal("athlete-1", "g-old", NEW_GOAL);
+    expect(payload).toMatchObject({ athlete_id: "athlete-1", kind: "FTP", goal_key: "ftp", role: "main", target_value: 280 });
   });
 });

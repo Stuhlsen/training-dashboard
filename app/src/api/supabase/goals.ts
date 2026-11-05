@@ -62,11 +62,46 @@ export async function saveGoal(athleteId: string, goal: GoalInput): Promise<Resu
   return { ok: true, id: data.id };
 }
 
-/** Ziele werden nie gelöscht, nur deaktiviert — wie im Vanilla-Original. */
-export async function deactivateGoal(goalId: string): Promise<Result> {
+async function setGoalActive(goalId: string, isActive: boolean): Promise<Result> {
   if (!supabase) return { ok: false, error: NOT_CONFIGURED };
   const client = (await getAuthedClient()) ?? supabase;
-  const { error } = await client.from("goals").update({ is_active: false }).eq("id", goalId);
+  const { error } = await client.from("goals").update({ is_active: isActive }).eq("id", goalId);
   if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
   return { ok: true };
+}
+
+/** Ziele werden nie gelöscht, nur deaktiviert — wie im Vanilla-Original. */
+export function deactivateGoal(goalId: string): Promise<Result> {
+  return setGoalActive(goalId, false);
+}
+
+/** Ersetzt das aktive Ziel einer Rolle (Fahrplan 43 E4). Der partielle
+ *  Unique-Index (0084) erlaubt je Athlet nur ein aktives main und ein aktives
+ *  side — das neue Ziel kann also erst nach dem Deaktivieren des alten
+ *  gespeichert werden. Scheitert das Speichern, wird das alte Ziel wieder
+ *  aktiviert und der Speicherfehler gemeldet. Ohne `oldGoalId` (Rolle frei)
+ *  wird nur gespeichert. Kein echter Transaktionsschutz (zwei Requests):
+ *  scheitert auch das Reaktivieren, sagt die Meldung das offen. */
+export async function replaceGoal(
+  athleteId: string,
+  oldGoalId: string | null,
+  goal: GoalInput,
+): Promise<Result<{ id: string }>> {
+  if (!oldGoalId) return saveGoal(athleteId, goal);
+
+  const deactivated = await setGoalActive(oldGoalId, false);
+  if (!deactivated.ok) return deactivated;
+
+  const saved = await saveGoal(athleteId, goal);
+  if (saved.ok) return saved;
+
+  const restored = await setGoalActive(oldGoalId, true);
+  if (restored.ok) return saved;
+  return {
+    ok: false,
+    error: {
+      code: saved.error.code,
+      message: `${saved.error.message} — das bisherige Ziel blieb inaktiv (${restored.error.message}).`,
+    },
+  };
 }
