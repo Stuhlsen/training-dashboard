@@ -5,6 +5,7 @@
 
 import { describe, expect, it } from "vitest";
 import { buildRecomputeInput, replaceFromISO } from "./recompute-plan-view-model";
+import { goalPlanProfile } from "../../core/goals.js";
 import type { TrainingPlan, WeekModelEntry } from "../../api/types";
 
 function wm(start: string, phase: string, targetTss: number): WeekModelEntry {
@@ -81,6 +82,21 @@ describe("buildRecomputeInput", () => {
     expect(res.input.ftpMeasuredDate).toBe("2026-09-30");
     // Ziel-FTP des Ur-Plans bleibt
     expect(res.input.ftpTarget).toBe(210);
+  });
+
+  it("goalProfile wird durchgereicht; ohne Profil fehlt das Feld (Ausgabe wie bisher)", () => {
+    const base = { plan: plan(), todayISO: "2026-10-07", athleteDefaults: defaults };
+    const without = buildRecomputeInput(base);
+    const withNull = buildRecomputeInput({ ...base, goalProfile: null });
+    const profile = goalPlanProfile({ goalKey: "wiedereinstieg" }, null);
+    const withProfile = buildRecomputeInput({ ...base, goalProfile: profile });
+    if (!without.ok || !withNull.ok || !withProfile.ok) throw new Error("erwartet ok");
+    expect("goalProfile" in without.input).toBe(false);
+    expect("goalProfile" in withNull.input).toBe(false);
+    expect(withProfile.input.goalProfile).toEqual(profile);
+    // Plan-Felder bleiben unverändert: Fokus und Level ändert der Dialog nicht.
+    expect(withProfile.input.focus).toBe("allgemein");
+    expect(withProfile.input.level).toBe("fortgeschritten");
   });
 
   it("gewählte Trainingstage ersetzen die bisherigen; ohne Wahl gelten die Tage des Plans", () => {

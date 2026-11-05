@@ -23,6 +23,7 @@ import {
   savedPlanForm,
 } from "./new-plan-dialog-view-model";
 import type { PlanGeneratorInput, AthleteDefaults, FixedDay } from "./new-plan-dialog-view-model";
+import type { GoalPlanProfile } from "./goal-plan-view-model";
 import type { TrainingPlan, WeekModelEntry } from "../../api/types";
 
 /** Ab hier werden Karten ersetzt: Die Neuberechnung beginnt am Montag der
@@ -66,6 +67,9 @@ export interface RecomputeArgs {
   fixedDays?: FixedDay[];
   /** Im Dialog geändertes Ziel-FTP (W). Fehlt → das Ziel des Plans. */
   ftpTarget?: number | null;
+  /** Fahrplan 43 E5: Plan-Profil der Ziele (schon nach Sportart gefiltert).
+   *  Fehlt → kein Ziel wirkt, Ausgabe wie bisher. */
+  goalProfile?: GoalPlanProfile | null;
 }
 
 export type RecomputeInput =
@@ -170,6 +174,7 @@ export function buildRecomputeInput(args: RecomputeArgs): RecomputeInput {
     focus: plan.focus,
     level: plan.level,
     model: plan.model,
+    ...(args.goalProfile ? { goalProfile: args.goalProfile } : {}),
     history,
     regenerateFrom: regenerateFromISO,
     baseWeekModel: base,

@@ -10,6 +10,7 @@ const h = vi.hoisted(() => ({
   isSelf: true,
   profileRole: null as boolean | null,
   updateRole: vi.fn(async () => ({ ok: true as const })),
+  goals: [] as unknown[],
 }));
 
 vi.mock("../../api/hooks/useEvents", () => ({ useEvents: () => ({ data: [] }) }));
@@ -38,6 +39,9 @@ vi.mock("../../api/hooks/useProfile", () => ({
     isLoading: false,
   }),
   useUpdateHasIndoorTrainer: () => ({ update: h.updateRole, isPending: false }),
+}));
+vi.mock("./useGoalPlanContext", () => ({
+  useGoalPlanContext: () => ({ goals: h.goals, interimFtp: null, isLoading: false }),
 }));
 vi.mock("./useCreateTrainingPlan", () => ({
   useCreateTrainingPlan: () => ({ createPlan: vi.fn(), isPending: false }),
@@ -87,6 +91,7 @@ beforeEach(() => {
   h.planLoading = false;
   h.isSelf = true;
   h.profileRole = null;
+  h.goals = [];
   h.updateRole.mockClear();
 });
 afterEach(cleanup);
@@ -120,6 +125,26 @@ describe("NewPlanDialog — Wizard-Start und Rolle", () => {
     expect(screen.getByRole("button", { name: "Unter 1 Jahr" }).getAttribute("aria-pressed")).toBe(
       "true"
     );
+  });
+
+  it("Ziele belegen Fokus vor (überschreiben den letzten Plan) und sagen das offen; alles bleibt änderbar", () => {
+    h.activePlan = plan; // Fokus „berg"
+    h.goals = [{ id: "g", kind: "Ausdauer", goalKey: "ausdauer", role: "main", targetValue: null, targetDate: null }];
+    renderDialog();
+    // Ausdauer belegt nur den Fokus vor — Level wird nicht behauptet.
+    expect(screen.getByText(/Vorbelegt aus deinen Zielen \(Fokus\)\./)).toBeTruthy();
+    const focus = screen.getByLabelText(/^Fokus/) as HTMLSelectElement;
+    expect(focus.value).toBe("langstrecke");
+    fireEvent.change(focus, { target: { value: "crit" } });
+    expect(focus.value).toBe("crit");
+  });
+
+  it("ohne passende Ziele: keine Vorbelegung, kein Hinweis, Fokus bleibt aus dem Plan", () => {
+    h.activePlan = plan;
+    h.goals = [{ id: "g", kind: "Muskeln", goalKey: "muskeln_kraft", role: "main", targetValue: null, targetDate: null }];
+    renderDialog();
+    expect(screen.queryByText(/Vorbelegt aus deinen Zielen/)).toBeNull();
+    expect((screen.getByLabelText(/^Fokus/) as HTMLSelectElement).value).toBe("berg");
   });
 
   it("Athlet selbst: Rolle-Antwort wird im Profil gespeichert, danach steht das Formular", async () => {

@@ -226,6 +226,9 @@ export interface PlanGeneratorInput {
   focus: PlanFocus;
   level: PlanLevel;
   model: PlanModel;
+  /** Fahrplan 43 E5, optional: Plan-Profil der Ziele (Rampe, Startumfang, harte
+   *  Tage). Fehlt es, läuft der Generator wie bisher (Golden Master). */
+  goalProfile?: import("../../core/goals.js").GoalPlanProfile;
   history?: unknown;
   /** E13 „Rest neu berechnen": ISO-Montag, ab dem die Wochen neu gerechnet
    *  werden. Zusammen mit `baseWeekModel` gesetzt — sonst läuft der normale

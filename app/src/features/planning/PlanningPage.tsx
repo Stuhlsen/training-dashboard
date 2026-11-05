@@ -18,7 +18,7 @@ import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
 import { useEffectiveSport } from "../../api/hooks/useActiveSport";
 import { useAthletePlanOffset } from "../../api/hooks/useAthletePlanOffset";
 import { useAthleteSports } from "../../api/hooks/useAthleteSports";
-import { useActiveWeekModel } from "../../api/hooks/useActiveTrainingPlan";
+import { useActiveTrainingPlan, useActiveWeekModel } from "../../api/hooks/useActiveTrainingPlan";
 import { useCanCreatePlan, useCanWriteForAthlete, useIsSelfAthlete } from "../../api/hooks/useWriteAuthorization";
 import { useTrainerContext } from "../../api/hooks/useTrainerContext";
 import { useEvents } from "../../api/hooks/useEvents";
@@ -48,6 +48,8 @@ import { PlanCardForm } from "./PlanCardForm";
 import { ShiftPlanDialog } from "./ShiftPlanDialog";
 import { NewPlanDialog } from "./NewPlanDialog";
 import { RecomputePlanDialog } from "./RecomputePlanDialog";
+import { goalPlanHint } from "./goal-plan-view-model";
+import { useGoalPlanContext } from "./useGoalPlanContext";
 import { FtpRescaleDialog } from "./FtpRescaleDialog";
 import { detectDoneFtpTest } from "./ftp-rescale-dialog-view-model";
 import { ExportImportBar } from "./ExportImportBar";
@@ -407,6 +409,37 @@ export function PlanningPage() {
     setFtpRescaleOpen(false);
   }
 
+  // Fahrplan 43 E5: ruhiger Hinweis, wenn aktive Ziele und aktiver Plan
+  // auseinanderliegen. Nur für den Athleten selbst (Ziele sind owner-only).
+  // „Später" merkt sich localStorage pro Signatur (Ziele + Abweichung) — wie
+  // beim FTP-Rescale-Banner; ändert sich ein Ziel, kommt der Hinweis neu.
+  const { data: activePlanRow } = useActiveTrainingPlan(activeAthleteId, effectiveSport);
+  const { goals: planGoals, interimFtp } = useGoalPlanContext(activeAthleteId, effectiveSport);
+  const goalHint = useMemo(
+    () => (editable && isSelf && activePlanRow ? goalPlanHint(planGoals, activePlanRow, interimFtp) : null),
+    [editable, isSelf, activePlanRow, planGoals, interimFtp],
+  );
+  const [goalHintDismissed, setGoalHintDismissed] = useState<string | null>(null);
+  const [recomputeWithGoals, setRecomputeWithGoals] = useState(false);
+  const goalHintStoredDismissed = useMemo(() => {
+    if (!goalHint) return false;
+    try {
+      return !!localStorage.getItem(`goal-plan-hint-dismissed:${goalHint.signature}`);
+    } catch {
+      return false; // localStorage nicht verfügbar — Hinweis bleibt sichtbar
+    }
+  }, [goalHint]);
+  const showGoalHint = !!goalHint && !goalHintStoredDismissed && goalHintDismissed !== goalHint.signature;
+  function dismissGoalHint() {
+    if (!goalHint) return;
+    try {
+      localStorage.setItem(`goal-plan-hint-dismissed:${goalHint.signature}`, "1");
+    } catch {
+      /* ignorieren — nur eine Bequemlichkeit */
+    }
+    setGoalHintDismissed(goalHint.signature);
+  }
+
   // Etappe 6c: Vorher/Nachher-Vergleich nach Verschieben/Ausfallen/Drag,
   // Port von ui/planned.js::_recordDelta (dort Modul-State `deltaBanner` +
   // `deltaBannerAthleteId`). Persistent bis manuell geschlossen, verworfen
@@ -626,6 +659,44 @@ export function PlanningPage() {
           </button>
         </div>
       )}
+      {showGoalHint && goalHint && (
+        <div style={{ display: "flex", gap: 8, alignItems: "stretch" }}>
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-start",
+              gap: 6,
+              padding: "13px 18px",
+              borderRadius: "16px",
+              background: "rgba(255,255,255,.03)",
+              border: "1px solid var(--hair)",
+              backdropFilter: "blur(14px)",
+              color: "var(--ink)",
+            }}
+          >
+            <span style={{ fontSize: ".82rem", color: "var(--ink-2)", lineHeight: 1.45 }}>{goalHint.text}</span>
+            <button
+              type="button"
+              onClick={() => {
+                setRecomputeWithGoals(true);
+                setRecomputeOpen(true);
+              }}
+              style={{ ...SECTION_ACTION_BTN_STYLE, fontWeight: 600, fontSize: ".8rem" }}
+            >
+              Plan anpassen ansehen
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={dismissGoalHint}
+            style={{ ...SECTION_ACTION_BTN_STYLE, fontWeight: 400, fontSize: ".78rem" }}
+          >
+            Später
+          </button>
+        </div>
+      )}
       <BlockDialogGate athleteId={activeAthleteId} cards={cards ?? []} />
 
       <ExportImportBar
@@ -781,7 +852,14 @@ export function PlanningPage() {
                       </button>
                     )}
                     {!!activeWeekModel && (
-                      <button type="button" onClick={() => setRecomputeOpen(true)} style={SECTION_ACTION_BTN_STYLE}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRecomputeWithGoals(false);
+                          setRecomputeOpen(true);
+                        }}
+                        style={SECTION_ACTION_BTN_STYLE}
+                      >
                         Plan anpassen…
                       </button>
                     )}
@@ -893,7 +971,11 @@ export function PlanningPage() {
       )}
 
       {recomputeOpen && (
-        <RecomputePlanDialog athleteId={activeAthleteId} onClose={() => setRecomputeOpen(false)} />
+        <RecomputePlanDialog
+          athleteId={activeAthleteId}
+          withGoals={recomputeWithGoals}
+          onClose={() => setRecomputeOpen(false)}
+        />
       )}
 
       {ftpRescaleOpen && doneFtpTest && (

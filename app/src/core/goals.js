@@ -126,7 +126,26 @@ function merge(keys, table, main, side) {
   return JSON.parse(JSON.stringify(Object.fromEntries(keys.map((k) => [k, m[k] ?? s[k]]))));
 }
 
-/** @param {{goalKey?: string}|null} [main] @param {{goalKey?: string}|null} [side] @returns {GoalPlanProfile} */
+/**
+ * Sportfilter VOR goalPlanProfile(): das Profil kennt keine Sportart. Ein Ziel
+ * zählt nur, wenn der Katalog die Sportart des Plans für es führt — „Laufen
+ * starten" wirkt nie auf einen Radplan, „FTP" nie auf einen Laufplan.
+ * Unbekannte Schlüssel und Altziele ohne Katalogschlüssel fallen heraus.
+ * @template {{goalKey?: string|null}} G
+ * @param {{main?: G|null, side?: G|null}} goals
+ * @param {"ride"|"run"|"swim"} sport
+ * @returns {{main: G|null, side: G|null}}
+ */
+export function goalsForSport(goals, sport) {
+  /** @param {G|null|undefined} g */
+  const fits = (g) => {
+    const entry = g?.goalKey ? GOAL_CATALOG.find((e) => e.key === g.goalKey) : null;
+    return entry && entry.sports.includes(sport) ? g : null;
+  };
+  return { main: fits(goals?.main) ?? null, side: fits(goals?.side) ?? null };
+}
+
+/** @param {{goalKey?: string|null}|null} [main] @param {{goalKey?: string|null}|null} [side] @returns {GoalPlanProfile} */
 export function goalPlanProfile(main, side) {
   return merge(PLAN_KEYS, PLAN_BY_GOAL, main, side);
 }

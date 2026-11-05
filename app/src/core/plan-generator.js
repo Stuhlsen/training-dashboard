@@ -81,6 +81,11 @@ import { getSportStrategy } from "./plan-generator-sport.js";
  * @property {"allgemein"|"berg"|"langstrecke"|"crit"} focus
  * @property {"einsteiger"|"fortgeschritten"} level
  * @property {"pyramidal"|"polarized"|"block"|"linear"|"reverse"} model
+ * @property {import("./goals.js").GoalPlanProfile} [goalProfile]  Fahrplan 43 E5, optional. Wirkt NUR über
+ *   vorhandene Stellschrauben: `ramp` (flache Rampe wie bei schwacher Planerfüllung), `lowStartVolume`
+ *   (Woche-0-TSS × LOW_START_VOLUME_FACTOR), `keepHardStimuli` (kein Trainingstag fällt weg). Alle
+ *   anderen Felder (focus, level, eventMode, moreEasyVolume, intensityFocus, sweetSpot) ignoriert der
+ *   Generator. Fehlt das Feld, bleibt die Ausgabe identisch (Golden Master).
  * @property {HistoryAggregate} [history]
  * @property {Array<object>} [formats]  session_formats-Zeilen (E3); leer → eingebaute Startbelegung
  * @property {string} [regenerateFrom]  E13: ISO-Montag, ab dem die Wochen neu gerechnet werden
@@ -200,6 +205,10 @@ export function emptyHistory() {
     currentThresholdSpeed: null,
   };
 }
+
+/** Ziel „niedriger Startumfang" (Fahrplan 43 E5): Woche-0-TSS × Faktor.
+ *  Eigene Festlegung, nicht belegt — nur eine sanfte Absenkung des Starts. */
+export const LOW_START_VOLUME_FACTOR = 0.8;
 
 /** Level-Default für die Wochen-TSS, wenn keine Historie vorliegt. Linear mit
  *  dem Zeitbudget, in den level-typischen Korridor geklemmt. In E2
@@ -900,17 +909,26 @@ export function generatePlan(input) {
   }
 
   // 3) Woche-0-TSS + Anpassung bei schwacher Planerfüllung -------------
+  const goalProfile = input.goalProfile ?? null;
   const recentTss = avg((history.weeklyActualTss || []).slice(-4));
-  const week0Tss =
+  const baseWeek0Tss =
     recentTss != null ? recentTss : levelDefaultWeekTss(input.level, input.weeklyHours);
+  const week0Tss = goalProfile?.lowStartVolume ? baseWeek0Tss * LOW_START_VOLUME_FACTOR : baseWeek0Tss;
   const lowAdherence = history.planAdherence != null && history.planAdherence < 0.7;
+  // Ziel-Rampe (Fahrplan 43 E5): dieselbe flache Rampe wie bei schwacher
+  // Planerfüllung — keine zweite Rampenlogik. Sie streicht für sich keinen Tag.
+  const goalFlatRamp = goalProfile?.ramp === "flach" || goalProfile?.ramp === "sanft";
   // Flachere Aufbaurampe: Rampenziel 6 → 4 UND wöchentlicher Zuwachs 8 % → 4 %.
   // Der Zuwachsfaktor ist der wirksame Hebel — die CTL-Rampe-Deckel greifen bei
   // moderatem Ausgangs-CTL selten (sonst bliebe der Unterschied unsichtbar).
-  const rampTarget = lowAdherence ? 4 : CONFLICT_THRESHOLDS.ctlRampInfo;
-  const weeklyGrowth = lowAdherence ? 1.04 : 1.08;
+  const flatRamp = lowAdherence || goalFlatRamp;
+  const rampTarget = flatRamp ? 4 : CONFLICT_THRESHOLDS.ctlRampInfo;
+  const weeklyGrowth = flatRamp ? 1.04 : 1.08;
   let effectiveWeekdays = [...input.trainingWeekdays].sort((x, y) => x - y);
-  if (lowAdherence && input.keepAllTrainingDays) {
+  // keepHardStimuli: harte Reize bleiben — die flachere Rampe wird nie über
+  // weniger Trainingstage erreicht (wirkt wie keepAllTrainingDays).
+  const keepDays = input.keepAllTrainingDays || goalProfile?.keepHardStimuli === true;
+  if (lowAdherence && keepDays) {
     warnings.push(`Planerfüllung zuletzt unter 70 % — flachere Aufbaurampe, alle gewählten Trainingstage bleiben.`);
   } else if (lowAdherence && effectiveWeekdays.length > 2) {
     effectiveWeekdays = effectiveWeekdays.slice(0, -1);

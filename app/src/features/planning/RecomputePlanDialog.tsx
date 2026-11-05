@@ -25,6 +25,8 @@ import { fmtDate, localISODate } from "../../core/format.js";
 import { groupRideEstimates } from "../../core/group-ride-duration.js";
 import { generatePlan } from "../../core/plan-generator.js";
 import { FixedDaysEditor } from "./FixedDaysEditor";
+import { goalPlanChanges, goalPlanHint, planGoalProfile } from "./goal-plan-view-model";
+import { useGoalPlanContext } from "./useGoalPlanContext";
 import { PlanPreview } from "./PlanPreview";
 import { buildRecomputeInput, currentTailWeekdays, replaceFromISO } from "./recompute-plan-view-model";
 import { useFtpHistoryEntries } from "./useFtpHistoryEntries";
@@ -42,6 +44,9 @@ import type { Ride } from "../../types.js";
 interface RecomputePlanDialogProps {
   athleteId: string;
   onClose: () => void;
+  /** Fahrplan 43 E5: „Ziele berücksichtigen" startet an — nur, wenn der Dialog
+   *  über den Hinweis auf der Planungsseite geöffnet wird. Sonst aus. */
+  withGoals?: boolean;
 }
 
 const BTN_STYLE: React.CSSProperties = {
@@ -63,7 +68,7 @@ const PRIMARY_BTN_STYLE: React.CSSProperties = {
   fontWeight: 600,
 };
 
-export function RecomputePlanDialog({ athleteId, onClose }: RecomputePlanDialogProps) {
+export function RecomputePlanDialog({ athleteId, onClose, withGoals = false }: RecomputePlanDialogProps) {
   useEscapeToClose(onClose);
 
   const today = localISODate();
@@ -81,6 +86,12 @@ export function RecomputePlanDialog({ athleteId, onClose }: RecomputePlanDialogP
   const [keepAllDays, setKeepAllDays] = useState<boolean | null>(null);
   const [pickedFixedDays, setPickedFixedDays] = useState<FixedDay[] | null>(null);
   const [pickedFtpTarget, setPickedFtpTarget] = useState<number | null>(null);
+
+  // Ziele (Fahrplan 43 E5): Standard aus; nur der Hinweis öffnet den Dialog mit
+  // „an". Ändert nichts am Plan, bevor der Athlet übernimmt.
+  const { goals, interimFtp } = useGoalPlanContext(athleteId, effectiveSport);
+  const [goalsOn, setGoalsOn] = useState(withGoals);
+  const goalProfile = useMemo(() => planGoalProfile(goals, effectiveSport), [goals, effectiveSport]);
 
   const isRide = effectiveSport === "ride";
   const shownDays = pickedDays ?? (activePlan ? currentTailWeekdays(activePlan, today) : []);
@@ -119,7 +130,14 @@ export function RecomputePlanDialog({ athleteId, onClose }: RecomputePlanDialogP
       ...(pickedDays ? { trainingWeekdays: pickedDays } : {}),
       ...(keepAllDays != null ? { keepAllTrainingDays: keepAllDays } : {}),
       ...(pickedFixedDays ? { fixedDays: pickedFixedDays } : {}),
-      ...(pickedFtpTarget != null ? { ftpTarget: pickedFtpTarget } : {}),
+      // Von Hand geändertes Ziel-FTP gewinnt; sonst bei „Ziele berücksichtigen"
+      // das Zwischenziel (nur Rad, nur bei ok — sonst null).
+      ...(pickedFtpTarget != null
+        ? { ftpTarget: pickedFtpTarget }
+        : goalsOn && interimFtp != null
+          ? { ftpTarget: interimFtp }
+          : {}),
+      ...(goalsOn ? { goalProfile } : {}),
     });
     if (!res.ok) return { error: res.reason };
     const run = generatePlan as (input: unknown) => GeneratedPlan;
@@ -147,7 +165,16 @@ export function RecomputePlanDialog({ athleteId, onClose }: RecomputePlanDialogP
     keepAllDays,
     pickedFixedDays,
     pickedFtpTarget,
+    goalsOn,
+    goalProfile,
+    interimFtp,
   ]);
+
+  // Anzeige der Ziel-Box (nur Darstellung, fließt nicht in die Berechnung).
+  const goalChanges = goalPlanChanges(goalProfile);
+  const goalHint = activePlan ? goalPlanHint(goals, activePlan, interimFtp) : null;
+  const needsNewPlan = !!goalHint?.differences.some((d) => d === "focus" || d === "level");
+  const showGoalsBox = goalChanges.hasEffect || goalChanges.notYet.length > 0 || interimFtp != null || needsNewPlan;
 
   async function handleApply() {
     if (!activePlan || !built || "error" in built || isPending) return;
@@ -255,6 +282,49 @@ export function RecomputePlanDialog({ athleteId, onClose }: RecomputePlanDialogP
                   setSaveError(null);
                 }}
               />
+            )}
+            {showGoalsBox && (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 6,
+                  padding: "10px 12px",
+                  borderRadius: "var(--radius-sm)",
+                  border: "1px solid var(--hair)",
+                  fontSize: ".76rem",
+                  color: "var(--ink-3)",
+                }}
+              >
+                <label style={{ display: "flex", alignItems: "flex-start", gap: 6, color: "var(--ink-2)" }}>
+                  <input
+                    type="checkbox"
+                    checked={goalsOn}
+                    onChange={(e) => {
+                      setGoalsOn(e.target.checked);
+                      setSaveError(null);
+                    }}
+                  />
+                  <span>Ziele berücksichtigen</span>
+                </label>
+                {goalsOn && goalChanges.changes.length > 0 && (
+                  <ul style={{ margin: 0, paddingLeft: 18 }}>
+                    {goalChanges.changes.map((c) => (
+                      <li key={c}>{c}</li>
+                    ))}
+                  </ul>
+                )}
+                {goalsOn && interimFtp != null && pickedFtpTarget == null && (
+                  <div>Ziel-FTP: Vorschlag {interimFtp} W aus deinem Zwischenziel. Du kannst ihn unten ändern.</div>
+                )}
+                {goalsOn && goalChanges.notYet.length > 0 && (
+                  <div>Wirkt noch nicht im Plan: {goalChanges.notYet.join(", ")}.</div>
+                )}
+                {goalsOn && needsNewPlan && (
+                  <div>Fokus und Level änderst du über „Neuer Plan“.</div>
+                )}
+                {!goalsOn && <div>Aus: Der Plan wird nur mit deinen Trainingstagen und deiner aktuellen Form neu gerechnet.</div>}
+              </div>
             )}
             {isRide && built && !("error" in built) && (
               <label style={LABEL_STYLE}>

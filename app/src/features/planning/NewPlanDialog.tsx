@@ -21,6 +21,8 @@ import { Fragment, useMemo, useState } from "react";
 import { GlassCard } from "../../components/GlassCard";
 import { useEscapeToClose } from "../../hooks/useEscapeToClose";
 import { useEvents } from "../../api/hooks/useEvents";
+import { newPlanFormPatch, newPlanPresets } from "./goal-plan-view-model";
+import { useGoalPlanContext } from "./useGoalPlanContext";
 import { useRides } from "../../api/hooks/useRides";
 import { useEffectiveSport } from "../../api/hooks/useActiveSport";
 import { usePlanHistoryAggregate } from "../../api/hooks/usePlanHistoryAggregate";
@@ -150,6 +152,31 @@ export function NewPlanDialog({ athleteId, onClose, onCreated }: NewPlanDialogPr
     setForm((f) => ({ ...f, ...formFromLastPlan(activePlan) }));
   }
 
+  // Fahrplan 43 E5: Fokus und Level (bei Event-Ziel mit Datum auch der
+  // Event-Modus) aus den Zielen vorbelegen — einmal, NACH der Vorbelegung aus dem
+  // letzten Plan, und nur wo ein Ziel etwas vorgibt. Alles bleibt änderbar.
+  // State-Anpassung WÄHREND des Renders (wie oben), sonst set-state-in-effect.
+  const { goals: planGoals, isLoading: goalsLoading } = useGoalPlanContext(athleteId, effectiveSport);
+  const [appliedPresetKey, setAppliedPresetKey] = useState<string | null>(null);
+  const goalPresets = newPlanPresets(planGoals, effectiveSport, today);
+  const goalPresetKey = JSON.stringify(goalPresets);
+  const goalPresetsReady = !planLoading && !goalsLoading && (!goalPresets.eventDate || events !== undefined);
+  if (goalPresetsReady && appliedPresetKey !== goalPresetKey) {
+    setAppliedPresetKey(goalPresetKey);
+    if (Object.keys(goalPresets).length > 0) {
+      setForm((f) => ({ ...f, ...newPlanFormPatch(goalPresets, events ?? []) }));
+    }
+  }
+  const hasGoalPresets = appliedPresetKey !== null && appliedPresetKey !== "{}";
+  // Nur nennen, was wirklich vorbelegt wurde — kein Versprechen darüber hinaus.
+  const presetNames = [
+    goalPresets.focus && "Fokus",
+    goalPresets.level && "Level",
+    goalPresets.eventDate && "Event",
+  ]
+    .filter(Boolean)
+    .join(", ");
+
   // FTP-Historie lädt asynchron — beim allerersten Render greift der
   // Startzustand oben (defaultFormState()) meist nur auf den config.ts-
   // Fallback zurück. Sobald echte Daten da sind, hier nachziehen. State-
@@ -185,7 +212,7 @@ export function NewPlanDialog({ athleteId, onClose, onCreated }: NewPlanDialogPr
   // Wizard erst zeigen, wenn Plan und Rolle bekannt sind — sonst flackert die
   // Schrittfolge (Rolle-Schritt) bzw. der Start-Modus springt.
   const guidedMode = guidedChoice ?? !activePlan;
-  const waiting = guidedChoice !== false && (planLoading || roleLoading);
+  const waiting = guidedChoice !== false && (planLoading || roleLoading || !goalPresetsReady);
   const hasIndoorTrainer = resolveHasIndoorTrainer(profileRole, form.hasIndoorTrainer);
   const showEnvironmentPills = effectiveSport === "ride" && hasIndoorTrainer === true;
   const showRoleSwitch = effectiveSport === "ride" && !roleLoading && profileRole === null;
@@ -460,6 +487,12 @@ export function NewPlanDialog({ athleteId, onClose, onCreated }: NewPlanDialogPr
               Erweitert
             </button>
           </div>
+
+          {hasGoalPresets && !waiting && (
+            <p style={{ margin: 0, fontSize: ".76rem", color: "var(--ink-3)" }}>
+              Vorbelegt aus deinen Zielen ({presetNames}). Du kannst alles ändern.
+            </p>
+          )}
 
           {waiting ? (
             <p style={{ fontSize: ".82rem", color: "var(--ink-3)" }}>Lade …</p>
