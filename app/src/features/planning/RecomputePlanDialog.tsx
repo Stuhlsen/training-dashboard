@@ -25,6 +25,7 @@ import { athleteConfig } from "../../config";
 import { fmtDate, localISODate } from "../../core/format.js";
 import { groupRideEstimates } from "../../core/group-ride-duration.js";
 import { generatePlan } from "../../core/plan-generator.js";
+import { AddSportFlow } from "./AddSportFlow";
 import { FixedDaysEditor } from "./FixedDaysEditor";
 import { goalPlanChanges, goalPlanHint, planGoalProfile } from "./goal-plan-view-model";
 import { useGoalPlanContext } from "./useGoalPlanContext";
@@ -90,6 +91,8 @@ export function RecomputePlanDialog({ athleteId, onClose, withGoals = false, spo
   const [keepAllDays, setKeepAllDays] = useState<boolean | null>(null);
   const [pickedFixedDays, setPickedFixedDays] = useState<FixedDay[] | null>(null);
   const [pickedFtpTarget, setPickedFtpTarget] = useState<number | null>(null);
+  // Fahrplan 44 E5: „Sportart hinzufügen" ist eine eigene Ansicht (AddSportFlow).
+  const [adding, setAdding] = useState(false);
 
   // Ziele (Fahrplan 43 E5): Standard aus; nur der Hinweis öffnet den Dialog mit
   // „an". Ändert nichts am Plan, bevor der Athlet übernimmt.
@@ -197,6 +200,10 @@ export function RecomputePlanDialog({ athleteId, onClose, withGoals = false, spo
   }
 
   const blocked = !built || "error" in built;
+
+  if (adding) {
+    return <AddSportFlow athleteId={athleteId} onBack={() => setAdding(false)} onClose={onClose} />;
+  }
 
   return (
     <div
@@ -385,6 +392,17 @@ export function RecomputePlanDialog({ athleteId, onClose, withGoals = false, spo
               />
             </div>
           </>
+        )}
+
+        {!planLoading && activePlan && (
+          <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--hair)" }}>
+            <p style={{ margin: "0 0 8px", fontSize: ".78rem", color: "var(--ink-3)" }}>
+              Du willst eine weitere Sportart planen? Dein Plan bleibt dabei unverändert.
+            </p>
+            <button type="button" style={BTN_STYLE} onClick={() => setAdding(true)} disabled={isPending}>
+              Sportart hinzufügen
+            </button>
+          </div>
         )}
 
         {saveError && (

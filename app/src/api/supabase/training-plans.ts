@@ -204,6 +204,26 @@ export async function setTrainingPlanActive(
   return { ok: true, plan: toTrainingPlan(data) };
 }
 
+/** NUR die Gruppe einer Plan-Zeile setzen (`null` löst die Verknüpfung) —
+ *  „Sportart hinzufügen" (Fahrplan 44 E5). Anders als `updateTrainingPlan`
+ *  bleiben `week_model`, `params` und alles andere unberührt: am laufenden
+ *  Plan ändert sich nichts außer dieser einen Spalte. */
+export async function setTrainingPlanGroup(
+  id: string,
+  planGroupId: string | null,
+): Promise<Result<{ plan: TrainingPlan }>> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { data, error } = await client
+    .from("training_plans")
+    .update({ plan_group_id: planGroupId })
+    .eq("id", id)
+    .select(SELECT_COLS)
+    .single<TrainingPlanRow>();
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true, plan: toTrainingPlan(data) };
+}
+
 /** Blockstruktur + Momentaufnahme einer bestehenden Plan-Zeile aktualisieren —
  *  „Rest neu berechnen" (Fahrplan 8 E13): `id` / `is_active` / `start_date`
  *  bleiben, nur `week_model` (frischer Schwanz) + `params` (frische Historie/

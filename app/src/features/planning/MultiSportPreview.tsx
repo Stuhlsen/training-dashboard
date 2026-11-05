@@ -18,8 +18,8 @@ import { useState } from "react";
 import { sportBadge } from "../../core/activity-sport.js";
 import { addDaysISO, fmtDate } from "../../core/format.js";
 import { WEEKDAY_LABELS } from "./new-plan-dialog-view-model";
-import { MULTI_SPORT_LABEL, type ReplaceNote } from "./multi-sport-plan-view-model";
-import type { MultiSportBundle } from "./useMultiSportPlan";
+import { MULTI_SPORT_LABEL, type LoadSummary } from "./multi-sport-plan-view-model";
+import type { ActiveSport } from "../../api/hooks/useActiveSport";
 
 const TABLE_STYLE: React.CSSProperties = {
   width: "100%",
@@ -42,9 +42,23 @@ const HEAD_STYLE: React.CSSProperties = {
   fontWeight: 600,
 };
 
+/** Was die Vorschau braucht — "Neuer Plan" (E4) und "Sportart hinzufügen" (E5) liefern beides. */
+export interface MultiSportPreviewData {
+  items: ReadonlyArray<{
+    sport: ActiveSport;
+    plan: {
+      weeks: ReadonlyArray<{
+        start: string;
+        cards: ReadonlyArray<{ date: string; name: string; durationMin: number | null }>;
+      }>;
+    };
+  }>;
+  load: LoadSummary;
+}
+
 interface MultiSportPreviewProps {
-  bundle: MultiSportBundle;
-  notes: readonly ReplaceNote[];
+  bundle: MultiSportPreviewData;
+  notes: ReadonlyArray<{ text: string }>;
 }
 
 export function MultiSportPreview({ bundle, notes }: MultiSportPreviewProps) {
@@ -192,8 +206,8 @@ export function MultiSportPreview({ bundle, notes }: MultiSportPreviewProps) {
       </div>
 
       <ul style={{ margin: 0, paddingLeft: 18, fontSize: ".78rem", color: "var(--ink-2)", display: "grid", gap: 3 }}>
-        {notes.map((n) => (
-          <li key={n.sport}>{n.text}</li>
+        {notes.map((n, i) => (
+          <li key={`${i}-${n.text}`}>{n.text}</li>
         ))}
       </ul>
     </div>

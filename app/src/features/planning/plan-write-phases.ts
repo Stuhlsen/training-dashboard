@@ -17,6 +17,12 @@
    Eine Sportart durchläuft dieselben Bausteine in derselben Reihenfolge wie
    vor Fahrplan 44 (useCreateTrainingPlan.test.tsx hält das fest).
 
+   „SPORTART HINZUFÜGEN" (Fahrplan 44 E5, useAddSportToPlan.ts) nutzt dieselben
+   Phasen im Modus „nur Neues" (`newAddSportRun`): kein Alt-Plan der Sportart
+   wird ersetzt, und zwischen Phase 1 und 2 setzt `attachPlanGroup` die Gruppe
+   auf laufende Pläne ohne Gruppe — die einzige Änderung an ihnen. Der Rückbau
+   setzt nur eine selbst gesetzte Gruppe wieder auf null.
+
    Kein React hier — der Hook (useCreateTrainingPlan.ts) hängt Cache-
    Invalidierung und Mutation daran.
    ============================================================ */
@@ -33,8 +39,9 @@ import {
   deleteTrainingPlan,
   listActiveTrainingPlan,
   setTrainingPlanActive,
+  setTrainingPlanGroup,
 } from "../../api/supabase/training-plans";
-import { unwrap } from "../../api/result";
+import { ResultError_, unwrap } from "../../api/result";
 import { flattenPlanCards, trainingPlanDraft } from "./plan-persist";
 import type { GeneratedPlan, NewPlanFormState, PlanGeneratorInput } from "./new-plan-dialog-view-model";
 
@@ -75,6 +82,42 @@ export interface WriteRun {
   createdEventId: string | null;
   /** true, sobald Phase 2 begonnen hat (Bestehendes wurde angefasst). */
   touchedExisting: boolean;
+  /** Fahrplan 44 E5 („Sportart hinzufügen"): es wird nur NEUES angelegt. Läuft für
+   *  eine Sportart schon ein aktiver Plan, bricht Phase 1 ab, statt ihn zu ersetzen. */
+  addOnly?: boolean;
+  /** Fahrplan 44 E5: laufende Pläne ohne Gruppe, die die Gruppe des neuen Plans
+   *  bekommen. `attached` = gesetzt, beim Rückbau wieder auf null. Die Gruppe ist
+   *  die einzige Änderung an einem laufenden Plan. */
+  groupAttach?: Array<{ planId: string; attached: boolean }>;
+}
+
+/** Lauf für „Sportart hinzufügen" (Fahrplan 44 E5): ein neuer Plan neben den
+ *  laufenden. Hat ein laufender Plan schon eine Gruppe, nimmt der neue sie;
+ *  sonst entsteht eine, und die laufenden Pläne ohne Gruppe bekommen sie
+ *  (`attachPlanGroup`). */
+export function newAddSportRun(
+  profileId: string,
+  today: string,
+  item: PlanWriteItem,
+  runningPlans: ReadonlyArray<{ id: string; planGroupId: string | null }>,
+): WriteRun {
+  const existing = runningPlans.find((p) => p.planGroupId)?.planGroupId ?? null;
+  const planGroupId = existing ?? crypto.randomUUID();
+  return {
+    ...newWriteRun(profileId, today, planGroupId, [item]),
+    addOnly: true,
+    groupAttach: runningPlans.filter((p) => !p.planGroupId).map((p) => ({ planId: p.id, attached: false })),
+  };
+}
+
+/** Setzt die Gruppe auf die laufenden Pläne ohne Gruppe. Erst NACH Phase 1
+ *  aufrufen (alles Neue steht), vor Phase 2. Wirft bei Fehler; `rollbackRun`
+ *  löst bis dahin Gesetztes wieder. */
+export async function attachPlanGroup(run: WriteRun): Promise<void> {
+  for (const g of run.groupAttach ?? []) {
+    unwrap(await setTrainingPlanGroup(g.planId, run.planGroupId));
+    g.attached = true;
+  }
 }
 
 export function newWriteRun(
@@ -107,6 +150,14 @@ export async function preparePlans(run: WriteRun): Promise<string[]> {
   for (const p of run.plans) {
     const { plan } = unwrap(await listActiveTrainingPlan(run.profileId, p.sport));
     p.replacePlanId = plan?.id ?? null;
+  }
+  // „Sportart hinzufügen": ein laufender Plan wird nie ersetzt. Abbruch, bevor
+  // irgendetwas geschrieben ist.
+  if (run.addOnly && run.plans.some((p) => p.replacePlanId)) {
+    throw new ResultError_({
+      code: "VALIDATION",
+      message: "Für diese Sportart läuft schon ein Plan. Dazunehmen ersetzt keinen laufenden Plan.",
+    });
   }
 
   // (2) Event höchstens einmal anlegen und unter den Plänen teilen.
@@ -182,6 +233,11 @@ export async function rollbackRun(run: WriteRun): Promise<void> {
       await deletePlanCardsForPlan(p.newPlanId).catch(() => {});
       await deleteTrainingPlan(p.newPlanId).catch(() => {});
     }
+  }
+  // Gruppe nur dort lösen, wo DIESER Lauf sie gesetzt hat — eine vorher
+  // bestehende Gruppe bleibt immer stehen.
+  for (const g of run.groupAttach ?? []) {
+    if (g.attached) await setTrainingPlanGroup(g.planId, null).catch(() => {});
   }
   if (run.createdEventId) {
     await removeEvent(run.createdEventId).catch(() => {});
