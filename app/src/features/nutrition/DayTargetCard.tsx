@@ -16,11 +16,13 @@ import type { CSSProperties, ReactNode } from "react";
 import { GlassCard } from "../../components/GlassCard";
 import { fmtDate, fmtDateFull } from "../../core/format.js";
 import { dayProgress } from "../../core/nutrition-progress.js";
+import { STRICT_FLOOR_KCAL_PER_KG_FFM } from "../../core/nutrition.js";
 import { SOURCE_BY_KEY } from "../../core/nutrition-sources.js";
 import type { NutritionDay } from "./nutrition-day-model";
 import { AMPEL_TOKEN, type Ampel } from "./nutrition-week-model";
 import { AmpelBadge } from "./AmpelBadge";
 import { SourceList } from "./SourceList";
+import { GoalInfoNotes } from "./GoalInfoNotes";
 import { HEADING_STYLE, META_STYLE, TEXT_STYLE } from "./nutrition-styles";
 import { InfoIcon } from "../../components/InfoIcon";
 
@@ -139,6 +141,7 @@ export function DayTargetCard({ day, dateISO, isToday = false, summary, notes, a
           oder Intensitätsangabe nicht berechnen. Das Ziel gilt wie an einem Ruhetag.
         </p>
       )}
+      {day.goalInfo && <GoalInfoNotes info={day.goalInfo} />}
       {day.hints.map((h) => (
         <p key={h} style={TEXT_STYLE}>
           {h}
@@ -159,6 +162,12 @@ export function DayTargetCard({ day, dateISO, isToday = false, summary, notes, a
             Grundumsatz nach {FORMULA_NAMES[day.formula] ?? day.formula}, in einer Studie von 2023 an Sportlern geprüft
           </p>
           {day.bodyFatDate && <p style={META_ON_PHOTO}>Körperfett gemessen am {fmtDateFull(day.bodyFatDate)}</p>}
+          {day.goalInfo?.strictFloor && (
+            <p style={META_ON_PHOTO}>
+              Bei „Fett verlieren“ gilt als Mindestzufuhr {STRICT_FLOOR_KCAL_PER_KG_FFM} kcal pro kg fettfreier Masse plus Training (eigene
+              Festlegung, keine verbindliche Grenze).
+            </p>
+          )}
           <SourceList sources={sources} />
         </details>
         {actions}

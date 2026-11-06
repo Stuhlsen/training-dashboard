@@ -30,7 +30,7 @@ const SELECT_COLS =
   "id, athlete_id, created_by, is_active, mode, goal_event_id, start_date, end_date, " +
   "weeks, model, focus, level, training_weekdays, weekly_hours, indoor_share, " +
   "ftp_at_creation, ftp_target, sport, threshold_speed_at_creation, threshold_speed_target, " +
-  "params, week_model, created_at, updated_at";
+  "plan_group_id, params, week_model, created_at, updated_at";
 
 interface TrainingPlanRow {
   id: string;
@@ -53,6 +53,7 @@ interface TrainingPlanRow {
   sport: string;
   threshold_speed_at_creation: number | null;
   threshold_speed_target: number | null;
+  plan_group_id?: string | null;
   params: Record<string, unknown> | null;
   week_model: unknown[] | null;
   created_at: string;
@@ -81,6 +82,7 @@ export function toTrainingPlan(row: TrainingPlanRow): TrainingPlan {
     sport: (row.sport ?? "ride") as "ride" | "run" | "swim",
     thresholdSpeedAtCreation: row.threshold_speed_at_creation,
     thresholdSpeedTarget: row.threshold_speed_target,
+    planGroupId: row.plan_group_id ?? null,
     params: row.params ?? {},
     weekModel: (row.week_model ?? []) as WeekModelEntry[],
     createdAt: row.created_at,
@@ -117,8 +119,31 @@ export async function listActiveTrainingPlan(
   return { ok: true, plan: data.length ? toTrainingPlan(data[0]) : null };
 }
 
+/** Alle AKTIVEN Pläne einer Gruppe (Fahrplan 44 E2, Migration 0085). Filtert
+ *  immer auch nach `athlete_id`: eine Gruppe gehört genau einem Athleten und
+ *  darf nie über zwei Athleten hinweg Zeilen liefern, selbst wenn dieselbe
+ *  uuid versehentlich bei zwei Athleten stünde. Älteste zuerst. */
+export async function listPlanGroup(
+  athleteProfileId: string,
+  planGroupId: string,
+): Promise<Result<{ plans: TrainingPlan[] }>> {
+  if (!supabase) return { ok: true, plans: [] };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { data, error } = await client
+    .from("training_plans")
+    .select(SELECT_COLS)
+    .eq("athlete_id", athleteProfileId)
+    .eq("plan_group_id", planGroupId)
+    .eq("is_active", true)
+    .order("created_at", { ascending: true })
+    .returns<TrainingPlanRow[]>();
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true, plans: (data ?? []).map(toTrainingPlan) };
+}
+
 /** Legt die Plan-Zeile an — `is_active = false` (s. Modulkopf). `draft.sport`
- *  fehlt ⇒ "ride" (additiv wie `plan_cards.sport`, Fahrplan 12 W1). */
+ *  fehlt ⇒ "ride" (additiv wie `plan_cards.sport`, Fahrplan 12 W1).
+ *  `draft.planGroupId` fehlt ⇒ `null` (Plan ohne Gruppe, Fahrplan 44 E2). */
 export async function createTrainingPlan(
   athleteProfileId: string,
   createdBy: string,
@@ -148,6 +173,7 @@ export async function createTrainingPlan(
       sport: draft.sport ?? "ride",
       threshold_speed_at_creation: draft.thresholdSpeedAtCreation,
       threshold_speed_target: draft.thresholdSpeedTarget,
+      plan_group_id: draft.planGroupId ?? null,
       params: draft.params,
       week_model: draft.weekModel,
     })
@@ -178,6 +204,26 @@ export async function setTrainingPlanActive(
   return { ok: true, plan: toTrainingPlan(data) };
 }
 
+/** NUR die Gruppe einer Plan-Zeile setzen (`null` löst die Verknüpfung) —
+ *  „Sportart hinzufügen" (Fahrplan 44 E5). Anders als `updateTrainingPlan`
+ *  bleiben `week_model`, `params` und alles andere unberührt: am laufenden
+ *  Plan ändert sich nichts außer dieser einen Spalte. */
+export async function setTrainingPlanGroup(
+  id: string,
+  planGroupId: string | null,
+): Promise<Result<{ plan: TrainingPlan }>> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { data, error } = await client
+    .from("training_plans")
+    .update({ plan_group_id: planGroupId })
+    .eq("id", id)
+    .select(SELECT_COLS)
+    .single<TrainingPlanRow>();
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true, plan: toTrainingPlan(data) };
+}
+
 /** Blockstruktur + Momentaufnahme einer bestehenden Plan-Zeile aktualisieren —
  *  „Rest neu berechnen" (Fahrplan 8 E13): `id` / `is_active` / `start_date`
  *  bleiben, nur `week_model` (frischer Schwanz) + `params` (frische Historie/
@@ -190,6 +236,13 @@ export async function updateTrainingPlan(
     /** Nur setzen, wenn sich die Trainingstage geändert haben — die Spalte
      *  muss zum frischen `week_model` passen. */
     trainingWeekdays?: number[];
+    /** Nur setzen, wenn der Athlet das Ziel-FTP geändert hat. */
+    ftpTarget?: number;
+    /** Nur setzen, wenn die Gruppe geändert wird; `null` löst die Verknüpfung.
+     *  Fehlt das Feld, bleibt die Spalte unberührt (Fahrplan 44 E2). */
+    planGroupId?: string | null;
+    /** Nur setzen, wenn die Stunden je Woche geändert wurden (Fahrplan 44 E6). */
+    weeklyHours?: number;
   },
 ): Promise<Result<{ plan: TrainingPlan }>> {
   if (!supabase) return { ok: false, error: NOT_CONFIGURED };
@@ -200,6 +253,43 @@ export async function updateTrainingPlan(
       week_model: patch.weekModel,
       params: patch.params,
       ...(patch.trainingWeekdays ? { training_weekdays: patch.trainingWeekdays } : {}),
+      ...(patch.ftpTarget != null ? { ftp_target: patch.ftpTarget } : {}),
+      ...(patch.weeklyHours != null ? { weekly_hours: patch.weeklyHours } : {}),
+      ...(patch.planGroupId !== undefined ? { plan_group_id: patch.planGroupId } : {}),
+    })
+    .eq("id", id)
+    .select(SELECT_COLS)
+    .single<TrainingPlanRow>();
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true, plan: toTrainingPlan(data) };
+}
+
+/** Die Werte, die „Plan gemeinsam anpassen" (Fahrplan 44 E6) an einer Plan-Zeile
+ *  ändert — Sicherung und Wiederherstellung. */
+export interface TrainingPlanValues {
+  weekModel: WeekModelEntry[];
+  params: Record<string, unknown>;
+  trainingWeekdays: number[];
+  ftpTarget: number | null;
+  weeklyHours: number | null;
+}
+
+/** Schreibt gesicherte Werte zurück — anders als `updateTrainingPlan` auch
+ *  `null` (Ziel-FTP/Stunden waren vorher leer). Filtert nur über `id`. */
+export async function restoreTrainingPlanValues(
+  id: string,
+  values: TrainingPlanValues,
+): Promise<Result<{ plan: TrainingPlan }>> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { data, error } = await client
+    .from("training_plans")
+    .update({
+      week_model: values.weekModel,
+      params: values.params,
+      training_weekdays: values.trainingWeekdays,
+      ftp_target: values.ftpTarget,
+      weekly_hours: values.weeklyHours,
     })
     .eq("id", id)
     .select(SELECT_COLS)

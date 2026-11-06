@@ -21,6 +21,8 @@ const {
   updateTrainingPlan,
   deleteTrainingPlan,
   toTrainingPlan,
+  listPlanGroup,
+  restoreTrainingPlanValues,
 } = await import("./training-plans");
 
 const row = (over: Record<string, unknown> = {}) => ({
@@ -106,6 +108,12 @@ describe("toTrainingPlan", () => {
     expect(p.sport).toBe("ride");
   });
 
+  it("mappt plan_group_id (Fahrplan 44 E2); fehlend oder null ⇒ null", () => {
+    expect(toTrainingPlan(row({ plan_group_id: "grp-1" })).planGroupId).toBe("grp-1");
+    expect(toTrainingPlan(row({ plan_group_id: null })).planGroupId).toBeNull();
+    expect(toTrainingPlan(row()).planGroupId).toBeNull();
+  });
+
   it("gibt fehlende Arrays als leeres Array zurück", () => {
     const p = toTrainingPlan(row({ training_weekdays: null, week_model: null, params: null }));
     expect(p.trainingWeekdays).toEqual([]);
@@ -148,7 +156,67 @@ describe("listActiveTrainingPlan", () => {
   });
 });
 
+describe("Spaltenliste (SELECT_COLS)", () => {
+  it("fragt plan_group_id in allen Lese-/Schreibpfaden mit ab", async () => {
+    const seen: Array<string | undefined> = [];
+    fakeClient.handlers.training_plans = (calls) => {
+      seen.push(calls.select);
+      return { data: calls.terminal === "list" ? [row()] : row(), error: null };
+    };
+    await listActiveTrainingPlan("prof-a");
+    await listPlanGroup("prof-a", "grp-1");
+    await createTrainingPlan("prof-a", "prof-a", draft);
+    await setTrainingPlanActive("tp1", true);
+    await updateTrainingPlan("tp1", { weekModel: [], params: {} });
+    expect(seen).toHaveLength(5);
+    for (const cols of seen) expect(cols).toContain("plan_group_id");
+  });
+});
+
+describe("listPlanGroup", () => {
+  it("filtert immer auch nach athlete_id, plan_group_id und is_active", async () => {
+    let seen: unknown;
+    fakeClient.handlers.training_plans = (calls) => {
+      seen = calls.filters;
+      return {
+        data: [row({ plan_group_id: "grp-1" }), row({ id: "tp2", sport: "run", plan_group_id: "grp-1" })],
+        error: null,
+      };
+    };
+    const res = await listPlanGroup("prof-a", "grp-1");
+    expect(res.ok && res.plans.map((p) => p.id)).toEqual(["tp1", "tp2"]);
+    expect(seen).toEqual([
+      { op: "eq", col: "athlete_id", val: "prof-a" },
+      { op: "eq", col: "plan_group_id", val: "grp-1" },
+      { op: "eq", col: "is_active", val: true },
+    ]);
+  });
+
+  it("gibt eine leere Liste zurück, wenn die Gruppe keine aktiven Pläne hat", async () => {
+    fakeClient.handlers.training_plans = () => ({ data: [], error: null });
+    expect(await listPlanGroup("prof-a", "grp-x")).toEqual({ ok: true, plans: [] });
+  });
+
+  it("reicht einen DB-Fehler als Result durch", async () => {
+    fakeClient.handlers.training_plans = () => ({ data: null, error: { message: "boom" } });
+    const res = await listPlanGroup("prof-a", "grp-1");
+    expect(res.ok).toBe(false);
+  });
+});
+
 describe("createTrainingPlan", () => {
+  it("schreibt plan_group_id, wenn der Draft eine Gruppe trägt; sonst null", async () => {
+    const payloads: Array<Record<string, unknown>> = [];
+    fakeClient.handlers.training_plans = (calls) => {
+      payloads.push(calls.payload as Record<string, unknown>);
+      return { data: row(), error: null };
+    };
+    await createTrainingPlan("prof-a", "prof-a", { ...draft, planGroupId: "grp-1" });
+    await createTrainingPlan("prof-a", "prof-a", draft);
+    expect(payloads[0]).toMatchObject({ plan_group_id: "grp-1" });
+    expect(payloads[1]).toMatchObject({ plan_group_id: null });
+  });
+
   it("legt die Zeile mit is_active=false an und mappt den Draft nach snake_case", async () => {
     let payload: Record<string, unknown> | undefined;
     fakeClient.handlers.training_plans = (calls) => {
@@ -240,6 +308,22 @@ describe("updateTrainingPlan", () => {
   });
 });
 
+describe("updateTrainingPlan — planGroupId", () => {
+  it("setzt plan_group_id nur, wenn der Patch es mitbringt", async () => {
+    const payloads: Array<Record<string, unknown>> = [];
+    fakeClient.handlers.training_plans = (calls) => {
+      payloads.push(calls.payload as Record<string, unknown>);
+      return { data: row(), error: null };
+    };
+    await updateTrainingPlan("tp1", { weekModel: [], params: {}, planGroupId: "grp-1" });
+    await updateTrainingPlan("tp1", { weekModel: [], params: {}, planGroupId: null });
+    await updateTrainingPlan("tp1", { weekModel: [], params: {} });
+    expect(payloads[0]).toHaveProperty("plan_group_id", "grp-1");
+    expect(payloads[1]).toHaveProperty("plan_group_id", null);
+    expect(payloads[2]).not.toHaveProperty("plan_group_id");
+  });
+});
+
 describe("deleteTrainingPlan", () => {
   it("löscht per id-Filter", async () => {
     let seen: { method?: string; filters: unknown } | undefined;
@@ -251,5 +335,59 @@ describe("deleteTrainingPlan", () => {
     expect(res).toEqual({ ok: true });
     expect(seen?.method).toBe("delete");
     expect(seen?.filters).toEqual([{ op: "eq", col: "id", val: "tp1" }]);
+  });
+});
+
+describe("updateTrainingPlan — weeklyHours (Fahrplan 44 E6)", () => {
+  it("setzt weekly_hours nur, wenn der Patch es mitbringt", async () => {
+    const payloads: Array<Record<string, unknown>> = [];
+    fakeClient.handlers.training_plans = (calls) => {
+      payloads.push(calls.payload as Record<string, unknown>);
+      return { data: row(), error: null };
+    };
+    await updateTrainingPlan("tp1", { weekModel: [], params: {}, weeklyHours: 7 });
+    await updateTrainingPlan("tp1", { weekModel: [], params: {} });
+    expect(payloads[0]).toHaveProperty("weekly_hours", 7);
+    expect(payloads[1]).not.toHaveProperty("weekly_hours");
+  });
+});
+
+describe("restoreTrainingPlanValues (Fahrplan 44 E6)", () => {
+  it("schreibt alle gesicherten Werte zurück, auch null, per id-Filter", async () => {
+    let payload: Record<string, unknown> | undefined;
+    let filters: unknown;
+    fakeClient.handlers.training_plans = (calls) => {
+      payload = calls.payload as Record<string, unknown>;
+      filters = calls.filters;
+      return { data: row(), error: null };
+    };
+    const res = await restoreTrainingPlanValues("tp1", {
+      weekModel: [],
+      params: { a: 1 },
+      trainingWeekdays: [2, 4],
+      ftpTarget: null,
+      weeklyHours: null,
+    });
+    expect(res.ok).toBe(true);
+    expect(payload).toEqual({
+      week_model: [],
+      params: { a: 1 },
+      training_weekdays: [2, 4],
+      ftp_target: null,
+      weekly_hours: null,
+    });
+    expect(filters).toEqual([{ op: "eq", col: "id", val: "tp1" }]);
+  });
+
+  it("gibt den Fehler weiter", async () => {
+    fakeClient.handlers.training_plans = () => ({ data: null, error: { message: "nope" } });
+    const res = await restoreTrainingPlanValues("tp1", {
+      weekModel: [],
+      params: {},
+      trainingWeekdays: [],
+      ftpTarget: null,
+      weeklyHours: null,
+    });
+    expect(res).toEqual({ ok: false, error: { code: "UNKNOWN", message: "nope" } });
   });
 });

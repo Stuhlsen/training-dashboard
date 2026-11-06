@@ -23,6 +23,7 @@
 
 import { isoWeekKey } from "../../core/aggregate.js";
 import { weekDays } from "../../core/plan-drag.js";
+import { activitySport, sportBadge } from "../../core/activity-sport.js";
 import { isDeliberateRestDay, planWeekFor } from "../../core/plan-week-model.js";
 import {
   computePlanningDerivedSets,
@@ -76,6 +77,29 @@ export const DAY_STATUS_COLOR_TOKEN: Record<DayStatus, string> = {
   rest: "var(--ink-3)",
 };
 
+/** Eine Karte eines Tages mit eigenem Status und eigener Sportart. Im
+ *  gemeinsamen Kalender (Fahrplan 44 E1) zählt jede Karte gegen die
+ *  Aktivitäten IHRER Sportart — der Tagesstatus (`GridDayCell.status`) ist
+ *  nur der der Hauptkarte. */
+export interface GridCardEntry {
+  card: PlanCard;
+  sport: string;
+  status: DayStatus;
+}
+
+/** Zusatzdaten für den Modus "Alle" (Fahrplan 44 E1). Nur wenn gesetzt, wird
+ *  über Sportarten hinweg gerechnet; ohne bleibt `buildWeekGrid` bit-identisch
+ *  zum Einzelsport-Verhalten. */
+export interface SharedCalendarOptions {
+  /** Aktivitäten ALLER Sportarten (`ridesAll`) — ersetzt dann den Parameter
+   *  `rides`, der sportgefiltert ist. */
+  rides: Ride[];
+  /** Wochenmodell je Sportart; `null`/fehlend ⇒ die Sportart hat keinen
+   *  eigenen Plan. Rad stimmt beim Ruhetag immer mit ab (wie bisher), Lauf/
+   *  Schwimmen nur mit eigenem Modell. */
+  weekModels: Partial<Record<string, WeekModelEntry[] | null>>;
+}
+
 export interface GridDayCell {
   date: string;
   isToday: boolean;
@@ -88,6 +112,14 @@ export interface GridDayCell {
    *  karte, wenn `card` bereits die Ersatzkarte zeigt) — für die
    *  Lücken-Chips der Done-Tabelle (Etappe 13d), hier nur durchgereicht. */
   otherCards: PlanCard[];
+  /** Alle Karten des Tages mit eigenem Status/Sportart (Reihenfolge wie
+   *  `cards`). Leer bei Tagen ohne Karte. */
+  entries: GridCardEntry[];
+  /** Sportarten mit mindestens einer AKTIVEN (nicht ausgefallenen) Karte. */
+  sportsOnDay: string[];
+  /** Doppelbelegung nach V3: mindestens zwei aktive Karten DERSELBEN
+   *  Sportart. Verschiedene Sportarten am Tag zählen nicht. */
+  sameSportOverlap: boolean;
 }
 
 export interface GridWeekRow {
@@ -106,6 +138,10 @@ export interface GridWeekRow {
   /** 0–100, relativ zur höchsten `tssSum` unter den zurückgegebenen Wochen
    *  (kein externes Zielvolumen verfügbar — s. Etappe-13-Plan). */
   loadPct: number;
+  /** Phase je Sportart (nur im gemeinsamen Kalender), sonst `null`. */
+  phaseBySport: Record<string, string> | null;
+  /** Gemeinsamer Kalender: `tssSum` ist eine Summe über Sportarten (Näherung). */
+  multiSport: boolean;
   days: GridDayCell[];
 }
 
@@ -158,8 +194,30 @@ export function buildWeekGrid(
    *  Eintrags. Wenn gesetzt, sind Ruhe-Slots + Modell-Phase daraus statt aus
    *  der Code-Vorlage. `null` ⇒ Code-Vorlage wie bisher. */
   weekModel: WeekModelEntry[] | null = null,
+  /** Fahrplan 44 E1: Modus "Alle" — s. SharedCalendarOptions. */
+  shared?: SharedCalendarOptions,
 ): GridWeekRow[] {
   const { doneDates, recoveryWeeks } = derived;
+  const allRides = shared ? shared.rides : rides;
+  // Erledigt-Tage je Sportart: eine Karte passt nur zu einer Aktivität ihrer
+  // eigenen Sportart. Einzelsport: dieselbe Menge für alle (bit-identisch).
+  const doneBySport = new Map<string, Set<string>>();
+  if (shared) {
+    for (const r of shared.rides) {
+      const sport = activitySport(r);
+      const set = doneBySport.get(sport) ?? new Set<string>();
+      set.add(r.date ?? r.dateISO);
+      doneBySport.set(sport, set);
+    }
+  }
+  const doneFor = (card: PlanCard): Set<string> =>
+    shared ? (doneBySport.get(activitySport(card)) ?? new Set<string>()) : doneDates;
+  // Sportarten, die beim Ruhetag/der Phase mitstimmen (nur gemeinsamer Kalender).
+  const voters = shared
+    ? Object.entries({ ride: shared.weekModels.ride ?? null, ...shared.weekModels })
+        .filter(([sport, model]) => sport === "ride" || (model && model.length))
+        .map(([sport, model]) => ({ sport, model: (model ?? null) as WeekModelEntry[] | null }))
+    : [];
 
   const byDate = new Map<string, PlanCard[]>();
   // Anker-Datum je Wochenschlüssel im selben Durchlauf mitgeführt — spart
@@ -181,12 +239,34 @@ export function buildWeekGrid(
       const dateCards = byDate.get(date) ?? [];
       const primary = dateCards.find((c) => !c.cancelled) ?? dateCards[0] ?? null;
       const otherCards = dateCards.filter((c) => c !== primary);
+      const entries: GridCardEntry[] = dateCards.map((c) => ({
+        card: c,
+        sport: activitySport(c),
+        status: statusForDate(date, c, todayIso, doneFor(c), athleteId, offsetWeeks, weekModel),
+      }));
+      const activeSports = dateCards.filter((c) => !c.cancelled).map((c) => activitySport(c));
+      const sportsOnDay = [...new Set(activeSports)];
+      // Tagesstatus: Einzelsport wie bisher; gemeinsam die Hauptkarte, ein
+      // Tag ohne Karte ist nur Ruhetag, wenn ALLE abstimmenden Sportarten
+      // dort Ruhe haben.
+      const status: DayStatus = !shared
+        ? statusForDate(date, primary, todayIso, doneDates, athleteId, offsetWeeks, weekModel)
+        : primary
+          ? statusForDate(date, primary, todayIso, doneFor(primary), athleteId, offsetWeeks, weekModel)
+          : athleteId &&
+              voters.length > 0 &&
+              voters.every((v) => isDeliberateRestDay(athleteId, date, false, offsetWeeks, v.model))
+            ? "rest"
+            : "empty";
       return {
         date,
         isToday: date === todayIso,
-        status: statusForDate(date, primary, todayIso, doneDates, athleteId, offsetWeeks, weekModel),
+        status,
         card: primary,
         otherCards,
+        entries,
+        sportsOnDay,
+        sameSportOverlap: sportsOnDay.length < activeSports.length,
       };
     });
 
@@ -196,9 +276,31 @@ export function buildWeekGrid(
     // unabhängig) — löst den offene-punkte.md-Punkt "Karte behält altes
     // week/phase-Label in leerer Zielwoche" für die Rasteranzeige. Karten-Phase
     // bleibt Fallback für Athleten/Zeiträume ohne Modelleintrag.
-    const modelPhase = athleteId
-      ? planWeekFor(athleteId, anchorDate, offsetWeeks, weekModel).phase
-      : null;
+    let phaseBySport: Record<string, string> | null = null;
+    let modelPhase: string | null;
+    if (shared) {
+      // Phase je Sportart; unterscheiden sie sich, nennt die Kopfzeile jede
+      // statt eine falsche für alle (V3, Punkt "Phase nicht je Spalte").
+      const perSport: Record<string, string> = {};
+      if (athleteId) {
+        for (const v of voters) {
+          const p = planWeekFor(athleteId, anchorDate, offsetWeeks, v.model).phase;
+          if (p) perSport[v.sport] = p;
+        }
+      }
+      phaseBySport = Object.keys(perSport).length ? perSport : null;
+      const distinct = new Set(Object.values(perSport));
+      modelPhase =
+        distinct.size === 1
+          ? [...distinct][0]
+          : distinct.size > 1
+            ? Object.entries(perSport)
+                .map(([s, p]) => `${sportBadge(s).label}: ${p}`)
+                .join(" · ")
+            : null;
+    } else {
+      modelPhase = athleteId ? planWeekFor(athleteId, anchorDate, offsetWeeks, weekModel).phase : null;
+    }
     const phase = modelPhase ?? activeCards.find((c) => c.phase)?.phase ?? null;
     const plannedTssSum = activeCards.reduce((sum, c) => sum + (c.tssPlanned ?? 0), 0);
     // `tssPlanned` fehlt bei den meisten Karten (nur strukturierte Plan-2-
@@ -208,7 +310,7 @@ export function buildWeekGrid(
     // Fallback auf tatsächlich gefahrene TSS, sobald mindestens eine Fahrt
     // in der Woche liegt — nur eine reine Zukunftswoche ohne Fahrten zeigt
     // weiterhin die geplante Summe (die einzig verfügbare Schätzung dort).
-    const weekRides = rides.filter((r) => r.dateISO >= days[0].date && r.dateISO <= days[6].date);
+    const weekRides = allRides.filter((r) => r.dateISO >= days[0].date && r.dateISO <= days[6].date);
     // Auf Fahrten-PRÄSENZ prüfen, nicht auf Summe > 0 — eine Woche mit
     // echten Fahrten, die zufällig alle `tss: null` haben (z. B. Plan-1/
     // Notion-Ära ohne Leistungsdaten), soll 0 zeigen, nicht auf die geplante
@@ -226,6 +328,8 @@ export function buildWeekGrid(
       tssIsPlanned,
       tssSum,
       loadPct: 0, // unten relativ zur Wochen-Maximallast nachgetragen
+      phaseBySport,
+      multiSport: !!shared,
       days,
     };
   });

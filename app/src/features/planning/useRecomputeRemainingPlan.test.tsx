@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Result } from "../../api/types";
 
 const calls: string[] = [];
+let lastPatch: { ftpTarget?: number } | null = null;
 let createCardsResult: Result<{ cards: unknown[] }> = { ok: true, cards: [] };
 
 vi.mock("../../api/hooks/useAthleteProfileId", () => ({
@@ -26,8 +27,9 @@ vi.mock("../../api/supabase/plan-cards", () => ({
 }));
 
 vi.mock("../../api/supabase/training-plans", () => ({
-  updateTrainingPlan: async (id: string) => {
+  updateTrainingPlan: async (id: string, patch: { ftpTarget?: number }) => {
     calls.push(`updateTrainingPlan(${id})`);
+    lastPatch = patch;
     return { ok: true, plan: { id } };
   },
 }));
@@ -91,7 +93,7 @@ const input = {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const args = { plan: activePlan, generated, input } as any;
+const args = { plan: activePlan, generated, input, todayISO: "2026-10-05" } as any;
 
 function setup() {
   const { wrapper, queryClient } = createHarness({ userId: "prof-a" });
@@ -114,6 +116,24 @@ describe("useRecomputeRemainingPlan", () => {
       "createPlanCards(tp1,n=1)", // nur die eine Karte der nicht-eingefrorenen Woche
       "updateTrainingPlan(tp1)",
     ]);
+  });
+
+  it("mitten in der Woche bleiben vergangene Tage unberührt: löscht und schreibt erst ab heute", async () => {
+    const { result } = setup();
+    await result.current.recompute({ ...args, todayISO: "2026-10-07" });
+    expect(calls.slice(0, 2)).toEqual([
+      "deleteFuture(tp1,2026-10-07)",
+      "createPlanCards(tp1,n=0)", // die Karte vom 06.10 liegt in der Vergangenheit
+    ]);
+  });
+
+  it("speichert das Ziel-FTP beim Rad, bei anderen Sportarten nicht", async () => {
+    const { result } = setup();
+    await result.current.recompute(args);
+    expect(lastPatch?.ftpTarget).toBe(210);
+
+    await result.current.recompute({ ...args, plan: { ...activePlan, sport: "run" } });
+    expect(lastPatch?.ftpTarget).toBeUndefined();
   });
 
   it("bricht das Einfügen ab → Fehlermeldung weist auf entfernte Karten hin", async () => {

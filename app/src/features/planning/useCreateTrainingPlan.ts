@@ -1,64 +1,50 @@
 /* ============================================================
    FEATURES/PLANNING/USECREATETRAININGPLAN.TS — Schreibpfad des „Neuer
-   Plan"-Dialogs (Fahrplan 8 E6, Entscheidungen 15/16).
+   Plan"-Dialogs (Fahrplan 8 E6, Entscheidungen 15/16; Fahrplan 44 E4).
 
-   „Übernehmen" schreibt eine `training_plans`-Zeile + die Tageskarten in
-   `plan_cards`. Ein bestehender aktiver Plan wird dabei ersetzt: seine
-   zukünftigen, noch geplanten Karten werden gelöscht, er selbst auf
-   `is_active = false` gesetzt; Vergangenes / Ausgefallenes bleibt.
+   „Übernehmen" schreibt je Sportart eine `training_plans`-Zeile + die
+   Tageskarten in `plan_cards`. Ein bestehender aktiver Plan DERSELBEN
+   Sportart wird dabei ersetzt: seine zukünftigen, noch geplanten Karten
+   werden gelöscht, er selbst auf `is_active = false` gesetzt; Vergangenes /
+   Ausgefallenes bleibt.
 
    Der Hook lebt beim Feature (nicht in api/hooks/), weil er an die
    Formular-/Vorschau-Shape des Dialogs gebunden ist — die generische
    api/-Schicht bleibt frei von features/-Importen.
 
-   REIHENFOLGE (partieller Unique-Index „ein aktiver Plan je Athlet+Sportart",
-   Migration 0038, Fahrplan 14 E4 — vorher „je Athlet" allein):
-     1. aktiven Alt-Plan AUS DER DB lesen (nicht aus dem Dialog-Hook — der
-        kann beim Klick noch laden), dieser ist maßgeblich für „ersetzen".
-     2. evtl. neues Ziel-Event anlegen
-     3. neue Plan-Zeile — `is_active = false` (Adapter erzwingt das)
-     4. Karten-Bulk-Insert mit `plan_id` der neuen Zeile
-     — ab hier werden bestehende Daten angefasst —
-     5. Zukunfts-Karten des Alt-Plans + plan-lose Vorlagen-Karten löschen
-     6. Alt-Plan deaktivieren
-     7. neue Zeile scharf schalten
-     8. Caches invalidieren
+   ABLAUF (Details + Reihenfolge: plan-write-phases.ts):
+     Phase 1 „Vorbereiten" — nur NEUES anlegen (Event, inaktive Plan-Zeilen,
+       Karten). Scheitert hier etwas, wird alles aus dem Lauf zurückgenommen;
+       am Bestand hat sich nichts geändert.
+     Phase 2 „Scharfschalten" — erst wenn ALLE Sportarten vorbereitet sind:
+       Zukunfts-Karten löschen, Alt-Pläne aus, neue an.
+     danach Caches invalidieren.
+   Mehrere Sportarten teilen sich eine `plan_group_id` (im Hook erzeugt) und
+   ein Event; eine Sportart läuft unverändert ohne Gruppe.
 
-   FEHLERBEHANDLUNG: `try/catch` mit Best-Effort-Rückbau der in DIESEM Lauf
-   angelegten neuen Artefakte (neue Karten, neue Plan-Zeile, frisch
-   angelegtes Event; Alt-Plan wieder aktiv, falls schon deaktiviert). NICHT
-   rückholbar sind bereits gelöschte Zukunfts-/Vorlagen-Karten (Schritt 5) —
-   der Nutzer hat dem Ersetzen künftiger Karten im Dialog zugestimmt, ein
-   erneuter Anlauf baut sie neu. Eine echte Transaktion bräuchte eine
-   Postgres-RPC (bewusst außerhalb E6).
+   FEHLERBEHANDLUNG: Best-Effort-Rückbau der in DIESEM Lauf angelegten
+   Artefakte (neue Karten, neue Plan-Zeilen, frisch angelegtes Event;
+   Alt-Pläne wieder aktiv, falls schon deaktiviert). NICHT rückholbar sind
+   bereits gelöschte Zukunfts-/Vorlagen-Karten (Phase 2) — der Nutzer hat dem
+   Ersetzen künftiger Karten im Dialog zugestimmt, ein erneuter Anlauf baut
+   sie neu. Eine echte Transaktion bräuchte eine Postgres-RPC (bewusst
+   außerhalb von E6/E4).
    ============================================================ */
 
 import { useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createEvent, removeEvent } from "../../api/supabase/events";
-import {
-  createPlanCards,
-  deleteFuturePlanCardsForPlan,
-  deleteFuturePlanlessPlanCards,
-  deletePlanCardsForPlan,
-} from "../../api/supabase/plan-cards";
-import {
-  createTrainingPlan,
-  deleteTrainingPlan,
-  listActiveTrainingPlan,
-  setTrainingPlanActive,
-} from "../../api/supabase/training-plans";
 import { fetchAthleteProfileId } from "../../api/hooks/useAthleteProfileId";
 import { useAuthUserId } from "../../api/hooks/useSession";
 import { qk } from "../../api/keys";
-import { catchResult, ResultError_, toResultError, unwrap } from "../../api/result";
+import { catchResult, ResultError_, toResultError } from "../../api/result";
 import { localISODate } from "../../core/format.js";
-import { flattenPlanCards, trainingPlanDraft } from "./plan-persist";
-import type {
-  GeneratedPlan,
-  NewPlanFormState,
-  PlanGeneratorInput,
-} from "./new-plan-dialog-view-model";
+import {
+  activatePlans,
+  newWriteRun,
+  preparePlans,
+  rollbackRun,
+  type PlanWriteItem,
+} from "./plan-write-phases";
 import type { Result } from "../../api/types";
 
 const NOT_LOGGED_IN = { code: "UNKNOWN" as const, message: "Nicht eingeloggt" };
@@ -67,121 +53,63 @@ const NO_ACCOUNT = {
   message: "Athlet hat (noch) keinen Supabase-Account",
 };
 
-export interface CreateTrainingPlanArgs {
-  /** Ausgabe von `generatePlan()` (die gezeigte Vorschau). */
-  generated: GeneratedPlan;
-  /** Der an `generatePlan()` übergebene V2-Input (für `training_plans`). */
-  input: PlanGeneratorInput;
-  /** Roh-Formularzustand — für `params` und die Event-Anlage. */
-  form: NewPlanFormState;
-  /** Profil-UUID des eingeloggten Users (`created_by`). */
-  createdBy: string;
-}
+/** Eine Sportart des Laufs (Vorschau + Input + Formular + `created_by`). */
+export type CreateTrainingPlanArgs = PlanWriteItem;
 
 export function useCreateTrainingPlan(athleteId: string) {
   const queryClient = useQueryClient();
   const userId = useAuthUserId();
 
   const mutation = useMutation({
-    mutationFn: async (args: CreateTrainingPlanArgs): Promise<{ planId: string }> => {
+    mutationFn: async (items: CreateTrainingPlanArgs[]): Promise<{ planIds: string[] }> => {
+      if (items.length === 0) {
+        throw new ResultError_({ code: "VALIDATION", message: "Keine Sportart zum Speichern." });
+      }
+      const sports = items.map((i) => i.input.sport ?? "ride");
+      if (new Set(sports).size !== sports.length) {
+        throw new ResultError_({
+          code: "VALIDATION",
+          message: "Jede Sportart darf nur einmal vorkommen.",
+        });
+      }
       const profileId = await fetchAthleteProfileId(queryClient, athleteId);
       if (!profileId) throw new ResultError_(NO_ACCOUNT);
-      const today = localISODate();
 
-      // Fahrplan 14 E6: `sport` kommt jetzt aus dem Dialog-Input
-      // (`buildGeneratorInput()` füllt ihn aus `effectiveSport`). Seit
-      // Migration 0038 (E4) kann ein Athlet pro Sportart einen eigenen
-      // aktiven Plan tragen; alles unten filtert deshalb auf GENAU diesen
-      // sport, damit eine Lauf-/Schwimm-Neuanlage keinen aktiven Radplan
-      // (oder dessen Karten) anfasst.
-      const sport: "ride" | "run" | "swim" = args.input.sport ?? "ride";
+      // Eine Gruppe gibt es nur bei mehreren Plänen; eine Sportart bleibt wie bisher ohne.
+      const planGroupId = items.length > 1 ? crypto.randomUUID() : null;
+      const run = newWriteRun(profileId, localISODate(), planGroupId, items);
 
-      // (1) Maßgeblicher Alt-Plan DERSELBEN Sportart direkt aus der DB.
-      //     Schlägt der Read fehl, brechen wir ab, BEVOR irgendetwas
-      //     geschrieben ist.
-      const { plan: activePlan } = unwrap(await listActiveTrainingPlan(profileId, sport));
-      const replacePlanId = activePlan?.id ?? null;
-
-      const needsNewEvent = args.form.mode === "event" && !args.form.eventId;
-      let goalEventId: string | null =
-        args.form.mode === "event" ? args.form.eventId || null : null;
-
-      // Rollback-Buchhaltung
-      let createdEventId: string | null = null;
-      let newPlanId: string | null = null;
-      let deactivatedOld = false;
-      let touchedExistingCards = false;
-
-      try {
-        if (needsNewEvent) {
-          const { event } = unwrap(
-            await createEvent(profileId, {
-              title: args.form.newEventName.trim(),
-              eventDate: args.form.newEventDate,
-              type: "race",
-              priority: "main",
-              // Ziel-FTP = der vom Generator übernommene/abgeleitete Wert,
-              // damit Event und Plan-Zeile dieselbe Zahl tragen (nicht das
-              // oft leere Rohformular-Feld).
-              ftpGoal: args.generated.ftpTarget ?? null,
-            }),
-          );
-          goalEventId = event.id;
-          createdEventId = event.id;
-        }
-
-        const draft = trainingPlanDraft(args.input, args.form, args.generated, goalEventId, sport);
-        const { plan } = unwrap(await createTrainingPlan(profileId, args.createdBy, draft));
-        newPlanId = plan.id;
-
-        unwrap(await createPlanCards(profileId, plan.id, flattenPlanCards(args.generated)));
-
-        // --- ab hier werden bestehende Daten angefasst ---
-        touchedExistingCards = true;
-        if (replacePlanId) {
-          unwrap(await deleteFuturePlanCardsForPlan(replacePlanId, today));
-        }
-        // Übergangs-Aufräumer bis E8: eingefrorene Code-Vorlagen-Karten ohne
-        // plan_id, damit der erste eigene Plan nicht doppelt im Raster steht.
-        // sport-gefiltert (Fahrplan 14 E4) — sonst würde eine Lauf-Neuanlage
-        // plan-lose Rad-Vorlagenkarten mit wegräumen.
-        unwrap(await deleteFuturePlanlessPlanCards(profileId, today, sport));
-
-        if (replacePlanId) {
-          unwrap(await setTrainingPlanActive(replacePlanId, false));
-          deactivatedOld = true;
-        }
-        unwrap(await setTrainingPlanActive(plan.id, true));
-
-        await Promise.all([
+      const invalidate = () =>
+        Promise.all([
           queryClient.invalidateQueries({ queryKey: qk.planCards(athleteId) }),
-          queryClient.invalidateQueries({ queryKey: qk.activeTrainingPlan(athleteId, sport) }),
-          needsNewEvent
+          ...run.plans.map((p) =>
+            queryClient.invalidateQueries({ queryKey: qk.activeTrainingPlan(athleteId, p.sport) }),
+          ),
+          run.createdEventId
             ? queryClient.invalidateQueries({ queryKey: qk.events(athleteId) })
             : Promise.resolve(),
         ]);
 
-        return { planId: plan.id };
+      try {
+        const planIds = await preparePlans(run);
+        await activatePlans(run);
+        await invalidate();
+        return { planIds };
       } catch (err) {
-        // Best-Effort-Rückbau der neuen Artefakte dieses Laufs.
-        if (deactivatedOld && replacePlanId) {
-          await setTrainingPlanActive(replacePlanId, true).catch(() => {});
-        }
-        if (newPlanId) {
-          await deletePlanCardsForPlan(newPlanId).catch(() => {});
-          await deleteTrainingPlan(newPlanId).catch(() => {});
-        }
-        if (createdEventId) {
-          await removeEvent(createdEventId).catch(() => {});
-        }
-        await queryClient
-          .invalidateQueries({ queryKey: qk.planCards(athleteId) })
-          .catch(() => {});
+        const rollback = await rollbackRun(run);
+        await queryClient.invalidateQueries({ queryKey: qk.planCards(athleteId) }).catch(() => {});
 
-        if (touchedExistingCards) {
+        if (!rollback.complete) {
           throw new ResultError_({
             code: "UNKNOWN",
-            message: `${toResultError(err).message} — der neue Plan wurde zurückgenommen, aber einige künftige Karten sind evtl. schon entfernt. Bitte den Plan prüfen und ggf. neu erzeugen.`,
+            message: `${toResultError(err).message} — Das Zurücknehmen ist nicht vollständig gelungen. Bitte prüfe deine Pläne und den Kalender.`,
+          });
+        }
+        if (run.touchedExisting) {
+          const what = items.length > 1 ? "Die neuen Pläne wurden" : "Der neue Plan wurde";
+          throw new ResultError_({
+            code: "UNKNOWN",
+            message: `${toResultError(err).message} — ${what} zurückgenommen, aber einige künftige Karten sind evtl. schon entfernt. Bitte den Plan prüfen und ggf. neu erzeugen.`,
           });
         }
         throw err;
@@ -189,13 +117,23 @@ export function useCreateTrainingPlan(athleteId: string) {
     },
   });
 
-  const createPlan = useCallback(
-    async (args: CreateTrainingPlanArgs): Promise<Result<{ planId: string }>> => {
+  /** Mehrere Sportarten in einem Lauf (Fahrplan 44 E4). */
+  const createPlans = useCallback(
+    async (items: CreateTrainingPlanArgs[]): Promise<Result<{ planIds: string[] }>> => {
       if (!userId) return { ok: false, error: NOT_LOGGED_IN };
-      return catchResult(() => mutation.mutateAsync(args));
+      return catchResult(() => mutation.mutateAsync(items));
     },
     [mutation, userId],
   );
 
-  return { createPlan, isPending: mutation.isPending };
+  /** Eine Sportart — der bisherige Weg, ohne `plan_group_id`. */
+  const createPlan = useCallback(
+    async (args: CreateTrainingPlanArgs): Promise<Result<{ planId: string }>> => {
+      const res = await createPlans([args]);
+      return res.ok ? { ok: true, planId: res.planIds[0] } : res;
+    },
+    [createPlans],
+  );
+
+  return { createPlan, createPlans, isPending: mutation.isPending };
 }

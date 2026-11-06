@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildWeekGrid } from "./week-grid-view-model";
-import type { PlanCard } from "../../api/types";
+import type { PlanCard, WeekModelEntry } from "../../api/types";
 
 type Ride = import("../../types.js").Ride;
 
@@ -259,5 +259,131 @@ describe("buildWeekGrid — Wochenstruktur", () => {
     expect(grid.map((w) => w.weekKey)).toEqual(["2026-KW33", "2026-KW34"]);
     expect(cellFor(grid, "2026-08-10").status).toBe("missed");
     expect(cellFor(grid, "2026-08-14").status).toBe("open");
+  });
+});
+
+/* ---------- Fahrplan 44 E1: gemeinsamer Kalender (Modus "Alle") ---------- */
+
+describe("buildWeekGrid — gemeinsamer Kalender über Sportarten (Fahrplan 44 E1)", () => {
+  const run = (id: string, date: string, extra: Partial<PlanCard> = {}) =>
+    card({ id, date, sport: "run", typ: "Z2 Dauer", name: "Lauf", ...extra });
+  const rideCard = (id: string, date: string, extra: Partial<PlanCard> = {}) =>
+    card({ id, date, sport: "ride", name: "Rad", ...extra });
+  const act = (dateISO: string, sport: "ride" | "run" | "swim"): Ride => ({ dateISO, sport }) as Ride;
+  const shared = (rides: Ride[], weekModels: Record<string, WeekModelEntry[] | null> = {}) => ({
+    rides,
+    weekModels,
+  });
+
+  it("erledigter Lauf (Lauf-Aktivität am Tag) ist 'done', nicht 'missed'", () => {
+    const cards = [run("r1", "2026-08-10")];
+    const grid = buildWeekGrid(cards, [], TODAY, "athlete3", undefined, 0, null, shared([act("2026-08-10", "run")]));
+    expect(cellFor(grid, "2026-08-10").status).toBe("done");
+  });
+
+  it("eine Radfahrt erledigt keine Laufkarte am selben Tag (→ 'missed')", () => {
+    const cards = [run("r1", "2026-08-10")];
+    const grid = buildWeekGrid(cards, [], TODAY, "athlete3", undefined, 0, null, shared([act("2026-08-10", "ride")]));
+    expect(cellFor(grid, "2026-08-10").status).toBe("missed");
+  });
+
+  it("Lauf und Rad am selben Tag: jede Karte hat ihren eigenen Status", () => {
+    const cards = [rideCard("a", "2026-08-10"), run("b", "2026-08-10")];
+    const grid = buildWeekGrid(cards, [], TODAY, "athlete3", undefined, 0, null, shared([act("2026-08-10", "run")]));
+    const entries = cellFor(grid, "2026-08-10").entries;
+    expect(entries.map((e) => [e.card.id, e.sport, e.status])).toEqual([
+      ["a", "ride", "missed"],
+      ["b", "run", "done"],
+    ]);
+  });
+
+  it("verschiedene Sportarten am Tag sind keine Doppelbelegung", () => {
+    const cards = [rideCard("a", "2026-08-14"), run("b", "2026-08-14")];
+    const cell = cellFor(buildWeekGrid(cards, [], TODAY, "athlete3", undefined, 0, null, shared([])), "2026-08-14");
+    expect(cell.sameSportOverlap).toBe(false);
+    expect(cell.sportsOnDay).toEqual(["ride", "run"]);
+  });
+
+  it("dieselbe Sportart doppelt bleibt eine Doppelbelegung", () => {
+    const cards = [run("a", "2026-08-14"), run("b", "2026-08-14")];
+    const cell = cellFor(buildWeekGrid(cards, [], TODAY, "athlete3", undefined, 0, null, shared([])), "2026-08-14");
+    expect(cell.sameSportOverlap).toBe(true);
+  });
+
+  it("ausgefallene Original- + aktive Ersatzkarte derselben Sportart ist keine Doppelbelegung", () => {
+    const cards = [run("a", "2026-08-14", { cancelled: true }), run("b", "2026-08-14")];
+    const cell = cellFor(buildWeekGrid(cards, [], TODAY, "athlete3", undefined, 0, null, shared([])), "2026-08-14");
+    expect(cell.sameSportOverlap).toBe(false);
+  });
+
+  it("Einzelsport-Aufruf (ohne shared) trägt dieselben Felder, Überlappung wie bisher", () => {
+    const cards = [rideCard("a", "2026-08-14"), rideCard("b", "2026-08-14")];
+    const cell = cellFor(buildWeekGrid(cards, [], TODAY), "2026-08-14");
+    expect(cell.sameSportOverlap).toBe(true);
+    expect(cell.entries).toHaveLength(2);
+  });
+
+  describe("Ruhetage", () => {
+    // Mi 12.08. ist Ruhe-Slot im Rad-Modell, aber Trainings-Slot im Lauf-Modell.
+    const model = (days: number[]): WeekModelEntry[] => [
+      { week: "W", phase: "Basis", start: "2026-08-10", end: "2026-08-16", trainingWeekdays: days, targetTss: 100 },
+    ];
+    const anchor = [rideCard("a", "2026-08-13")];
+
+    it("Ruhetag nur, wenn ALLE Sportarten mit Modell dort Ruhe haben", () => {
+      const bothRest = { ride: model([1, 4]), run: model([1, 4]) };
+      const grid = buildWeekGrid(anchor, [], TODAY, "athlete3", undefined, 0, null, shared([], bothRest));
+      expect(cellFor(grid, "2026-08-12").status).toBe("rest");
+    });
+
+    it("kein Ruhetag, wenn eine Sportart dort einen Trainings-Slot hat", () => {
+      const mixed = { ride: model([1, 4]), run: model([1, 3, 4]) }; // Lauf trainiert Mi
+      const grid = buildWeekGrid(anchor, [], TODAY, "athlete3", undefined, 0, null, shared([], mixed));
+      expect(cellFor(grid, "2026-08-12").status).toBe("empty");
+    });
+
+    it("ein Tag mit Karte ist nie Ruhetag", () => {
+      const cards = [rideCard("a", "2026-08-12"), run("b", "2026-08-13")];
+      const rest = { ride: model([1, 4]), run: model([1, 4]) };
+      const grid = buildWeekGrid(cards, [], TODAY, "athlete3", undefined, 0, null, shared([], rest));
+      expect(cellFor(grid, "2026-08-12").status).not.toBe("rest");
+      expect(cellFor(grid, "2026-08-12").card?.id).toBe("a");
+    });
+
+    it("Sportart ohne eigenes Wochenmodell stimmt beim Ruhetag nicht mit ab", () => {
+      const onlyRide = { ride: model([1, 4]), run: null };
+      const grid = buildWeekGrid(anchor, [], TODAY, "athlete3", undefined, 0, null, shared([], onlyRide));
+      expect(cellFor(grid, "2026-08-12").status).toBe("rest");
+    });
+  });
+
+  describe("Phase", () => {
+    const m = (phase: string): WeekModelEntry[] => [
+      { week: "W", phase, start: "2026-08-10", end: "2026-08-16", trainingWeekdays: [1, 4], targetTss: 100 },
+    ];
+    const cards = [rideCard("a", "2026-08-13")];
+
+    it("gleiche Phase in allen Sportarten → eine Phase", () => {
+      const g = buildWeekGrid(cards, [], TODAY, "athlete3", undefined, 0, null, shared([], { ride: m("Basis"), run: m("Basis") }));
+      expect(g[0].phase).toBe("Basis");
+    });
+
+    it("verschiedene Phasen → je Sportart genannt, nie eine falsche für alle", () => {
+      const g = buildWeekGrid(cards, [], TODAY, "athlete3", undefined, 0, null, shared([], { ride: m("Aufbau"), run: m("Basis") }));
+      expect(g[0].phase).toBe("Rad: Aufbau · Lauf: Basis");
+      expect(g[0].phaseBySport).toEqual({ ride: "Aufbau", run: "Basis" });
+    });
+  });
+
+  it("Wochen-TSS summiert Aktivitäten aller Sportarten und ist als Näherung markiert", () => {
+    const cards = [rideCard("a", "2026-08-13")];
+    const rides = [
+      { dateISO: "2026-08-10", sport: "ride", tss: 50 },
+      { dateISO: "2026-08-11", sport: "run", tss: 30 },
+    ] as Ride[];
+    const g = buildWeekGrid(cards, [], TODAY, "athlete3", undefined, 0, null, shared(rides));
+    expect(g[0].tssSum).toBe(80);
+    expect(g[0].multiSport).toBe(true);
+    expect(buildWeekGrid(cards, [], TODAY)[0].multiSport).toBe(false);
   });
 });

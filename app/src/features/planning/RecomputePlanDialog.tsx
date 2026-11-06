@@ -1,37 +1,60 @@
 /* ============================================================
-   FEATURES/PLANNING/RECOMPUTEPLANDIALOG.TSX — „Rest neu berechnen"
+   FEATURES/PLANNING/RECOMPUTEPLANDIALOG.TSX — „Plan anpassen"
    (Fahrplan 8 E13)
 
-   Rechnet die Restwochen des aktiven Plans mit frischer Form / Planerfüllung
-   neu — Blockstruktur + Vergangenheit bleiben, es ist DIESELBE
-   `training_plans`-Zeile. Vorschau zeigt nur die betroffenen Wochen.
-   „Rest neu berechnen" ersetzt deren künftige Karten
-   (`useRecomputeRemainingPlan`).
+   Ändert Trainingstage, feste Tage und Ziel-FTP und rechnet die Restwochen des
+   aktiven Plans mit frischer Form / Planerfüllung neu — Blockstruktur +
+   Vergangenheit bleiben, es ist DIESELBE `training_plans`-Zeile. Vorschau
+   zeigt nur die betroffenen Wochen. „Änderungen übernehmen" ersetzt deren
+   künftige Karten (`useRecomputeRemainingPlan`).
 
    Overlay-/Sperr-Muster wie FtpRescaleDialog.tsx / ShiftPlanDialog.tsx.
    Reine Eingabe-Logik in recompute-plan-view-model.ts.
    ============================================================ */
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { GlassCard } from "../../components/GlassCard";
 import { useEscapeToClose } from "../../hooks/useEscapeToClose";
+import { useActivePlanGroup } from "../../api/hooks/useActivePlanGroup";
 import { useActiveTrainingPlan } from "../../api/hooks/useActiveTrainingPlan";
 import { usePlanHistoryAggregate } from "../../api/hooks/usePlanHistoryAggregate";
-import { useEffectiveSport } from "../../api/hooks/useActiveSport";
+import { sportBadge } from "../../core/activity-sport.js";
+import { useEffectiveSport, type ActiveSport } from "../../api/hooks/useActiveSport";
 import { useAthleteFormats } from "../../api/hooks/useAthleteFormats";
+import { useRides } from "../../api/hooks/useRides";
 import { athleteConfig } from "../../config";
 import { fmtDate, localISODate } from "../../core/format.js";
+import { groupRideEstimates } from "../../core/group-ride-duration.js";
 import { generatePlan } from "../../core/plan-generator.js";
+import { AddSportFlow } from "./AddSportFlow";
+import { FixedDaysEditor } from "./FixedDaysEditor";
+import { GroupRecomputeDialog } from "./GroupRecomputeDialog";
+import { isGroupRecompute } from "./group-recompute-view-model";
+import { goalPlanChanges, goalPlanHint, planGoalProfile } from "./goal-plan-view-model";
+import { useGoalPlanContext } from "./useGoalPlanContext";
 import { PlanPreview } from "./PlanPreview";
-import { buildRecomputeInput, currentTailWeekdays } from "./recompute-plan-view-model";
+import { buildRecomputeInput, currentTailWeekdays, replaceFromISO } from "./recompute-plan-view-model";
+import { useFtpHistoryEntries } from "./useFtpHistoryEntries";
 import { useRecomputeRemainingPlan } from "./useRecomputeRemainingPlan";
-import { WEEKDAY_LABELS } from "./new-plan-dialog-view-model";
-import { PILL_STYLE, PRIMARY_BTN_STYLE as PICKED_PILL_STYLE } from "./new-plan-dialog-styles";
-import type { GeneratedPlan } from "./new-plan-dialog-view-model";
+import { resolveMeasuredFtp, savedFixedDays, WEEKDAY_LABELS } from "./new-plan-dialog-view-model";
+import {
+  FIELD_STYLE,
+  LABEL_STYLE,
+  PILL_STYLE,
+  PRIMARY_BTN_STYLE as PICKED_PILL_STYLE,
+} from "./new-plan-dialog-styles";
+import type { FixedDay, GeneratedPlan } from "./new-plan-dialog-view-model";
+import type { Ride } from "../../types.js";
 
 interface RecomputePlanDialogProps {
   athleteId: string;
   onClose: () => void;
+  /** Fahrplan 43 E5: „Ziele berücksichtigen" startet an — nur, wenn der Dialog
+   *  über den Hinweis auf der Planungsseite geöffnet wird. Sonst aus. */
+  withGoals?: boolean;
+  /** Fahrplan 44 E1: ausdrücklich gewählte Sportart (Modus "Alle" bzw. Filter
+   *  der Planungsseite). Ohne Angabe gilt der globale Umschalter wie bisher. */
+  sport?: ActiveSport;
 }
 
 const BTN_STYLE: React.CSSProperties = {
@@ -53,22 +76,50 @@ const PRIMARY_BTN_STYLE: React.CSSProperties = {
   fontWeight: 600,
 };
 
-export function RecomputePlanDialog({ athleteId, onClose }: RecomputePlanDialogProps) {
-  useEscapeToClose(onClose);
+export function RecomputePlanDialog({ athleteId, onClose, withGoals = false, sport }: RecomputePlanDialogProps) {
+  // Escape schließt nicht, solange ein Kind-Dialog (Gruppe, Sportart hinzufügen) speichert —
+  // sonst verschwindet ein Fehler, den der Nutzer sehen muss.
+  const [childBusy, setChildBusy] = useState(false);
+  const closeIfIdle = useCallback(() => {
+    if (!childBusy) onClose();
+  }, [childBusy, onClose]);
+  useEscapeToClose(closeIfIdle);
 
   const today = localISODate();
-  const { effectiveSport } = useEffectiveSport(athleteId);
-  const { data: activePlan, isLoading: planLoading } = useActiveTrainingPlan(athleteId, effectiveSport);
+  const { effectiveSport } = useEffectiveSport(athleteId, sport);
+  const { data: activePlan, isLoading: planQueryLoading } = useActiveTrainingPlan(athleteId, effectiveSport);
+  // Fahrplan 44 E6: Gehört der Plan zu einer Gruppe mit mindestens zwei aktiven
+  // Plänen, übernimmt GroupRecomputeDialog. Sonst bleibt alles wie bisher.
+  const { plans: groupPlans, isLoading: groupLoading } = useActivePlanGroup(athleteId, activePlan?.planGroupId);
+  const planLoading = planQueryLoading || groupLoading;
   const { aggregate } = usePlanHistoryAggregate(athleteId, effectiveSport);
   const { entries: formatEntries } = useAthleteFormats();
   const { recompute, isPending } = useRecomputeRemainingPlan(athleteId);
+  const { data: rideData } = useRides(athleteId);
+  const ftpHistoryEntries = useFtpHistoryEntries(athleteId);
 
   const [saveError, setSaveError] = useState<string | null>(null);
   // `null` = noch nicht angefasst → Tage des Plans bzw. gespeicherter Wert.
   const [pickedDays, setPickedDays] = useState<number[] | null>(null);
   const [keepAllDays, setKeepAllDays] = useState<boolean | null>(null);
+  const [pickedFixedDays, setPickedFixedDays] = useState<FixedDay[] | null>(null);
+  const [pickedFtpTarget, setPickedFtpTarget] = useState<number | null>(null);
+  // Fahrplan 44 E5: „Sportart hinzufügen" ist eine eigene Ansicht (AddSportFlow).
+  const [adding, setAdding] = useState(false);
 
+  // Ziele (Fahrplan 43 E5): Standard aus; nur der Hinweis öffnet den Dialog mit
+  // „an". Ändert nichts am Plan, bevor der Athlet übernimmt.
+  const { goals, interimFtp } = useGoalPlanContext(athleteId, effectiveSport);
+  const [goalsOn, setGoalsOn] = useState(withGoals);
+  const goalProfile = useMemo(() => planGoalProfile(goals, effectiveSport), [goals, effectiveSport]);
+
+  const isRide = effectiveSport === "ride";
   const shownDays = pickedDays ?? (activePlan ? currentTailWeekdays(activePlan, today) : []);
+  const shownFixedDays = pickedFixedDays ?? (activePlan ? savedFixedDays(activePlan) : []);
+  const groupEstimates = useMemo(
+    () => groupRideEstimates((rideData?.ridesAll as Ride[] | undefined) ?? []),
+    [rideData?.ridesAll]
+  );
   const lowAdherence =
     ((aggregate as { planAdherence?: number | null } | null)?.planAdherence ?? 1) < 0.7;
   const savedKeepAll =
@@ -88,15 +139,25 @@ export function RecomputePlanDialog({ athleteId, onClose }: RecomputePlanDialogP
   // fest, nur Form/Erfüllung sind neu).
   const built = useMemo(() => {
     if (!activePlan) return null;
+    const cfg = athleteConfig(athleteId);
     const res = buildRecomputeInput({
       plan: activePlan,
       history: aggregate,
       todayISO: today,
-      athleteDefaults: athleteConfig(athleteId),
+      athleteDefaults: cfg && { ...cfg, ...resolveMeasuredFtp(cfg, ftpHistoryEntries, today) },
       currentThresholdSpeed: (aggregate as { currentThresholdSpeed?: number | null } | null)
         ?.currentThresholdSpeed,
       ...(pickedDays ? { trainingWeekdays: pickedDays } : {}),
       ...(keepAllDays != null ? { keepAllTrainingDays: keepAllDays } : {}),
+      ...(pickedFixedDays ? { fixedDays: pickedFixedDays } : {}),
+      // Von Hand geändertes Ziel-FTP gewinnt; sonst bei „Ziele berücksichtigen"
+      // das Zwischenziel (nur Rad, nur bei ok — sonst null).
+      ...(pickedFtpTarget != null
+        ? { ftpTarget: pickedFtpTarget }
+        : goalsOn && interimFtp != null
+          ? { ftpTarget: interimFtp }
+          : {}),
+      ...(goalsOn ? { goalProfile } : {}),
     });
     if (!res.ok) return { error: res.reason };
     const run = generatePlan as (input: unknown) => GeneratedPlan;
@@ -113,7 +174,27 @@ export function RecomputePlanDialog({ athleteId, onClose }: RecomputePlanDialogP
       affectedWeeks: res.affectedWeeks,
       droppedFixedWeekdays: res.droppedFixedWeekdays,
     };
-  }, [activePlan, aggregate, athleteId, formatEntries, today, pickedDays, keepAllDays]);
+  }, [
+    activePlan,
+    aggregate,
+    athleteId,
+    formatEntries,
+    ftpHistoryEntries,
+    today,
+    pickedDays,
+    keepAllDays,
+    pickedFixedDays,
+    pickedFtpTarget,
+    goalsOn,
+    goalProfile,
+    interimFtp,
+  ]);
+
+  // Anzeige der Ziel-Box (nur Darstellung, fließt nicht in die Berechnung).
+  const goalChanges = goalPlanChanges(goalProfile);
+  const goalHint = activePlan ? goalPlanHint(goals, activePlan, interimFtp) : null;
+  const needsNewPlan = !!goalHint?.differences.some((d) => d === "focus" || d === "level");
+  const showGoalsBox = goalChanges.hasEffect || goalChanges.notYet.length > 0 || interimFtp != null || needsNewPlan;
 
   async function handleApply() {
     if (!activePlan || !built || "error" in built || isPending) return;
@@ -122,6 +203,7 @@ export function RecomputePlanDialog({ athleteId, onClose }: RecomputePlanDialogP
       plan: activePlan,
       generated: built.generated,
       input: built.input,
+      todayISO: today,
     });
     if (!result.ok) {
       setSaveError(result.error.message);
@@ -131,6 +213,30 @@ export function RecomputePlanDialog({ athleteId, onClose }: RecomputePlanDialogP
   }
 
   const blocked = !built || "error" in built;
+
+  if (!planLoading && isGroupRecompute(groupPlans)) {
+    return (
+      <GroupRecomputeDialog
+        athleteId={athleteId}
+        plans={groupPlans}
+        callerSport={effectiveSport}
+        onClose={onClose}
+        onBusyChange={setChildBusy}
+        withGoals={withGoals}
+      />
+    );
+  }
+
+  if (adding) {
+    return (
+      <AddSportFlow
+        athleteId={athleteId}
+        onBack={() => setAdding(false)}
+        onClose={onClose}
+        onBusyChange={setChildBusy}
+      />
+    );
+  }
 
   return (
     <div
@@ -152,11 +258,11 @@ export function RecomputePlanDialog({ athleteId, onClose }: RecomputePlanDialogP
     >
       <GlassCard variant="strong" radius="22px" style={{ width: "100%", maxWidth: 560, padding: "26px 24px" }}>
         <div style={{ fontFamily: "var(--font-disp)", fontWeight: 700, fontSize: "1rem", color: "var(--ink)" }}>
-          Rest neu berechnen
+          Plan anpassen{sport ? ` — ${sportBadge(sport).label}` : ""}
         </div>
         <p style={{ margin: "8px 0 16px", fontSize: ".82rem", color: "var(--ink-3)" }}>
-          Die Restwochen des Plans werden mit deiner aktuellen Form und Planerfüllung neu gerechnet.
-          Blockfolge und alle Wochen bis heute bleiben unverändert.
+          Ändere Trainingstage, feste Tage oder dein Ziel. Die Restwochen werden mit deiner aktuellen
+          Form und Planerfüllung neu gerechnet. Blockfolge und Vergangenheit bleiben.
         </p>
 
         {planLoading && <p style={{ color: "var(--ink-3)", fontSize: ".85rem" }}>Lädt …</p>}
@@ -210,6 +316,80 @@ export function RecomputePlanDialog({ athleteId, onClose }: RecomputePlanDialogP
                 (kein Trainingstag mehr).
               </div>
             )}
+            {isRide && (
+              <FixedDaysEditor
+                fixedDays={shownFixedDays.filter((d) => shownDays.includes(d.weekday))}
+                trainingWeekdays={shownDays}
+                estimates={groupEstimates}
+                onChange={(next) => {
+                  setPickedFixedDays(next);
+                  setSaveError(null);
+                }}
+              />
+            )}
+            {showGoalsBox && (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 6,
+                  padding: "10px 12px",
+                  borderRadius: "var(--radius-sm)",
+                  border: "1px solid var(--hair)",
+                  fontSize: ".76rem",
+                  color: "var(--ink-3)",
+                }}
+              >
+                <label style={{ display: "flex", alignItems: "flex-start", gap: 6, color: "var(--ink-2)" }}>
+                  <input
+                    type="checkbox"
+                    checked={goalsOn}
+                    onChange={(e) => {
+                      setGoalsOn(e.target.checked);
+                      setSaveError(null);
+                    }}
+                  />
+                  <span>Ziele berücksichtigen</span>
+                </label>
+                {goalsOn && goalChanges.changes.length > 0 && (
+                  <ul style={{ margin: 0, paddingLeft: 18 }}>
+                    {goalChanges.changes.map((c) => (
+                      <li key={c}>{c}</li>
+                    ))}
+                  </ul>
+                )}
+                {goalsOn && interimFtp != null && pickedFtpTarget == null && (
+                  <div>Ziel-FTP: Vorschlag {interimFtp} W aus deinem Zwischenziel. Du kannst ihn unten ändern.</div>
+                )}
+                {goalsOn && goalChanges.notYet.length > 0 && (
+                  <div>Wirkt noch nicht im Plan: {goalChanges.notYet.join(", ")}.</div>
+                )}
+                {goalsOn && needsNewPlan && (
+                  <div>Fokus und Level änderst du über „Neuer Plan“.</div>
+                )}
+                {!goalsOn && <div>Aus: Der Plan wird nur mit deinen Trainingstagen und deiner aktuellen Form neu gerechnet.</div>}
+              </div>
+            )}
+            {isRide && built && !("error" in built) && (
+              <label style={LABEL_STYLE}>
+                Ziel-FTP für diesen Plan (W)
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  step={1}
+                  style={{ ...FIELD_STYLE, maxWidth: 200 }}
+                  value={pickedFtpTarget ?? built.input.ftpTarget ?? ""}
+                  onChange={(e) => {
+                    const watt = Number(e.target.value);
+                    setPickedFtpTarget(watt > 0 ? watt : null);
+                  }}
+                />
+                {built.input.currentFtp != null && (
+                  <span>Gerechnet mit deiner aktuellen FTP von {built.input.currentFtp} W.</span>
+                )}
+              </label>
+            )}
           </div>
         )}
 
@@ -232,7 +412,7 @@ export function RecomputePlanDialog({ athleteId, onClose }: RecomputePlanDialogP
               }}
             >
               Ersetzt <strong>{built.affectedWeeks} Woche{built.affectedWeeks === 1 ? "" : "n"}</strong> ab{" "}
-              {fmtDate(built.regenerateFromISO)}. Künftige Karten dieser Wochen werden neu geschrieben —
+              {fmtDate(replaceFromISO(built.regenerateFromISO, today))}. Künftige Karten dieser Wochen werden neu geschrieben —
               manuelle Änderungen daran gehen verloren; vergangene und als ausgefallen markierte Karten
               bleiben.
             </div>
@@ -245,6 +425,17 @@ export function RecomputePlanDialog({ athleteId, onClose }: RecomputePlanDialogP
               />
             </div>
           </>
+        )}
+
+        {!planLoading && activePlan && (
+          <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--hair)" }}>
+            <p style={{ margin: "0 0 8px", fontSize: ".78rem", color: "var(--ink-3)" }}>
+              Du willst eine weitere Sportart planen? Dein Plan bleibt dabei unverändert.
+            </p>
+            <button type="button" style={BTN_STYLE} onClick={() => setAdding(true)} disabled={isPending}>
+              Sportart hinzufügen
+            </button>
+          </div>
         )}
 
         {saveError && (
@@ -265,7 +456,7 @@ export function RecomputePlanDialog({ athleteId, onClose }: RecomputePlanDialogP
             disabled={blocked || isPending}
             onClick={() => void handleApply()}
           >
-            {isPending ? "Speichert…" : "Rest neu berechnen"}
+            {isPending ? "Speichert…" : "Änderungen übernehmen"}
           </button>
         </div>
       </GlassCard>

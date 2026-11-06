@@ -51,8 +51,9 @@ import { planFtpRescale } from "../../core/plan-ftp-rescale.js";
 import { localISODate } from "../../core/format.js";
 import { activitySport } from "../../core/activity-sport.js";
 import { hasGeneratedPlan } from "../../config";
-import { useEffectiveSport } from "./useActiveSport";
-import type { PlanCard, PlanCardInput, PlanCardPatch, Result } from "../types";
+import { useEffectiveSport, type ActiveSport } from "./useActiveSport";
+import { useAthleteSports } from "./useAthleteSports";
+import type { PlanCard, PlanCardInput, PlanCardPatch, Result, WeekModelEntry } from "../types";
 
 const NOT_LOGGED_IN = { code: "UNKNOWN" as const, message: "Nicht eingeloggt" };
 const NO_ACCOUNT = {
@@ -69,7 +70,7 @@ const scopeOf = (athleteId: string) => `plan-cards:${athleteId}`;
  *  Events" durchgeht (s. useEvents). Der Unterschied stammt aus der
  *  Vanilla-Version und bleibt erhalten: eine leere Kartenliste würde im
  *  Planungstab wie ein leerer Plan aussehen statt wie ein fehlender Account. */
-export function usePlanCards(athleteId: string, opts?: { allSports?: boolean }) {
+export function usePlanCards(athleteId: string, opts?: { allSports?: boolean; sport?: ActiveSport }) {
   const queryClient = useQueryClient();
   // SPORTART-FILTER (Fahrplan 12 E3) — Muster 1:1 wie useRides (Fahrplan 10
   // E8a): `select` grenzt den Cache auf die im Umschalter aktive Sportart ein,
@@ -84,7 +85,9 @@ export function usePlanCards(athleteId: string, opts?: { allSports?: boolean }) 
   // Umschalter steht (FtpRescaleDialog rechnet `workout.pct/watts` um,
   // ProposalCompare löst `proposal.targetCardId` auf; beide würden sonst auf
   // dem Lauf-Tab die Radkarten nicht sehen). Fahrplan 12 E3, Code-Review.
-  const { effectiveSport } = useEffectiveSport(athleteId);
+  // `opts.sport` (Fahrplan 44 E1): Planungsseite wählt die Sportart selbst
+  // (Filter/Aktionssport), ohne den globalen Umschalter zu verändern.
+  const { effectiveSport } = useEffectiveSport(athleteId, opts?.sport);
   const allSports = opts?.allSports ?? false;
   const select = useCallback(
     (cards: PlanCard[]): PlanCard[] =>
@@ -178,6 +181,25 @@ function useCardsSnapshot(athleteId: string) {
   );
 }
 
+/** Wochenmodell der Sportart EINER Karte (Fahrplan 44 E1). Im gemeinsamen
+ *  Kalender liegen Karten mehrerer Sportarten nebeneinander — das Phasen-Label
+ *  eines Verschiebens muss aus dem Modell der Karten-Sportart kommen, nicht aus
+ *  dem des globalen Umschalters. Läuft nur für Sportarten des Athleten (kein
+ *  Zusatz-Read für Rad-only-Athleten). Karte mit Sportart "other" ⇒ `null`. */
+function useWeekModelForCard(athleteId: string) {
+  const sports = useAthleteSports(athleteId) as readonly string[];
+  const ride = useActiveWeekModel(athleteId, "ride");
+  const run = useActiveWeekModel(athleteId, "run", { enabled: sports.includes("run") });
+  const swim = useActiveWeekModel(athleteId, "swim", { enabled: sports.includes("swim") });
+  return useCallback(
+    (card: PlanCard): WeekModelEntry[] | null => {
+      const sport = activitySport(card);
+      return sport === "ride" ? ride : sport === "run" ? run : sport === "swim" ? swim : null;
+    },
+    [ride, run, swim],
+  );
+}
+
 /** Verschieben — gemeinsamer Schreibpfad für den "Verschieben"-Button UND
  *  Drag & Drop. Optimistik und Rollback liegen deshalb hier und nicht im
  *  Drag-Handler, sonst hätte der Button-Pfad sie nicht. */
@@ -191,9 +213,9 @@ export function useMovePlanCard(athleteId: string) {
   // Fahrplan 8 E7: hat der Athlet einen selbst gebauten Plan, kommt das
   // Phasen-Label aus dessen week_model statt aus der Code-Vorlage.
   // Fahrplan 14 E7: sport-bewusst — sonst zieht ein Move auf dem Lauf-/
-  // Schwimm-Tab das Wochenmodell des Rad-Plans.
-  const { effectiveSport } = useEffectiveSport(athleteId);
-  const weekModel = useActiveWeekModel(athleteId, effectiveSport);
+  // Schwimm-Tab das Wochenmodell des Rad-Plans. Fahrplan 44 E1: je KARTE statt
+  // je Umschalter, weil im Modus "Alle" Karten mehrerer Sportarten sichtbar sind.
+  const weekModelFor = useWeekModelForCard(athleteId);
 
   const move = useCallback(
     async (id: string, newDate: string, reason?: string): Promise<Result<{ card: PlanCard }>> => {
@@ -201,6 +223,7 @@ export function useMovePlanCard(athleteId: string) {
       const cards = snapshot();
       const card = cards.find((c) => c.id === id);
       if (!card) return { ok: false, error: CARD_NOT_FOUND };
+      const weekModel = weekModelFor(card);
       return catchResult(() =>
         mutation.mutateAsync({
           id,
@@ -209,7 +232,7 @@ export function useMovePlanCard(athleteId: string) {
         }),
       );
     },
-    [mutation, snapshot, userId, athleteId, offsetWeeks, weekModel],
+    [mutation, snapshot, userId, athleteId, offsetWeeks, weekModelFor],
   );
 
   return { move, isPending: mutation.isPending };
@@ -239,9 +262,8 @@ export function useUndoAdjustment(athleteId: string) {
   const snapshot = useCardsSnapshot(athleteId);
   const userId = useAuthUserId();
   const offsetWeeks = useAthletePlanOffset(athleteId);
-  // Fahrplan 14 E7: sport-bewusst, analog useMovePlanCard.
-  const { effectiveSport } = useEffectiveSport(athleteId);
-  const weekModel = useActiveWeekModel(athleteId, effectiveSport);
+  // Fahrplan 14 E7: sport-bewusst, analog useMovePlanCard (je Karte, s. dort).
+  const weekModelFor = useWeekModelForCard(athleteId);
 
   const undo = useCallback(
     async (id: string): Promise<Result<{ card?: PlanCard }>> => {
@@ -249,11 +271,11 @@ export function useUndoAdjustment(athleteId: string) {
       const cards = snapshot();
       const card = cards.find((c) => c.id === id);
       if (!card) return { ok: true };
-      const patch = buildUndoPatch(cards, card, athleteId, offsetWeeks, weekModel);
+      const patch = buildUndoPatch(cards, card, athleteId, offsetWeeks, weekModelFor(card));
       if (!patch) return { ok: true };
       return catchResult(() => mutation.mutateAsync({ id, patch }));
     },
-    [mutation, snapshot, userId, athleteId, offsetWeeks, weekModel],
+    [mutation, snapshot, userId, athleteId, offsetWeeks, weekModelFor],
   );
 
   return { undo, isPending: mutation.isPending };
@@ -281,15 +303,16 @@ export function useUndoAdjustment(athleteId: string) {
  *  Bricht ab, solange das eigene Profil noch nicht geladen ist — sonst
  *  würde `storedOffset` auf 0 zurückfallen und ein Delta gegen den falschen
  *  Ausgangswert gerechnet (gespeicherter Offset ↔ Kartendaten desynchron). */
-export function useShiftPlan(athleteId: string) {
+export function useShiftPlan(athleteId: string, sport?: ActiveSport) {
   const mutation = usePatchCard(athleteId);
   const snapshot = useCardsSnapshot(athleteId);
   const userId = useAuthUserId();
   const { isSelf } = useIsSelfAthlete(athleteId);
   const profile = useCurrentProfile().data ?? null;
   const { update: updateOffset } = useUpdatePlanOffsetWeeks();
-  // Fahrplan 14 E7: sport-bewusst, analog useMovePlanCard.
-  const { effectiveSport } = useEffectiveSport(athleteId);
+  // Fahrplan 14 E7: sport-bewusst, analog useMovePlanCard. `sport` (Fahrplan
+  // 44 E1): im Modus "Alle" wählt der Nutzer die Sportart ausdrücklich.
+  const { effectiveSport } = useEffectiveSport(athleteId, sport);
   const weekModel = useActiveWeekModel(athleteId, effectiveSport);
 
   const shift = useCallback(

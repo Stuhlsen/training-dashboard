@@ -10,19 +10,34 @@
    Blockfolge bleiben unangetastet.
 
    Die Rahmenbedingungen kommen aus den `training_plans`-Spalten (bei der
-   Erstellung validiert); nur die aktuelle FTP / das Messdatum reicht der
-   Aufrufer frisch aus `config.ts` durch (die Spalte `ftp_at_creation` ist der
-   Stand von damals).
+   Erstellung validiert); die aktuelle FTP / das Messdatum reicht der Aufrufer
+   frisch aus der FTP-Historie durch (die Spalte `ftp_at_creation` ist der Stand
+   von damals). Trainingstage, feste Tage und Ziel-FTP kann der Athlet im Dialog
+   „Plan anpassen" ändern.
    ============================================================ */
 
+import { localISODate } from "../../core/format.js";
 import {
   activeDayEnvironment,
   mondayOf,
   savedFixedDays,
   savedPlanForm,
 } from "./new-plan-dialog-view-model";
-import type { PlanGeneratorInput, AthleteDefaults } from "./new-plan-dialog-view-model";
+import type {
+  PlanGeneratorInput,
+  AthleteDefaults,
+  FixedDay,
+  GeneratedPlan,
+} from "./new-plan-dialog-view-model";
+import type { GoalPlanProfile } from "./goal-plan-view-model";
 import type { TrainingPlan, WeekModelEntry } from "../../api/types";
+
+/** Ab hier werden Karten ersetzt: Die Neuberechnung beginnt am Montag der
+ *  laufenden Woche, vergangene Tage bleiben aber unberührt — eine neue Karte
+ *  dort stünde sofort als „verpasst" im Plan. */
+export function replaceFromISO(regenerateFromISO: string, todayISO: string): string {
+  return regenerateFromISO > todayISO ? regenerateFromISO : todayISO;
+}
 
 /** Die Trainingstage, die der Plan ab der Restberechnung heute nutzt
  *  (Vorbelegung der Tage-Auswahl im Dialog). */
@@ -33,13 +48,74 @@ export function currentTailWeekdays(plan: TrainingPlan, todayISO: string): numbe
   return fromModel?.length ? [...fromModel] : [...(plan.trainingWeekdays ?? [])];
 }
 
+/** Was nach einer Neuberechnung an der `training_plans`-Zeile nachzieht. */
+export interface RecomputePatch {
+  weekModel: WeekModelEntry[];
+  params: Record<string, unknown>;
+  /** Nur gesetzt, wenn der Generator Tage für die neu gerechnete Woche liefert. */
+  trainingWeekdays?: number[];
+  /** Nur Rad und nur mit Wert. */
+  ftpTarget?: number;
+  /** Nur gesetzt, wenn die Stunden bewusst geändert wurden (Fahrplan 44 E6). */
+  weeklyHours?: number;
+}
+
+/**
+ * Die Plan-Zeilen-Werte zur gezeigten Vorschau. Geteilt von „Rest neu berechnen"
+ * für einen Plan (useRecomputeRemainingPlan) und der gemeinsamen Anpassung
+ * verknüpfter Pläne (Fahrplan 44 E6) — ein Weg, damit beide dasselbe schreiben.
+ */
+export function buildRecomputePatch(
+  plan: TrainingPlan,
+  generated: GeneratedPlan,
+  input: PlanGeneratorInput,
+  opts: { weeklyHours?: number } = {},
+): RecomputePatch {
+  const regenerateFrom = input.regenerateFrom ?? "";
+  const sport = plan.sport ?? "ride";
+  const weekModel = (generated.weekModel ?? []) as WeekModelEntry[];
+  // Die tatsächlich bespielten Tage der ersten neu gerechneten Woche (bei
+  // schwacher Planerfüllung kann der Generator einen streichen) — wie in
+  // plan-persist.ts muss die Spalte zum week_model passen.
+  const tail = weekModel.find((w) => w.start >= regenerateFrom);
+  const tailWeekdays = tail?.trainingWeekdays?.length ? [...tail.trainingWeekdays] : undefined;
+
+  // `params.form` mitziehen, damit ein späterer Recompute die geänderten
+  // Tage / festen Tage / das Häkchen wieder vorfindet.
+  const oldForm = ((plan.params as { form?: Record<string, unknown> } | null)?.form ?? {}) as Record<
+    string,
+    unknown
+  >;
+  const params = {
+    ...(plan.params ?? {}),
+    form: {
+      ...oldForm,
+      trainingWeekdays: input.trainingWeekdays,
+      fixedDays: input.fixedDays ?? [],
+      keepAllTrainingDays: input.keepAllTrainingDays === true,
+      ...(opts.weeklyHours != null ? { weeklyHours: opts.weeklyHours } : {}),
+    },
+    history: (input.history as unknown) ?? null,
+    warnings: generated.warnings,
+    recomputedAt: localISODate(),
+    recomputedFrom: regenerateFrom,
+  };
+  return {
+    weekModel,
+    params,
+    ...(tailWeekdays ? { trainingWeekdays: tailWeekdays } : {}),
+    ...(sport === "ride" && input.ftpTarget != null ? { ftpTarget: input.ftpTarget } : {}),
+    ...(opts.weeklyHours != null ? { weeklyHours: opts.weeklyHours } : {}),
+  };
+}
+
 export interface RecomputeArgs {
   plan: TrainingPlan;
   /** Frisches V3-Aggregat aus `usePlanHistoryAggregate` (durchgereicht). */
   history?: unknown;
   /** Heute (lokal, ISO). */
   todayISO: string;
-  /** Aktuelle FTP / Messdatum aus `athleteConfig()` — nicht der Erstell-Stand.
+  /** Aktuelle FTP / Messdatum (`resolveMeasuredFtp()`) — nicht der Erstell-Stand.
    *  Nur für `plan.sport === "ride"` relevant. */
   athleteDefaults: AthleteDefaults | null;
   /** Aktuelle Schwellenpace (km/h) aus `usePlanHistoryAggregate(athleteId, sport)
@@ -54,6 +130,13 @@ export interface RecomputeArgs {
   /** Häkchen „alle Tage behalten" (bei schwacher Planerfüllung). Fehlt → der
    *  beim Erstellen gespeicherte Wert, sonst false. */
   keepAllTrainingDays?: boolean;
+  /** Im Dialog geänderte feste Tage. Fehlt → die gespeicherten des Plans. */
+  fixedDays?: FixedDay[];
+  /** Im Dialog geändertes Ziel-FTP (W). Fehlt → das Ziel des Plans. */
+  ftpTarget?: number | null;
+  /** Fahrplan 43 E5: Plan-Profil der Ziele (schon nach Sportart gefiltert).
+   *  Fehlt → kein Ziel wirkt, Ausgabe wie bisher. */
+  goalProfile?: GoalPlanProfile | null;
 }
 
 export type RecomputeInput =
@@ -106,7 +189,7 @@ export function buildRecomputeInput(args: RecomputeArgs): RecomputeInput {
 
   // Feste Tage nur für Rad (FIXED_DAY_TYPES kennt nur das Rad-Vokabular). Ein
   // fester Tag auf einem abgewählten Wochentag entfällt (Entscheidung Q6).
-  const allFixed = sport === "ride" ? savedFixedDays(plan) : [];
+  const allFixed = sport === "ride" ? (args.fixedDays ?? savedFixedDays(plan)) : [];
   const fixedDays = allFixed.filter((d) => tailWeekdays.includes(d.weekday));
   const droppedFixedWeekdays = allFixed
     .filter((d) => !tailWeekdays.includes(d.weekday))
@@ -143,9 +226,9 @@ export function buildRecomputeInput(args: RecomputeArgs): RecomputeInput {
         ? (athleteDefaults?.ftpMeasured ?? athleteDefaults?.eFTP ?? plan.ftpAtCreation ?? null)
         : null,
     ftpMeasuredDate: sport === "ride" ? (athleteDefaults?.ftpMeasuredDate ?? null) : null,
-    // Ziel-FTP des Ur-Plans beibehalten — eine Restberechnung verschiebt nicht
-    // das Saisonziel (deriveFtpTarget übernimmt einen gesetzten Wert 1:1).
-    ftpTarget: sport === "ride" ? (plan.ftpTarget ?? null) : null,
+    // Ohne Eingabe bleibt das Ziel-FTP des Plans — eine Anpassung verschiebt das
+    // Ziel nur, wenn der Athlet es ändert (deriveFtpTarget übernimmt den Wert 1:1).
+    ftpTarget: sport === "ride" ? (args.ftpTarget ?? plan.ftpTarget ?? null) : null,
     // Schwellenpace-Äquivalent (V1) für sport !== "ride": aktueller Aggregat-
     // Wert zuerst, sonst der (u. U. veraltete) Erstell-Stand des Plans.
     currentThresholdSpeed:
@@ -158,6 +241,7 @@ export function buildRecomputeInput(args: RecomputeArgs): RecomputeInput {
     focus: plan.focus,
     level: plan.level,
     model: plan.model,
+    ...(args.goalProfile ? { goalProfile: args.goalProfile } : {}),
     history,
     regenerateFrom: regenerateFromISO,
     baseWeekModel: base,

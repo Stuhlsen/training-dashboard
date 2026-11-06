@@ -34,8 +34,37 @@
  * @property {string} sourceLabel  Datenquellen-Text
  * @property {"einsteiger"|"fortgeschritten"} level
  * @property {DemoSportPlan[]} plans
+ * @property {Array<"ride"|"run"|"swim">} [planGroup]  Sportarten, deren Pläne eine gemeinsame
+ *   plan_group_id tragen (Fahrplan 44 E7); fehlt = keine Gruppe
  * @property {string[]} raceNames  fiktive Rennnamen, ohne Ortsbezug
+ * @property {DemoGoal[]} goals  Hauptziel zuerst, höchstens ein Nebenziel (Fahrplan 43 E7)
+ * @property {DemoNutritionGoal|null} nutritionGoal  Ernährungsziel passend zu "Fett verlieren", sonst null
  */
+
+/**
+ * Ein Ziel der Demo. `key` = Katalogschlüssel (app/src/core/goals.js), `kind` =
+ * Freitext-Art in goals.kind (für FTP fest "FTP", sonst das Katalog-Label).
+ * `ftpValue`: Zielwert = ftpGoal der Besetzung; `dated`: Zieldatum = nächstes
+ * Hauptrennen. Gewichtswerte stehen nie hier, nur in DemoNutritionGoal.
+ * @typedef {Object} DemoGoal
+ * @property {string} key
+ * @property {"main"|"side"} role
+ * @property {string} kind
+ * @property {boolean} [ftpValue]
+ * @property {boolean} [dated]
+ */
+
+/**
+ * Erfundene Werte, append-only in nutrition_goals (Tempo als Betrag in kg/Woche).
+ * @typedef {Object} DemoNutritionGoal
+ * @property {"lose"} goalType
+ * @property {number} targetWeightKg
+ * @property {number} pacePerWeekKg
+ */
+
+/** Feste, erfundene uuid der Demo-Plangruppe (Fahrplan 44 E7). Fest statt
+ *  zufällig, damit der ergänzende Seed sie bei jedem Lauf wiederfindet. */
+export const DEMO_PLAN_GROUP_ID = "d3a0c0de-0000-4000-8000-000000000044";
 
 /** @type {DemoAthlete[]} */
 export const DEMO_ROSTER = [
@@ -64,6 +93,11 @@ export const DEMO_ROSTER = [
       "Gravel-Marathon",
       "Saisonfinale-Kriterium",
     ],
+    goals: [
+      { key: "ftp", role: "main", kind: "FTP", ftpValue: true, dated: true },
+      { key: "bergauf", role: "side", kind: "Besser bergauf" },
+    ],
+    nutritionGoal: null,
   },
   {
     id: "demo2",
@@ -87,7 +121,16 @@ export const DEMO_ROSTER = [
       { sport: "run", trainingWeekdays: [3, 5, 7], weeklyHours: 4, thresholdSpeed: 13.5 },
       { sport: "swim", trainingWeekdays: [2, 5], weeklyHours: 2, thresholdSpeed: 3.6 },
     ],
+    // Rad + Laufen sind verknüpft (eine plan_group_id), Schwimmen läuft frei daneben.
+    planGroup: ["ride", "run"],
     raceNames: ["Sprint-Triathlon", "Duathlon-Cup", "Olympische Distanz", "Mitteldistanz"],
+    // Ausdauer als Hauptziel; "Fett verlieren" als Nebenziel füllt die offene Energie-Zeile
+    // (goalNutritionProfile) — dazu passt die lose-Zeile in nutrition_goals.
+    goals: [
+      { key: "ausdauer", role: "main", kind: "Ausdauer", dated: true },
+      { key: "fett_verlieren", role: "side", kind: "Fett verlieren" },
+    ],
+    nutritionGoal: { goalType: "lose", targetWeightKg: 70, pacePerWeekKg: 0.3 },
   },
 ];
 
@@ -120,6 +163,8 @@ export const DEMO_TABLE_ONLY = [
     plans: [{ sport: "ride", trainingWeekdays: [3, 6, 7], weeklyHours: 5, thresholdSpeed: null }],
     // Genau CYCLES_PER_SEASON (4) Namen — ein fehlender macht das Event-Insert ungleich.
     raceNames: ["Stadtrunde-Kriterium", "Uferweg-Rennen", "Sommer-Rundfahrt", "Herbst-Tour"],
+    goals: [{ key: "ftp", role: "main", kind: "FTP", ftpValue: true, dated: true }],
+    nutritionGoal: null,
   },
 ];
 

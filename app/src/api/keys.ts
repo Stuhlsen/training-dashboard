@@ -40,6 +40,10 @@ export const qk = {
    *  überschreiben. */
   activeTrainingPlan: (athleteId: string, sport: "ride" | "run" | "swim" = "ride") =>
     ["active-training-plan", athleteId, sport] as const,
+  /** Alle aktiven Pläne einer Plan-Gruppe (Fahrplan 44 E6, „Plan anpassen"). */
+  planGroup: (athleteId: string, planGroupId: string) => ["plan-group", athleteId, planGroupId] as const,
+  /** Präfix aller Gruppen-Abfragen eines Athleten — zum Leeren nach jedem Schreiben, das eine Gruppe ändert. */
+  planGroups: (athleteId: string) => ["plan-group", athleteId] as const,
   events: (athleteId: string) => ["events", athleteId] as const,
   proposals: (athleteId: string) => ["proposals", athleteId] as const,
   /** Verlauf der KI-Coach-Runden eines Athleten (Tabelle coach_exchanges,

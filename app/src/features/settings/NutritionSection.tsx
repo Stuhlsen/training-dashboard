@@ -19,6 +19,7 @@ import { BiologicalSexField } from "./BiologicalSexField";
 import { SavedCheck } from "./SavedCheck";
 import { useStreamerMode } from "../../hooks/useStreamerMode";
 import { MASK, MaskedInput, StreamerNote } from "./streamer-mask";
+import { OrientationNotice } from "./OrientationNotice";
 import { fmtDate } from "../../core/format.js";
 import {
   SECTION_STYLE,
@@ -197,6 +198,9 @@ export function NutritionSection() {
       {/* Aktuelles Ernährungsziel */}
       <div>
         <label style={LABEL_STYLE}>Ernährungsziel</label>
+        <div style={{ margin: "0 0 8px" }}>
+          <OrientationNotice />
+        </div>
         {goal && (
           <div
             style={{

@@ -149,6 +149,15 @@ Records Gold — geteilte Bedeutung "Vorbereitung/Achievement"), **Phase 1** (#6
 **Phase 2** (#4a7fa8, identisch mit Endurance Steel Blue), **Phase 3** (#7c5cbf, eigenständiges
 Violett, unterscheidbar von VO2 Violet #a24ad0).
 
+### Sport Colors (gemeinsamer Kalender, Fahrplan 44 E1)
+Drei eigene Tokens für die Sportarten im Planungskalender: `--sport-ride` (Teal), `--sport-run`
+(Rosa), `--sport-swim` (Indigo). Stabile Namen, eigener Namensraum neben den Zonenfarben — ihre
+Farbtöne liegen ≥ 30° von Zonen-, Status- und Akzentfarben (Test: `styles/sport-tokens.test.ts`) und
+erreichen WCAG AA (4.5:1) als Text auf den dunklen Kacheln. Sie stehen **immer mit Symbol und
+Beschriftung** (`sportBadge()` in `core/activity-sport.js`, Screenreader-Name nennt die Sportart);
+die Farbe trägt nie allein die Bedeutung. Der linke Kartenrand bleibt die Zonenfarbe des Einheiten-
+typs, die Sportfarbe sitzt nur am Abzeichen.
+
 ### Named Rules
 **The Zone-Coded Rule.** Die fünf Zonenfarben (Recovery-Grün #4a9a6e, Endurance-Blau #4a7fa8,
 Tempo — ein abgedunkelter Sweet-Spot-Ton statt einer neuen Basisfarbe, Sweet-Spot-Orange #e08a3c,

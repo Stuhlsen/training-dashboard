@@ -366,12 +366,36 @@ test("Morgen-Check-in (E7): gesunde Tage meist fit, Krankheitswoche nie", () => 
   }
 });
 
-test("FTP-Ziel (E7): goals, json.ftpGoal und Besetzung stimmen überein", () => {
+test("FTP-Ziel (E7): json.ftpGoal = Besetzung, ein FTP-Ziel in goals trägt denselben Wert", () => {
   for (const { rows, json, timeline } of BOTH) {
     const { ftpGoal } = demoAthlete(timeline.athleteId);
-    assert.equal(rows.goals[0].target_value, ftpGoal);
     assert.equal(json.ftpGoal, ftpGoal);
+    for (const g of rows.goals.filter((x) => x.goal_key === "ftp")) {
+      assert.equal(g.target_value, ftpGoal);
+    }
   }
+});
+
+test("Ziele (Fahrplan 43 E7): Haupt-/Nebenziel aus der Besetzung, Katalogschlüssel, nur ein main", () => {
+  for (const { rows, timeline } of BOTH) {
+    const athlete = demoAthlete(timeline.athleteId);
+    assert.deepEqual(
+      rows.goals.map((g) => [g.goal_key, g.role, g.kind]),
+      athlete.goals.map((g) => [g.key, g.role, g.kind])
+    );
+    assert.equal(rows.goals.filter((g) => g.role === "main").length, 1);
+    assert.ok(rows.goals.every((g) => g.is_active === true && g.note === null));
+    // Gewichtswerte gehören nur nach nutrition_goals, nie in ein Ziel
+    assert.ok(
+      rows.goals
+        .filter((g) => g.goal_key === "fett_verlieren")
+        .every((g) => g.target_value === null)
+    );
+  }
+  const lena = BOTH.find((b) => b.timeline.athleteId === "demo1");
+  const main = lena.rows.goals.find((g) => g.role === "main");
+  assert.equal(main.goal_key, "ftp");
+  assert.match(main.target_date, /^\d{4}-\d{2}-\d{2}$/);
 });
 
 test("FTP-Historie (E7): kein Eintrag nach heute, DB-Zeilen = JSON", () => {
@@ -437,5 +461,37 @@ test("Grundlagenanteil (E7): Wochen im Schnitt ≥ 78 % Z1+Z2, harte Einheit nic
       const sum = r.zoneTimes.filter((x) => x.id !== "SS").reduce((s, x) => s + x.secs, 0);
       assert.equal(sum, r.min * 60);
     }
+  }
+});
+
+// ── Plan-Gruppe (Fahrplan 44 E7) ─────────────────────────────
+
+const { DEMO_PLAN_GROUP_ID } = await import("../scripts/demo/lib/roster.js");
+
+test("Plan-Gruppe: tri_jonas — aktive Rad- und Laufpläne tragen dieselbe feste uuid, Schwimmen nicht", () => {
+  assert.match(DEMO_PLAN_GROUP_ID, /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+  const active = A2.rows.training_plans.filter((p) => p.is_active);
+  const bySport = Object.fromEntries(active.map((p) => [p.sport, p.plan_group_id ?? null]));
+  assert.equal(bySport.ride, DEMO_PLAN_GROUP_ID);
+  assert.equal(bySport.run, DEMO_PLAN_GROUP_ID);
+  assert.equal(bySport.swim, null);
+});
+
+test("Plan-Gruppe: deterministisch — gleicher Seed, gleiche Zeilen", () => {
+  const again = build("demo2");
+  assert.deepEqual(
+    again.rows.training_plans.map((p) => p.plan_group_id ?? null),
+    A2.rows.training_plans.map((p) => p.plan_group_id ?? null)
+  );
+});
+
+test("Plan-Gruppe: Rad-only (lena) bleibt unverändert — kein plan_group_id-Feld", () => {
+  for (const p of A1.rows.training_plans) assert.ok(!("plan_group_id" in p));
+});
+
+test("Plan-Gruppe: alle training_plans-Zeilen eines Athleten haben dieselben Schlüssel (PostgREST-Sammel-Insert)", () => {
+  for (const { rows } of BOTH) {
+    const shapes = new Set(rows.training_plans.map((p) => Object.keys(p).sort().join(",")));
+    assert.equal(shapes.size, 1, [...shapes].join(" | "));
   }
 });

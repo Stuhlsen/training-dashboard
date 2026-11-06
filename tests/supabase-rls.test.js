@@ -51,6 +51,7 @@
 
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { ENV } from "../scripts/lib/env.js";
 
 const { SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_ATHLETE1_EMAIL, SUPABASE_ATHLETE1_PASSWORD } =
@@ -1606,6 +1607,109 @@ if (!HAS_CREDS) {
     if (planSkip()) return t.skip(planSkip());
     const anonRead = await rest("GET", "training_plans?select=id&limit=1", { token: null });
     assert.equal(anonRead.ok, false, "anon darf training_plans nicht lesen (kein GRANT)");
+  });
+
+  // --- training_plans.plan_group_id (0085, Fahrplan 44 E2) ---------------
+  // Die Spalte ändert an der bestehenden for-all-Policy nichts: Rechte hängen
+  // weiter nur an athlete_id. Drei Rollen: Athlet (eigene Zeile), Trainer
+  // (Zeile seines Athleten), Fremder (weder Besitzer noch Coach noch Admin).
+
+  test("training_plans.plan_group_id: Athlet schreibt und liest die Gruppe der eigenen Zeile; ohne Angabe bleibt sie null (0085)", async (t) => {
+    if (planSkip()) return t.skip(planSkip());
+    const groupId = randomUUID();
+    const grouped = await insertPlanRow(athlete.token, {
+      is_active: false,
+      plan_group_id: groupId,
+    });
+    const plain = await insertPlanRow(athlete.token, { is_active: false });
+
+    const read = await rest(
+      "GET",
+      `training_plans?id=in.(${grouped},${plain})&select=id,plan_group_id`,
+      { token: athlete.token }
+    );
+    assert.equal(
+      read.ok,
+      true,
+      `plan_group_id nicht lesbar — Migration 0085 eingespielt? ${JSON.stringify(read.data)}`
+    );
+    assert.equal(read.data.find((r) => r.id === grouped).plan_group_id, groupId);
+    assert.equal(
+      read.data.find((r) => r.id === plain).plan_group_id,
+      null,
+      "Zeile ohne Gruppe muss plan_group_id = null tragen (kein Default)"
+    );
+  });
+
+  test("training_plans.plan_group_id: Trainer legt eine Zeile mit Gruppe für seinen Athleten an und liest sie (0085)", async (t) => {
+    if (planSkip()) return t.skip(planSkip());
+    if (!coachLinkOk) return t.skip(coachSkip());
+    const groupId = randomUUID();
+    const id = await insertPlanRow(trainer.token, {
+      created_by: trainer.userId,
+      is_active: false,
+      plan_group_id: groupId,
+    });
+    const read = await rest(
+      "GET",
+      `training_plans?athlete_id=eq.${athlete.userId}&plan_group_id=eq.${groupId}&select=id`,
+      { token: trainer.token }
+    );
+    assert.equal(read.ok, true);
+    assert.deepEqual(
+      read.data.map((r) => r.id),
+      [id],
+      "Trainer muss die Gruppe seines Athleten lesen (is_coach_of)"
+    );
+  });
+
+  test("training_plans.plan_group_id: fremder Athlet sieht die Gruppe nicht und kann sie weder ändern noch für fremde athlete_id anlegen (0085)", async (t) => {
+    if (planSkip()) return t.skip(planSkip());
+    if (strangerSkip()) return t.skip(strangerSkip());
+    const groupId = randomUUID();
+    const id = await insertPlanRow(athlete.token, { is_active: false, plan_group_id: groupId });
+
+    const read = await rest("GET", `training_plans?plan_group_id=eq.${groupId}&select=id`, {
+      token: stranger.token,
+    });
+    assert.equal(read.ok, true);
+    assert.equal(read.data.length, 0, "Fremder darf keine Zeile der Gruppe sehen (RLS)");
+
+    const patch = await rest("PATCH", `training_plans?id=eq.${id}`, {
+      token: stranger.token,
+      body: { plan_group_id: randomUUID() },
+    });
+    assert.equal(
+      patch.ok && patch.data.length > 0,
+      false,
+      "Fremder darf plan_group_id nicht ändern"
+    );
+    const after = await rest("GET", `training_plans?id=eq.${id}&select=plan_group_id`, {
+      token: athlete.token,
+    });
+    assert.equal(
+      after.data[0].plan_group_id,
+      groupId,
+      "plan_group_id der fremden Zeile blieb unverändert"
+    );
+
+    const insert = await rest("POST", "training_plans", {
+      token: stranger.token,
+      body: planBody({ is_active: false, plan_group_id: groupId }),
+    });
+    assert.equal(
+      insert.ok,
+      false,
+      "Fremder darf keine Zeile mit athlete_id eines anderen Athleten in dessen Gruppe anlegen"
+    );
+  });
+
+  test("training_plans.plan_group_id: anon kann die Spalte nicht lesen (kein GRANT, 0085)", async (t) => {
+    if (planSkip()) return t.skip(planSkip());
+    const anonRead = await rest("GET", "training_plans?select=plan_group_id&limit=1", {
+      token: null,
+    });
+    assert.equal(anonRead.ok, false);
   });
 
   test("plan_cards: neue Spalte plan_id ist vorhanden und für Bestandskarten null (0028)", async (t) => {

@@ -15,10 +15,28 @@ import { estimateRestingEnergy, rideKJ } from "./body.js";
 import { fmtDateFull } from "./format.js";
 import { normalizeAllergenKeys } from "./nutrition-taxonomy.js";
 import { SOURCE_KEYS } from "./nutrition-sources.js";
+import { MAX_WEEKLY_LOSS_PCT } from "./goals.js";
 
 /* ──────────────────────────────────────────────────────────
    Konstanten
    ────────────────────────────────────────────────────────── */
+
+/** Strenger Boden bei aktivem Ziel „Fett verlieren“ (Fahrplan 43, Q31):
+ *  kcal pro kg fettfreier Masse und Tag, für alle gleich.
+ *  Eigene Festlegung, gestützt auf Literaturmarken, keine verbindliche Grenze. */
+export const STRICT_FLOOR_KCAL_PER_KG_FFM = 30;
+
+/** Obergrenze des Warnbereichs (30 bis 45 kcal/kg Magermasse), ebenfalls
+ *  eigene Festlegung. Der Bereich ist ein ruhiger Hinweis, kein Befund. */
+export const STRICT_WARN_UPPER_KCAL_PER_KG_FFM = 45;
+
+/** Warnung „Defizit + hohe Last“ (Idee N): geplante Wochen-TSS über
+ *  CTL x Faktor. Eigene Festlegung. Der Plan-Check K-WOCHENTSS warnt erst
+ *  bei 8 x CTL; unter Defizit sagen wir es etwas früher. */
+export const DEFICIT_LOAD_TSS_FACTOR = 7.5;
+
+/** Schrittweite des Tempo-Deckels in Hundertstel kg pro Woche (nur Rundung). */
+const PACE_STEP_HUNDREDTHS = 5;
 
 /** kcal pro kg Körpermasseänderung (gängige Näherung).
  *  Überschätzt die Wirkung über längere Zeit wegen metabolischer
@@ -240,8 +258,10 @@ function dailyBaseline(bmr) {
  *   profile: {weightKg?:number, heightCm?:number, age?:number, sex?:string|null,
  *             bodyFat?:number|null, bodyFatDate?:string|null},
  *   goal?: {goalType?:string, pacePerWeekKg?:number, targetWeightKg?:number},
- *   session?: {watt?:number, min?:number}
- * }} params
+ *   session?: {watt?:number, min?:number},
+ *   goalContext?: {fatLoss?:boolean, hardDay?:boolean, hardTomorrow?:boolean|null}|null
+ * }} params  goalContext nur bei aktivem Ziel „Fett verlieren“ (Fahrplan 43 E6);
+ *   hardTomorrow null = Folgetag unbekannt. Ohne goalContext rechnet alles wie zuvor.
  * @returns {{
  *   ok:true, target:number, bmr:number, formula:"cunningham-1980"|"ten-haaf-2014", hints:string[],
  *   bodyFatDate:string|null,
@@ -251,7 +271,7 @@ function dailyBaseline(bmr) {
  * }|{ok:false, hint:string}}
  */
 export function estimateDailyGoal(params) {
-  const { profile, goal, session } = params || {};
+  const { profile, goal, session, goalContext } = params || {};
 
   // BMR aus dem Profil
   if (!profile) {
@@ -271,22 +291,54 @@ export function estimateDailyGoal(params) {
 
   const bmr = bmrResult.bmr;
 
+  // Zielkontext (Fahrplan 43 E6): nur bei aktivem Ziel „Fett verlieren“.
+  // Ohne Kontext läuft alles wie zuvor, auch das Ergebnis trägt keine neuen Felder.
+  const ctx = goalContext && goalContext.fatLoss ? goalContext : null;
+  const bodyFatMeasured = isValidNumber(profile.bodyFat) && profile.bodyFat <= 1;
+
   // Ziel-Adjustment aus der Goal (nur lose/gain mit pace)
   let adjustment = 0;
+  // Tempo, das tatsächlich gerechnet wird (mit Kontext gegen das Gewicht gedeckelt)
+  let effectivePace = goal ? goal.pacePerWeekKg : undefined;
+  let paceCapped = false;
 
   if (goal) {
     if (goal.goalType === "lose" || goal.goalType === "gain") {
       if (isValidNumber(goal.pacePerWeekKg, true, true) && goal.pacePerWeekKg !== 0) {
+        if (ctx && goal.goalType === "lose") {
+          // Nie still ändern: gekürzt wird nur gegen das aktuelle Gewicht und wird gemeldet.
+          const cap = maxPacePerWeekKg(profile.weightKg);
+          if (cap != null && Math.abs(goal.pacePerWeekKg) > cap) {
+            effectivePace = cap;
+            paceCapped = true;
+          }
+        }
         // paceToDailyKcal liefert immer den Kalorienwert zur Magnitude:
         //   |+0.5| = 550, |-0.5| = 550
         // Richtung bestimmt goalType:
         //   lose  -> adjustment = +pace (deficit, ziehe von BMR ab)
         //   gain  -> adjustment = -pace (surplus, addiere zu BMR)
-        const raw = paceToDailyKcal(Math.abs(goal.pacePerWeekKg));
+        const raw = paceToDailyKcal(Math.abs(/** @type {number} */ (effectivePace)));
         adjustment = goal.goalType === "lose" ? raw : -raw;
       }
     }
     // 'maintain' or no goalType: keine Anpassung (der Boden gilt trotzdem)
+  }
+
+  // Defizit streichen: ohne gemessenes Körperfett (kein Standardwert) und vor/an harten Tagen.
+  // Folgetag unbekannt (null): Defizit bleibt, das Ergebnis meldet es.
+  /** @type {"no-body-fat"|"hard-day"|null} */
+  let deficitBlockedReason = null;
+  let nextDayUnknown = false;
+  if (ctx && adjustment > 0) {
+    if (!bodyFatMeasured) {
+      deficitBlockedReason = "no-body-fat";
+    } else if (ctx.hardDay === true || ctx.hardTomorrow === true) {
+      deficitBlockedReason = "hard-day";
+    } else if (ctx.hardTomorrow === null) {
+      nextDayUnknown = true;
+    }
+    if (deficitBlockedReason) adjustment = 0;
   }
 
   // Tagesgrundlage ohne Training: Grundumsatz + Alltag (beides berechnet/geschaetzt)
@@ -314,7 +366,14 @@ export function estimateDailyGoal(params) {
   });
   if (!floorResult.ok) return floorResult;
 
-  const floor = floorResult.floorKcal;
+  // Strenger Boden (nur mit Kontext und gemessenem Körperfett): 30 kcal/kg Magermasse
+  // für alle, der Trainingsverbrauch zählt wie beim normalen Boden oben drauf.
+  const strictFloor = !!ctx && bodyFatMeasured && !floorResult.bodyFatAssumed;
+  const ffmKg = strictFloor ? profile.weightKg * (1 - profile.bodyFat) : null;
+  const eaFloorKcal = strictFloor
+    ? Math.max(floorResult.eaFloorKcal, Math.round(STRICT_FLOOR_KCAL_PER_KG_FFM * /** @type {number} */ (ffmKg)))
+    : floorResult.eaFloorKcal;
+  const floor = strictFloor ? eaFloorKcal + floorResult.exerciseKcal : floorResult.floorKcal;
   let capped = false;
   if (target < floor) {
     target = floor;
@@ -335,13 +394,13 @@ export function estimateDailyGoal(params) {
   if (adjustment !== 0) {
     const label = adjustment > 0 ? "Defizit" : "Ueberschuss";
     parts.push(
-      `Ziel-Anpassung ${label} ${Math.abs(adjustment)} kcal (${Math.abs(goal.pacePerWeekKg)} kg/Woche)`
+      `Ziel-Anpassung ${label} ${Math.abs(adjustment)} kcal (${Math.abs(/** @type {number} */ (effectivePace))} kg/Woche)`
     );
     sourceSet.add(SOURCE_KEYS.KCAL_PER_KG_7700);
   }
   const floorText =
     trainingKcal > 0
-      ? `${floor} kcal = ${floorResult.eaFloorKcal} + Training ${floorResult.exerciseKcal}`
+      ? `${floor} kcal = ${eaFloorKcal} + Training ${floorResult.exerciseKcal}`
       : `${floor} kcal`;
   parts.push(
     capped
@@ -355,8 +414,8 @@ export function estimateDailyGoal(params) {
     ? `Ziel ${target} kcal/Tag${tag}. ${parts.join("; ")}.`
     : `Ziel ${target} kcal/Tag${tag}.`;
 
-  return {
-    ok: true,
+  const result = {
+    ok: /** @type {const} */ (true),
     target,
     bmr,
     // Formel, Unsicherheits-Hinweise und Datum des Körperfett-Werts reichen wir
@@ -368,12 +427,73 @@ export function estimateDailyGoal(params) {
     trainingKcal,
     adjustment,
     floor,
-    eaFloorKcal: floorResult.eaFloorKcal,
+    eaFloorKcal,
     capped,
     bodyFatAssumed: floorResult.bodyFatAssumed,
     sexAssumed: floorResult.sexAssumed,
     source: [...sourceSet],
     note,
+  };
+  if (!ctx) return result;
+
+  // Nur mit Zielkontext: Gründe und Hinweise, die die Anzeige braucht.
+  // Energieverfügbarkeit nach Abzug des Trainings, pro kg Magermasse.
+  const availability = strictFloor ? (target - trainingKcal) / /** @type {number} */ (ffmKg) : null;
+  return {
+    ...result,
+    strictFloor,
+    deficitBlockedReason,
+    nextDayUnknown,
+    paceCapped,
+    eaWarn:
+      availability != null &&
+      availability >= STRICT_FLOOR_KCAL_PER_KG_FFM &&
+      availability < STRICT_WARN_UPPER_KCAL_PER_KG_FFM,
+  };
+}
+
+/**
+ * Obergrenze für das Abnehm-Tempo in kg pro Woche: MAX_WEEKLY_LOSS_PCT des
+ * aktuellen Gewichts, abgerundet auf 0,05 kg (eigene Festlegung, s. core/goals.js).
+ * @param {number|null|undefined} weightKg
+ * @returns {number|null}  null ohne brauchbares Gewicht
+ */
+export function maxPacePerWeekKg(weightKg) {
+  if (!isValidNumber(weightKg)) return null;
+  // in Hundertstel kg rechnen und mit Toleranz abrunden (70 x 0,5 / 5 = 6,999… wäre sonst 6)
+  const hundredths = (weightKg * MAX_WEEKLY_LOSS_PCT) / PACE_STEP_HUNDREDTHS;
+  const steps = Math.floor(hundredths + 1e-9);
+  const pace = (steps * PACE_STEP_HUNDREDTHS) / 100;
+  return pace > 0 ? Math.round(pace * 100) / 100 : null;
+}
+
+/**
+ * Eiweiß-Bereich in Gramm pro Tag aus g/kg (core/goals.js::PROTEIN_G_PER_KG).
+ * @param {{min:number, max:number}|null|undefined} range  g pro kg Körpergewicht
+ * @param {number|null|undefined} weightKg
+ * @returns {{min:number, max:number}|null}
+ */
+export function proteinRangeG(range, weightKg) {
+  if (!range || !isValidNumber(range.min) || !isValidNumber(range.max) || !isValidNumber(weightKg)) {
+    return null;
+  }
+  return { min: Math.round(range.min * weightKg), max: Math.round(range.max * weightKg) };
+}
+
+/**
+ * Ruhiger Hinweis (Idee N): Defizit und hohe geplante Wochenlast fallen zusammen.
+ * Sachlich, kein Druck. Ohne Defizit, CTL oder Last kein Hinweis.
+ * @param {{deficitActive?:boolean, weekPlannedTss?:number|null, ctl?:number|null}} [params]
+ * @returns {{warn:boolean, text:string}}
+ */
+export function deficitLoadWarning(params) {
+  const { deficitActive, weekPlannedTss, ctl } = params || {};
+  const none = { warn: false, text: "" };
+  if (!deficitActive || !isValidNumber(weekPlannedTss) || !isValidNumber(ctl)) return none;
+  if (weekPlannedTss <= ctl * DEFICIT_LOAD_TSS_FACTOR) return none;
+  return {
+    warn: true,
+    text: "Diese Woche sind ein Defizit und viel Training zusammen geplant. Das kann Einheiten schwerer machen. Du kannst die Woche im Plan anschauen oder das Tempo in den Einstellungen ändern.",
   };
 }
 

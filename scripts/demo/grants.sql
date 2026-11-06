@@ -25,10 +25,10 @@ grant select, insert on public.training_plans to service_role;
 grant select, insert on public.ftp_history    to service_role;
 
 -- Nachziehen unberührter Seed-Zeilen (s. lib/seed-run.js): nur diese Felder.
-grant update (is_active)                        on public.training_plans to service_role;
+grant update (is_active, plan_group_id)         on public.training_plans to service_role;
 grant update (status, cancel_reason)            on public.plan_cards     to service_role;
 grant update (result_time_s, result_avg_watts)  on public.events         to service_role;
-grant update (target_date)                      on public.goals          to service_role;
+grant update (target_date, goal_key, role)      on public.goals          to service_role;
 
 -- Profile: Trainer-Verknüpfung + Sportarten (Standardwerte ergänzen).
 grant select (coach_id) on public.profiles to service_role;

@@ -13,7 +13,12 @@
              solange die Zeile noch im Seed-Zustand ist (niemand hat sie
              angefasst): Karten-Status (geplant → ausgefallen),
              Rennergebnis (leer → Ergebnis), Zieldatum des FTP-Ziels,
-             aktiver Plan (training_plans.is_active).
+             Katalogschlüssel + Rolle eines Ziels aus älterem Seed (nur bei
+             freier Rolle), aktiver Plan (training_plans.is_active).
+             Ziele (Fahrplan 43 E7): Haupt-/Nebenziel nur anlegen, solange die
+             Rolle frei ist (Unique-Index 0084); Ernährungsziel nur, solange
+             das Profil keines hat. Geschrieben wird mit dem service_role-Key,
+             nie als Trainer (Trainer dürfen goals seit 0084 nicht schreiben).
    runReset: löscht NUR die Accounts aus DEMO_ROSTER/DEMO_COACH — jede
              E-Mail läuft vorher durch assertDemoAccount. Die Zeilen fallen
              per "on delete cascade" (auth.users → profiles → Tabellen).
@@ -115,10 +120,12 @@ const patchRow = (client, table, id, profileId, body) =>
  * `refresh(dbRow, wanted)` liefert optional ein Patch für unberührte Zeilen.
  * @returns {Promise<{ all: object[], added: number, updated: number }>}
  */
-async function addMissing(client, table, { profileId, select, keyOf, rows, refresh }) {
+async function addMissing(client, table, { profileId, select, keyOf, rows, refresh, skipInsert }) {
   const existing = await getAll(client, table, `athlete_id=${eq(profileId)}&select=${select}`);
   const have = new Set(existing.map(keyOf));
-  const missing = rows.filter((r) => !have.has(keyOf(r)));
+  // skipInsert(row, existing): fachlicher Grund, eine fehlende Zeile NICHT anzulegen
+  // (z. B. belegte Rolle bei goals — sonst bricht der Unique-Index den Seed ab).
+  const missing = rows.filter((r) => !have.has(keyOf(r)) && !skipInsert?.(r, existing));
   const inserted = missing.length ? await insertRows(client, table, missing, { select }) : [];
 
   let updated = 0;
@@ -126,7 +133,7 @@ async function addMissing(client, table, { profileId, select, keyOf, rows, refre
     const wantedByKey = new Map(rows.map((r) => [keyOf(r), r]));
     for (const row of existing) {
       const wanted = wantedByKey.get(keyOf(row));
-      const patch = wanted ? refresh(row, wanted) : null;
+      const patch = wanted ? refresh(row, wanted, existing) : null;
       if (!patch) continue;
       await patchRow(client, table, row.id, profileId, patch);
       Object.assign(row, patch);
@@ -153,14 +160,39 @@ const refreshEvent = (db, want) =>
     ? { result_time_s: want.result_time_s, result_avg_watts: want.result_avg_watts }
     : null;
 
-/** Zieldatum nur nach vorn rücken, solange Wert und Notiz unverändert sind. */
-const refreshGoal = (db, want) =>
-  Number(db.target_value) === Number(want.target_value) &&
-  db.note == null &&
-  want.target_date != null &&
-  (db.target_date == null || db.target_date < want.target_date)
-    ? { target_date: want.target_date }
-    : null;
+/** Belegt schon ein anderes aktives Ziel diese Rolle? (Unique-Index je Athlet, Migration 0084) */
+const roleTaken = (existing, role, exceptId) =>
+  existing.some((g) => g.is_active && g.role === role && g.id !== exceptId);
+
+/**
+ * Nachziehen eines unberührten Seed-Ziels, jeweils nur mit gültigem Grund:
+ * - Zieldatum nur nach vorn rücken, solange Wert und Notiz unverändert sind.
+ * - Katalogschlüssel + Rolle nachtragen, wenn das Ziel aus einem älteren Seed
+ *   stammt (beides leer) UND die Rolle frei ist — sonst bräche der Unique-Index.
+ */
+const refreshGoal = (db, want, existing = []) => {
+  const patch = {};
+  if (
+    Number(db.target_value) === Number(want.target_value) &&
+    db.note == null &&
+    want.target_date != null &&
+    (db.target_date == null || db.target_date < want.target_date)
+  ) {
+    patch.target_date = want.target_date;
+  }
+  if (
+    db.is_active &&
+    db.goal_key == null &&
+    db.role == null &&
+    want.goal_key &&
+    want.role &&
+    !roleTaken(existing, want.role, db.id)
+  ) {
+    patch.goal_key = want.goal_key;
+    patch.role = want.role;
+  }
+  return Object.keys(patch).length > 0 ? patch : null;
+};
 
 /**
  * "Passwort gesetzt" markieren, sonst landet der Login im Onboarding-Schritt
@@ -285,6 +317,11 @@ async function rollActivePlans(client, profileId, planRows, plans, planKey) {
   return changed;
 }
 
+/** Seed-Plan ohne Gruppe bekommt sie nachgetragen (Fahrplan 44 E7). Nur wenn die Zeile
+ *  noch KEINE Gruppe trägt — eine lokal gesetzte oder geänderte Gruppe bleibt. */
+const refreshPlanGroup = (db, want) =>
+  want.plan_group_id && db.plan_group_id == null ? { plan_group_id: want.plan_group_id } : null;
+
 /** Zeilen mit Unique-Schlüssel: on_conflict + ignore-duplicates. */
 async function seedUniqueTables(client, profileId, rows) {
   const owner = (r) => ({ ...strip(r), athlete_id: profileId });
@@ -314,10 +351,12 @@ async function seedGoalsAndEvents(client, profileId, rows) {
   const owner = (r) => ({ ...strip(r), athlete_id: profileId });
   const goals = await addMissing(client, "goals", {
     profileId,
-    select: "id,kind,target_value,target_date,note",
+    select: "id,kind,target_value,target_date,note,is_active,goal_key,role",
     keyOf: (g) => g.kind,
     rows: rows.goals.map(owner),
     refresh: refreshGoal,
+    // Rolle lokal schon belegt (eigene Ziele): Seed-Ziel nicht anlegen.
+    skipInsert: (g, existing) => !!g.role && g.is_active !== false && roleTaken(existing, g.role),
   });
   const events = await addMissing(client, "events", {
     profileId,
@@ -336,14 +375,39 @@ async function seedGoalsAndEvents(client, profileId, rows) {
   };
 }
 
+/**
+ * Ernährungsziel (append-only, Tabelle ohne Unique-Schlüssel): genau eine Zeile,
+ * und nur, solange das Profil noch KEINE hat — ein lokal eingetragenes Ziel
+ * bleibt, der Seed legt nie eine zweite an. Wie alle Seed-Schreibzugriffe mit
+ * dem service_role-Key (RLS-Bypass), nie als Trainer: Trainer dürfen die
+ * Tabelle weder lesen noch schreiben.
+ * @returns {Promise<{ added: number, updated: number }>}
+ */
+async function seedNutritionGoal(client, profileId, nutritionGoal) {
+  if (!nutritionGoal) return { added: 0, updated: 0 };
+  const existing = await getAll(client, "nutrition_goals", `profile_id=${eq(profileId)}&select=id`);
+  if (existing.length > 0) return { added: 0, updated: 0 };
+  const added = await insertRows(client, "nutrition_goals", [
+    {
+      profile_id: profileId,
+      goal_type: nutritionGoal.goalType,
+      target_weight_kg: nutritionGoal.targetWeightKg,
+      pace_per_week_kg: nutritionGoal.pacePerWeekKg,
+      target_date: null,
+    },
+  ]);
+  return { added: added.length, updated: 0 };
+}
+
 /** Pläne (inkl. rollendem aktivem Plan) + Karten. */
 async function seedPlansAndCards(client, profileId, rows, eventIdByRef) {
   const owner = (r) => ({ ...strip(r), athlete_id: profileId });
   // Neue Pläne immer inaktiv anlegen, aktiv setzt sie danach rollActivePlans.
   const plans = await addMissing(client, "training_plans", {
     profileId,
-    select: "id,sport,start_date,is_active",
+    select: "id,sport,start_date,is_active,plan_group_id",
     keyOf: planKey,
+    refresh: refreshPlanGroup,
     rows: rows.training_plans.map((p) => ({
       ...owner(p),
       created_by: profileId,
@@ -368,7 +432,7 @@ async function seedPlansAndCards(client, profileId, rows, eventIdByRef) {
     refresh: refreshCard,
   });
   return {
-    training_plans: { added: plans.added, updated: rolled },
+    training_plans: { added: plans.added, updated: rolled + plans.updated },
     plan_cards: { added: cards.added, updated: cards.updated },
   };
 }
@@ -432,6 +496,7 @@ export async function runSeed({ url, serviceKey, fetchImpl, rowsFor, payloadFor 
     const counts = {
       ...(await seedUniqueTables(client, user.id, rows)),
       ...linked.counts,
+      nutrition_goals: await seedNutritionGoal(client, user.id, athlete.nutritionGoal),
       ...(await seedPlansAndCards(client, user.id, rows, linked.eventIdByRef)),
       ...(payloadFor
         ? {

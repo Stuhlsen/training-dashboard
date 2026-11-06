@@ -4,7 +4,8 @@
    rechnen"-Fälle. */
 
 import { describe, expect, it } from "vitest";
-import { buildRecomputeInput } from "./recompute-plan-view-model";
+import { buildRecomputeInput, buildRecomputePatch, replaceFromISO } from "./recompute-plan-view-model";
+import { goalPlanProfile } from "../../core/goals.js";
 import type { TrainingPlan, WeekModelEntry } from "../../api/types";
 
 function wm(start: string, phase: string, targetTss: number): WeekModelEntry {
@@ -51,6 +52,16 @@ function plan(over: Partial<TrainingPlan> = {}): TrainingPlan {
 
 const defaults = { ftpMeasured: 205, ftpMeasuredDate: "2026-09-30", eFTP: 200 };
 
+describe("replaceFromISO", () => {
+  it("in der laufenden Woche zählt heute: vergangene Tage bleiben unberührt", () => {
+    expect(replaceFromISO("2026-11-02", "2026-11-05")).toBe("2026-11-05");
+  });
+
+  it("liegt der Start in der Zukunft, zählt der Start", () => {
+    expect(replaceFromISO("2026-11-09", "2026-11-05")).toBe("2026-11-09");
+  });
+});
+
 describe("buildRecomputeInput", () => {
   it("Startwoche = Montag der laufenden KW, baseWeekModel + regenerateFrom gesetzt", () => {
     const res = buildRecomputeInput({
@@ -73,12 +84,86 @@ describe("buildRecomputeInput", () => {
     expect(res.input.ftpTarget).toBe(210);
   });
 
+  it("goalProfile wird durchgereicht; ohne Profil fehlt das Feld (Ausgabe wie bisher)", () => {
+    const base = { plan: plan(), todayISO: "2026-10-07", athleteDefaults: defaults };
+    const without = buildRecomputeInput(base);
+    const withNull = buildRecomputeInput({ ...base, goalProfile: null });
+    const profile = goalPlanProfile({ goalKey: "wiedereinstieg" }, null);
+    const withProfile = buildRecomputeInput({ ...base, goalProfile: profile });
+    if (!without.ok || !withNull.ok || !withProfile.ok) throw new Error("erwartet ok");
+    expect("goalProfile" in without.input).toBe(false);
+    expect("goalProfile" in withNull.input).toBe(false);
+    expect(withProfile.input.goalProfile).toEqual(profile);
+    // Plan-Felder bleiben unverändert: Fokus und Level ändert der Dialog nicht.
+    expect(withProfile.input.focus).toBe("allgemein");
+    expect(withProfile.input.level).toBe("fortgeschritten");
+  });
+
   it("gewählte Trainingstage ersetzen die bisherigen; ohne Wahl gelten die Tage des Plans", () => {
     const base = { plan: plan(), todayISO: "2026-10-07", athleteDefaults: defaults };
     const keep = buildRecomputeInput(base);
     const changed = buildRecomputeInput({ ...base, trainingWeekdays: [6, 2] });
     expect(keep.ok && keep.input.trainingWeekdays).toEqual([2, 4, 6]);
     expect(changed.ok && changed.input.trainingWeekdays).toEqual([2, 6]);
+  });
+
+  it("geänderte feste Tage ersetzen die gespeicherten und behalten die Zwift-Kennung", () => {
+    const withFixed = plan({
+      params: { form: { fixedDays: [{ weekday: 2, typ: "Gruppenfahrt", keepInRecoveryWeek: false }] } },
+    });
+    const res = buildRecomputeInput({
+      plan: withFixed,
+      todayISO: "2026-10-07",
+      athleteDefaults: defaults,
+      trainingWeekdays: [1, 3, 6, 7],
+      fixedDays: [
+        { weekday: 1, typ: "Gruppenfahrt", keepInRecoveryWeek: false, environment: "indoor", durationMin: 90 },
+        { weekday: 3, typ: "Gruppenfahrt", keepInRecoveryWeek: false, environment: "indoor", durationMin: 90 },
+      ],
+    });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.input.fixedDays?.map((d) => d.weekday)).toEqual([1, 3]);
+    expect(res.input.fixedDays?.[0].environment).toBe("indoor");
+    expect(res.droppedFixedWeekdays).toEqual([]);
+  });
+
+  it("gespeicherte Zwift-Kennung überlebt das erneute Anpassen", () => {
+    const withFixed = plan({
+      trainingWeekdays: [1, 3, 6],
+      params: {
+        form: {
+          fixedDays: [{ weekday: 1, typ: "Gruppenfahrt", keepInRecoveryWeek: false, environment: "indoor" }],
+        },
+      },
+    });
+    const res = buildRecomputeInput({
+      plan: withFixed,
+      todayISO: "2026-10-07",
+      athleteDefaults: defaults,
+      trainingWeekdays: [1, 3, 6],
+    });
+    expect(res.ok && res.input.fixedDays?.[0].environment).toBe("indoor");
+  });
+
+  it("ein geänderter fester Tag auf abgewähltem Wochentag entfällt und wird gemeldet", () => {
+    const res = buildRecomputeInput({
+      plan: plan(),
+      todayISO: "2026-10-07",
+      athleteDefaults: defaults,
+      trainingWeekdays: [1, 6],
+      fixedDays: [{ weekday: 3, typ: "Gruppenfahrt", keepInRecoveryWeek: false }],
+    });
+    expect(res.ok && res.input.fixedDays).toEqual([]);
+    expect(res.ok && res.droppedFixedWeekdays).toEqual([3]);
+  });
+
+  it("ein neues Ziel-FTP gewinnt; ohne Angabe bleibt das des Plans", () => {
+    const base = { plan: plan(), todayISO: "2026-10-07", athleteDefaults: defaults };
+    const changed = buildRecomputeInput({ ...base, ftpTarget: 215 });
+    const same = buildRecomputeInput(base);
+    expect(changed.ok && changed.input.ftpTarget).toBe(215);
+    expect(same.ok && same.input.ftpTarget).toBe(210);
   });
 
   it("weniger als zwei Trainingstage → ok:false", () => {
@@ -283,5 +368,50 @@ describe("buildRecomputeInput — dayEnvironment (Fahrplan 32 E5)", () => {
     });
     expect(off.ok && "dayEnvironment" in off.input).toBe(false);
     expect(run.ok && "dayEnvironment" in run.input).toBe(false);
+  });
+});
+
+describe("buildRecomputePatch (Fahrplan 44 E6, geteilt mit useRecomputeRemainingPlan)", () => {
+  const generated = {
+    weeks: [],
+    weekModel: [
+      { week: "2026-KW40", phase: "Grundlage", start: "2026-09-28", end: "2026-10-04", trainingWeekdays: [1, 3], targetTss: 100 },
+      { week: "2026-KW41", phase: "Schwelle", start: "2026-10-05", end: "2026-10-11", trainingWeekdays: [2, 4, 6], targetTss: 380 },
+    ],
+    warnings: ["w"],
+  };
+  const input = {
+    sport: "ride" as const,
+    trainingWeekdays: [2, 4, 6],
+    fixedDays: [{ weekday: 6, typ: "Gruppenfahrt" }],
+    keepAllTrainingDays: true,
+    regenerateFrom: "2026-10-05",
+    ftpTarget: 215,
+    history: { weeklyActualTss: [1] },
+  };
+
+  it("nimmt Wochenmodell, Tage der ersten neu gerechneten Woche und Ziel-FTP (Rad)", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const patch = buildRecomputePatch(plan({ params: { form: { weeks: 8 } } }), generated as any, input as any);
+    expect(patch.weekModel).toHaveLength(2);
+    expect(patch.trainingWeekdays).toEqual([2, 4, 6]);
+    expect(patch.ftpTarget).toBe(215);
+    expect(patch.weeklyHours).toBeUndefined();
+    const form = (patch.params as { form: Record<string, unknown> }).form;
+    expect(form).toMatchObject({ weeks: 8, trainingWeekdays: [2, 4, 6], keepAllTrainingDays: true });
+    expect(patch.params).toMatchObject({ warnings: ["w"], recomputedFrom: "2026-10-05" });
+  });
+
+  it("setzt bei Laufen kein Ziel-FTP", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const patch = buildRecomputePatch(plan({ sport: "run" }), generated as any, { ...input, sport: "run" } as any);
+    expect(patch.ftpTarget).toBeUndefined();
+  });
+
+  it("trägt geänderte Stunden in Patch und params.form ein", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const patch = buildRecomputePatch(plan(), generated as any, input as any, { weeklyHours: 7 });
+    expect(patch.weeklyHours).toBe(7);
+    expect((patch.params as { form: Record<string, unknown> }).form.weeklyHours).toBe(7);
   });
 });

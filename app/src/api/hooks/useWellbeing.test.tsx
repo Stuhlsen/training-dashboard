@@ -8,9 +8,13 @@
 
 import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { addDaysISO, localISODate } from "../../core/format.js";
 import type { CheckinInput } from "../types";
 
-const TODAY = new Date().toISOString().slice(0, 10);
+// Lokales Datum wie der Hook (`localISODate`). Mit `toISOString()` (UTC) laufen
+// Test und Code zwischen Mitternacht und dem UTC-Versatz um einen Tag auseinander.
+const TODAY = localISODate();
+const YESTERDAY = addDaysISO(TODAY, -1);
 
 let rangeCalls: Array<{ athleteId: string; from: string; to: string }> = [];
 let upsertCalls: Array<{ athleteId: string; date: string; input: CheckinInput }> = [];
@@ -61,9 +65,8 @@ beforeEach(() => {
 
 describe("useTodayCheckin", () => {
   it("lädt zwei Tage, liefert aber nur den exakten Heute-Treffer als checkin", async () => {
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
     storedCheckins["user-1"] = [
-      { id: "y", date: yesterday, energy: 2, muscleFeel: 2, mood: 2, note: null, updatedAt: "t" },
+      { id: "y", date: YESTERDAY, energy: 2, muscleFeel: 2, mood: 2, note: null, updatedAt: "t" },
       { id: "t", date: TODAY, energy: 4, muscleFeel: 4, mood: 4, note: null, updatedAt: "t" },
     ];
     const { wrapper } = createHarness({ userId: "user-1" });
@@ -71,14 +74,13 @@ describe("useTodayCheckin", () => {
 
     await waitFor(() => expect(view.result.current.isSuccess).toBe(true));
     expect(rangeCalls[0]).toMatchObject({ athleteId: "user-1", to: TODAY });
-    expect(rangeCalls[0].from).toBe(yesterday);
+    expect(rangeCalls[0].from).toBe(YESTERDAY);
     expect(view.result.current.data?.checkin?.id).toBe("t");
   });
 
   it("zeigt einen Vortagswert NIE als heutigen Check-in, nur als subjektiven Kanal", async () => {
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
     storedCheckins["user-1"] = [
-      { id: "y", date: yesterday, energy: 2, muscleFeel: 2, mood: 2, note: null, updatedAt: "t" },
+      { id: "y", date: YESTERDAY, energy: 2, muscleFeel: 2, mood: 2, note: null, updatedAt: "t" },
     ];
     const { wrapper } = createHarness({ userId: "user-1" });
     const view = renderHook(() => useTodayCheckin(), { wrapper });

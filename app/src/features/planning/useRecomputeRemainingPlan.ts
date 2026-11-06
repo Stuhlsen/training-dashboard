@@ -36,10 +36,10 @@ import { fetchAthleteProfileId } from "../../api/hooks/useAthleteProfileId";
 import { useAuthUserId } from "../../api/hooks/useSession";
 import { qk } from "../../api/keys";
 import { catchResult, ResultError_, toResultError, unwrap } from "../../api/result";
-import { localISODate } from "../../core/format.js";
 import { flattenPlanCards } from "./plan-persist";
+import { buildRecomputePatch, replaceFromISO } from "./recompute-plan-view-model";
 import type { GeneratedPlan, PlanGeneratorInput } from "./new-plan-dialog-view-model";
-import type { Result, TrainingPlan, WeekModelEntry } from "../../api/types";
+import type { Result, TrainingPlan } from "../../api/types";
 
 const NOT_LOGGED_IN = { code: "UNKNOWN" as const, message: "Nicht eingeloggt" };
 const NO_ACCOUNT = {
@@ -58,6 +58,8 @@ export interface RecomputeRemainingPlanArgs {
   generated: GeneratedPlan;
   /** Der an `generatePlan()` übergebene V2-Input (trägt `regenerateFrom`/`history`). */
   input: PlanGeneratorInput;
+  /** Heute (lokal, ISO): Karten davor bleiben unberührt. */
+  todayISO: string;
 }
 
 export function useRecomputeRemainingPlan(athleteId: string) {
@@ -73,44 +75,19 @@ export function useRecomputeRemainingPlan(athleteId: string) {
       const planId = args.plan.id;
       const sport = args.plan.sport ?? "ride";
 
+      const replaceFrom = replaceFromISO(regenerateFrom, args.todayISO);
+
       let deletedFuture = false;
       try {
-        unwrap(await deleteFuturePlanCardsForPlan(planId, regenerateFrom));
+        unwrap(await deleteFuturePlanCardsForPlan(planId, replaceFrom));
         deletedFuture = true;
 
-        unwrap(await createPlanCards(profileId, planId, flattenPlanCards(args.generated)));
+        const cards = flattenPlanCards(args.generated).filter((c) => c.date >= replaceFrom);
+        unwrap(await createPlanCards(profileId, planId, cards));
 
-        // Die tatsächlich bespielten Tage der ersten neu gerechneten Woche
-        // (bei schwacher Planerfüllung kann der Generator einen streichen) —
-        // wie in plan-persist.ts muss die Spalte zum week_model passen.
-        const weekModel = (args.generated.weekModel ?? []) as WeekModelEntry[];
-        const tail = weekModel.find((w) => w.start >= regenerateFrom);
-        const tailWeekdays = tail?.trainingWeekdays?.length ? [...tail.trainingWeekdays] : undefined;
-
-        // `params.form` mitziehen, damit ein späterer Recompute die geänderten
-        // Tage / festen Tage / das Häkchen wieder vorfindet.
-        const oldForm = ((args.plan.params as { form?: Record<string, unknown> } | null)?.form ??
-          {}) as Record<string, unknown>;
-        const params = {
-          ...(args.plan.params ?? {}),
-          form: {
-            ...oldForm,
-            trainingWeekdays: args.input.trainingWeekdays,
-            fixedDays: args.input.fixedDays ?? [],
-            keepAllTrainingDays: args.input.keepAllTrainingDays === true,
-          },
-          history: (args.input.history as unknown) ?? null,
-          warnings: args.generated.warnings,
-          recomputedAt: localISODate(),
-          recomputedFrom: regenerateFrom,
-        };
-        unwrap(
-          await updateTrainingPlan(planId, {
-            weekModel,
-            params,
-            ...(tailWeekdays ? { trainingWeekdays: tailWeekdays } : {}),
-          }),
-        );
+        // Plan-Zeile nachziehen (Wochenmodell, Tage, params, Ziel-FTP) — der
+        // Baustein ist mit der gemeinsamen Anpassung (Fahrplan 44 E6) geteilt.
+        unwrap(await updateTrainingPlan(planId, buildRecomputePatch(args.plan, args.generated, args.input)));
 
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: qk.planCards(athleteId) }),
@@ -125,7 +102,7 @@ export function useRecomputeRemainingPlan(athleteId: string) {
         if (deletedFuture) {
           throw new ResultError_({
             code: "UNKNOWN",
-            message: `${toResultError(err).message} — die alten künftigen Karten sind evtl. schon entfernt. Bitte den Plan prüfen und „Rest neu berechnen" erneut ausführen.`,
+            message: `${toResultError(err).message} — die alten künftigen Karten sind evtl. schon entfernt. Bitte den Plan prüfen und „Plan anpassen" erneut ausführen.`,
           });
         }
         throw err;

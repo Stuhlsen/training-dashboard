@@ -21,19 +21,30 @@ import { Fragment, useMemo, useState } from "react";
 import { GlassCard } from "../../components/GlassCard";
 import { useEscapeToClose } from "../../hooks/useEscapeToClose";
 import { useEvents } from "../../api/hooks/useEvents";
+import { newPlanFormPatch, newPlanPresets } from "./goal-plan-view-model";
+import { useGoalPlanContext } from "./useGoalPlanContext";
 import { useRides } from "../../api/hooks/useRides";
-import { useEffectiveSport } from "../../api/hooks/useActiveSport";
+import { sportBadge } from "../../core/activity-sport.js";
+import { useEffectiveSport, type ActiveSport } from "../../api/hooks/useActiveSport";
 import { usePlanHistoryAggregate } from "../../api/hooks/usePlanHistoryAggregate";
 import { useAthleteFormats } from "../../api/hooks/useAthleteFormats";
 import { useActiveTrainingPlan } from "../../api/hooks/useActiveTrainingPlan";
 import { usePlanCards } from "../../api/hooks/usePlanCards";
 import { useSessionProfile } from "../../api/hooks/useSession";
 import { useIsSelfAthlete } from "../../api/hooks/useWriteAuthorization";
-import { useFtpHistory } from "../../api/hooks/useFtpHistory";
+import { useAthleteSports } from "../../api/hooks/useAthleteSports";
 import { useProfileBasics, useUpdateHasIndoorTrainer } from "../../api/hooks/useProfile";
 import { useCreateTrainingPlan } from "./useCreateTrainingPlan";
+import { useFtpHistoryEntries } from "./useFtpHistoryEntries";
+import { FixedDaysEditor } from "./FixedDaysEditor";
+import { PlanTimingFields } from "./PlanTimingFields";
+import { PlanSportPicker } from "./PlanSportPicker";
+import { MultiSportExtras } from "./MultiSportExtras";
+import { useMultiSportPlan } from "./useMultiSportPlan";
+import { selectableSports, toggleSport } from "./multi-sport-plan-view-model";
+import { groupRideEstimates } from "../../core/group-ride-duration.js";
 import { athleteConfig } from "../../config";
-import { localISODate, addDaysISO, diffDays, fmtDate } from "../../core/format.js";
+import { localISODate, addDaysISO, diffDays } from "../../core/format.js";
 import { generatePlan } from "../../core/plan-generator.js";
 import { eftpHistory, forecastFtp } from "../../core/ftp-forecast.js";
 import { PlanPreview } from "./PlanPreview";
@@ -49,12 +60,6 @@ import {
   defaultFormState,
   FOCUS_DESCRIPTIONS,
   FOCUS_LABELS,
-  FIXED_DAY_OPTIONS,
-  FIXED_DAY_TYPES,
-  FIXED_DURATION_MAX_MIN,
-  FIXED_DURATION_MIN_MIN,
-  FIXED_INTERVAL_TYP,
-  fixedDayPickerValue,
   formFromLastPlan,
   ftpTestNote,
   LEVEL_DESCRIPTIONS,
@@ -69,7 +74,6 @@ import {
   suggestModel,
   WEEKDAY_LABELS,
   type DayEnvironment,
-  type FixedDay,
   type GeneratedPlan,
   type NewPlanFormState,
   type PlanFocus,
@@ -102,16 +106,23 @@ interface NewPlanDialogProps {
   onClose: () => void;
   /** Nach erfolgreichem Speichern, direkt vor `onClose` — für den Hinweis „Plan verschieben…". */
   onCreated?: () => void;
+  /** Fahrplan 44 E1: ausdrücklich gewählte Sportart (Modus "Alle" bzw. Filter
+   *  der Planungsseite). Ohne Angabe gilt der globale Umschalter wie bisher. */
+  sport?: ActiveSport;
 }
 
-const NEW_EVENT_VALUE = "__new__";
-
-export function NewPlanDialog({ athleteId, onClose, onCreated }: NewPlanDialogProps) {
+export function NewPlanDialog({ athleteId, onClose, onCreated, sport }: NewPlanDialogProps) {
   useEscapeToClose(onClose);
 
   const today = localISODate();
   const cfg = athleteConfig(athleteId);
-  const { effectiveSport } = useEffectiveSport(athleteId);
+  // Fahrplan 44 E4: Sportarten-Auswahl nur bei mehr als einer Sportart. Die
+  // erste gewählte Sportart führt das Formular; eine allein gewählte läuft wie bisher.
+  const offeredSports = selectableSports(useAthleteSports(athleteId));
+  const [picked, setPicked] = useState<ActiveSport[] | null>(null);
+  const { effectiveSport } = useEffectiveSport(athleteId, picked ? picked[0] : sport);
+  const chosenSports = picked ?? [effectiveSport];
+  const multiSelected = chosenSports.length > 1;
   const { data: events } = useEvents(athleteId);
   const { data: rideData } = useRides(athleteId);
   const { aggregate } = usePlanHistoryAggregate(athleteId, effectiveSport);
@@ -122,25 +133,15 @@ export function NewPlanDialog({ athleteId, onClose, onCreated }: NewPlanDialogPr
     athleteId,
     effectiveSport
   );
-  const { data: existingCards } = usePlanCards(athleteId);
+  const { data: existingCards } = usePlanCards(athleteId, { sport });
   const profile = useSessionProfile();
-  const { createPlan, isPending: saving } = useCreateTrainingPlan(athleteId);
+  const { createPlan, createPlans, isPending: saving } = useCreateTrainingPlan(athleteId);
   const { isSelf, isLoading: isSelfLoading } = useIsSelfAthlete(athleteId);
-  // useFtpHistory() liest owner-only per RLS immer die Historie des
-  // EINGELOGGTEN Users — nur bei isSelf gehört sie also zu diesem Athleten.
-  // Für den Trainer-für-Athlet-Fall liefert der ohnehin geladene rideData
-  // dieselbe Historie öffentlich/read-only aus der JSON-Pipeline (analog
-  // HeroPage.tsx::ftpHistoryEntries). Solange isSelf selbst noch lädt: leer
-  // lassen statt zwischenzeitlich die falsche Quelle zu ziehen — sonst
-  // flippt ftpHistoryEntries einmal beim Laden und noch einmal, sobald
-  // isSelf feststeht, und würde dazwischen unbemerkt eine schon erzeugte
-  // Vorschau verwerfen (patch() unten).
-  const { entries: ownFtpHistoryEntries } = useFtpHistory();
-  const ftpHistoryEntries = isSelfLoading
-    ? []
-    : isSelf
-      ? ownFtpHistoryEntries
-      : (rideData?.ftpHistory ?? []);
+  const ftpHistoryEntries = useFtpHistoryEntries(athleteId);
+  const groupEstimates = useMemo(
+    () => groupRideEstimates((rideData?.ridesAll as Ride[] | undefined) ?? []),
+    [rideData?.ridesAll]
+  );
 
   const [form, setForm] = useState<NewPlanFormState>(() =>
     defaultFormState(cfg, today, ftpHistoryEntries)
@@ -164,6 +165,31 @@ export function NewPlanDialog({ athleteId, onClose, onCreated }: NewPlanDialogPr
     setPrefilledPlanId(activePlan.id);
     setForm((f) => ({ ...f, ...formFromLastPlan(activePlan) }));
   }
+
+  // Fahrplan 43 E5: Fokus und Level (bei Event-Ziel mit Datum auch der
+  // Event-Modus) aus den Zielen vorbelegen — einmal, NACH der Vorbelegung aus dem
+  // letzten Plan, und nur wo ein Ziel etwas vorgibt. Alles bleibt änderbar.
+  // State-Anpassung WÄHREND des Renders (wie oben), sonst set-state-in-effect.
+  const { goals: planGoals, isLoading: goalsLoading } = useGoalPlanContext(athleteId, effectiveSport);
+  const [appliedPresetKey, setAppliedPresetKey] = useState<string | null>(null);
+  const goalPresets = newPlanPresets(planGoals, effectiveSport, today);
+  const goalPresetKey = JSON.stringify(goalPresets);
+  const goalPresetsReady = !planLoading && !goalsLoading && (!goalPresets.eventDate || events !== undefined);
+  if (goalPresetsReady && appliedPresetKey !== goalPresetKey) {
+    setAppliedPresetKey(goalPresetKey);
+    if (Object.keys(goalPresets).length > 0) {
+      setForm((f) => ({ ...f, ...newPlanFormPatch(goalPresets, events ?? []) }));
+    }
+  }
+  const hasGoalPresets = appliedPresetKey !== null && appliedPresetKey !== "{}";
+  // Nur nennen, was wirklich vorbelegt wurde — kein Versprechen darüber hinaus.
+  const presetNames = [
+    goalPresets.focus && "Fokus",
+    goalPresets.level && "Level",
+    goalPresets.eventDate && "Event",
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   // FTP-Historie lädt asynchron — beim allerersten Render greift der
   // Startzustand oben (defaultFormState()) meist nur auf den config.ts-
@@ -199,8 +225,8 @@ export function NewPlanDialog({ athleteId, onClose, onCreated }: NewPlanDialogPr
   const roleLoading = isSelfLoading || (isSelf && basicsLoading);
   // Wizard erst zeigen, wenn Plan und Rolle bekannt sind — sonst flackert die
   // Schrittfolge (Rolle-Schritt) bzw. der Start-Modus springt.
-  const guidedMode = guidedChoice ?? !activePlan;
-  const waiting = guidedChoice !== false && (planLoading || roleLoading);
+  const guidedMode = multiSelected ? false : (guidedChoice ?? !activePlan);
+  const waiting = guidedChoice !== false && (planLoading || roleLoading || !goalPresetsReady);
   const hasIndoorTrainer = resolveHasIndoorTrainer(profileRole, form.hasIndoorTrainer);
   const showEnvironmentPills = effectiveSport === "ride" && hasIndoorTrainer === true;
   const showRoleSwitch = effectiveSport === "ride" && !roleLoading && profileRole === null;
@@ -303,6 +329,25 @@ export function NewPlanDialog({ athleteId, onClose, onCreated }: NewPlanDialogPr
   // Solange der Athlet das Modell nicht selbst gewählt hat, gilt der Vorschlag.
   const effectiveModel = modelTouched ? form.model : suggestion;
 
+  // Weitere Sportarten (Fahrplan 44 E4): Entwürfe, Verteilung, gemeinsame Vorschau, Speichern.
+  const multi = useMultiSportPlan({
+    athleteId,
+    sports: chosenSports,
+    form: { ...form, model: effectiveModel, hasIndoorTrainer },
+    rideModel: effectiveModel,
+    resolveEventDate,
+    createPlans,
+    saving,
+  });
+  const hasPreview = multi.active ? !!multi.bundle : !!preview;
+  async function handleAdoptAction() {
+    if (!multi.active) return handleAdopt();
+    if (await multi.adopt()) {
+      onCreated?.();
+      onClose();
+    }
+  }
+
   // Live-Vorschau (V3, E3) — komplett getrennt vom Klick-`preview`-State
   // oben, reagiert bewusst NUR auf Level/Fokus/Modell (Entscheidung 5), nicht
   // auf Datum/Trainingstage/FTP/Zeitbudget (die sind während der Eingabe oft
@@ -395,27 +440,6 @@ export function NewPlanDialog({ athleteId, onClose, onCreated }: NewPlanDialogPr
     });
   }
 
-  function addFixedDay() {
-    const freeWeekday = form.trainingWeekdays.find(
-      (iso) => !form.fixedDays.some((f) => f.weekday === iso)
-    );
-    if (freeWeekday == null) return;
-    patch({
-      fixedDays: [
-        ...form.fixedDays,
-        { weekday: freeWeekday, typ: FIXED_DAY_TYPES[0], keepInRecoveryWeek: false },
-      ],
-    });
-  }
-
-  function updateFixedDay(index: number, next: Partial<FixedDay>) {
-    patch({ fixedDays: form.fixedDays.map((f, i) => (i === index ? { ...f, ...next } : f)) });
-  }
-
-  function removeFixedDay(index: number) {
-    patch({ fixedDays: form.fixedDays.filter((_, i) => i !== index) });
-  }
-
   return (
     <div
       style={{
@@ -447,7 +471,7 @@ export function NewPlanDialog({ athleteId, onClose, onCreated }: NewPlanDialogPr
             color: "var(--ink)",
           }}
         >
-          Neuer Trainingsplan
+          Neuer Trainingsplan{sport ? ` — ${sportBadge(sport).label}` : ""}
         </div>
         <p style={{ margin: "8px 0 18px", fontSize: ".82rem", color: "var(--ink-3)" }}>
           Rahmenbedingungen festlegen, Vorschau prüfen, übernehmen. Der Plan lässt sich danach
@@ -475,12 +499,20 @@ export function NewPlanDialog({ athleteId, onClose, onCreated }: NewPlanDialogPr
         )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {offeredSports.length > 1 && (
+            <PlanSportPicker
+              offered={offeredSports}
+              chosen={chosenSports}
+              onToggle={(s) => setPicked(toggleSport(chosenSports, s))}
+            />
+          )}
+
           {/* Geführt/Erweitert */}
           <div style={{ display: "flex", gap: 8 }}>
             <button
               type="button"
               style={guidedMode ? PRIMARY_BTN_STYLE : PILL_STYLE}
-              disabled={planLoading || roleLoading}
+              disabled={planLoading || roleLoading || multiSelected}
               onClick={() => setGuidedChoice(true)}
             >
               Geführt
@@ -497,6 +529,12 @@ export function NewPlanDialog({ athleteId, onClose, onCreated }: NewPlanDialogPr
             </button>
           </div>
 
+          {hasGoalPresets && !waiting && (
+            <p style={{ margin: 0, fontSize: ".76rem", color: "var(--ink-3)" }}>
+              Vorbelegt aus deinen Zielen ({presetNames}). Du kannst alles ändern.
+            </p>
+          )}
+
           {waiting ? (
             <p style={{ fontSize: ".82rem", color: "var(--ink-3)" }}>Lade …</p>
           ) : guidedMode ? (
@@ -512,98 +550,7 @@ export function NewPlanDialog({ athleteId, onClose, onCreated }: NewPlanDialogPr
             />
           ) : (
             <>
-              {/* Modus */}
-              <div style={{ display: "flex", gap: 8 }}>
-                <button
-                  type="button"
-                  style={form.mode === "open" ? PRIMARY_BTN_STYLE : PILL_STYLE}
-                  onClick={() => patch({ mode: "open" })}
-                >
-                  Ohne festes Ende
-                </button>
-                <button
-                  type="button"
-                  style={form.mode === "event" ? PRIMARY_BTN_STYLE : PILL_STYLE}
-                  onClick={() => patch({ mode: "event" })}
-                >
-                  Auf ein Event hin
-                </button>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <label style={LABEL_STYLE}>
-                  Startdatum (Montag)
-                  <input
-                    type="date"
-                    style={FIELD_STYLE}
-                    value={form.startDate}
-                    onChange={(e) => patch({ startDate: e.target.value })}
-                  />
-                </label>
-
-                {form.mode === "open" ? (
-                  <label style={LABEL_STYLE}>
-                    Planlänge (Wochen)
-                    <input
-                      type="number"
-                      min={3}
-                      max={40}
-                      style={FIELD_STYLE}
-                      value={form.weeks}
-                      onChange={(e) => patch({ weeks: Number(e.target.value) || 0 })}
-                    />
-                  </label>
-                ) : (
-                  <label style={LABEL_STYLE}>
-                    Ziel-Event
-                    <select
-                      style={FIELD_STYLE}
-                      value={form.eventId || NEW_EVENT_VALUE}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        if (v === NEW_EVENT_VALUE) {
-                          patch({ eventId: "" });
-                        } else {
-                          const ev = eventOptions.find((x) => x.id === v);
-                          patch({ eventId: v, ftpTarget: form.ftpTarget ?? ev?.ftpGoal ?? null });
-                        }
-                      }}
-                    >
-                      {eventOptions.map((e) => (
-                        <option key={e.id} value={e.id}>
-                          {fmtDate(e.eventDate)} — {e.title}
-                          {e.priority ? ` (${e.priority})` : ""}
-                        </option>
-                      ))}
-                      <option value={NEW_EVENT_VALUE}>Anderes Event anlegen …</option>
-                    </select>
-                  </label>
-                )}
-              </div>
-
-              {form.mode === "event" && !form.eventId && (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                  <label style={LABEL_STYLE}>
-                    Renntag
-                    <input
-                      type="date"
-                      style={FIELD_STYLE}
-                      value={form.newEventDate}
-                      onChange={(e) => patch({ newEventDate: e.target.value })}
-                    />
-                  </label>
-                  <label style={LABEL_STYLE}>
-                    Event-Name
-                    <input
-                      type="text"
-                      style={FIELD_STYLE}
-                      value={form.newEventName}
-                      onChange={(e) => patch({ newEventName: e.target.value })}
-                      placeholder="z. B. GFNY Hamburg"
-                    />
-                  </label>
-                </div>
-              )}
+              <PlanTimingFields form={form} patch={patch} eventOptions={eventOptions} />
 
               {/* Trainingstage */}
               <div style={LABEL_STYLE}>
@@ -716,103 +663,12 @@ export function NewPlanDialog({ athleteId, onClose, onCreated }: NewPlanDialogPr
 
               {/* Feste Tage — nur Rad, FIXED_DAY_TYPES kennt nur das Rad-Vokabular. */}
               {effectiveSport === "ride" && (
-                <div style={LABEL_STYLE}>
-                  Feste Tage (optional)
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    {form.fixedDays.map((fd, i) => (
-                      <div
-                        key={i}
-                        style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}
-                      >
-                        <select
-                          style={{ ...FIELD_STYLE, width: "auto" }}
-                          value={fd.weekday}
-                          onChange={(e) => updateFixedDay(i, { weekday: Number(e.target.value) })}
-                        >
-                          {form.trainingWeekdays
-                            .filter(
-                              (iso) =>
-                                iso === fd.weekday || !form.fixedDays.some((f) => f.weekday === iso)
-                            )
-                            .map((iso) => (
-                              <option key={iso} value={iso}>
-                                {WEEKDAY_LABELS.find((w) => w.iso === iso)?.short}
-                              </option>
-                            ))}
-                        </select>
-                        <select
-                          style={{ ...FIELD_STYLE, width: "auto", flex: 1, minWidth: 120 }}
-                          value={fixedDayPickerValue(fd.typ)}
-                          onChange={(e) => updateFixedDay(i, { typ: e.target.value })}
-                        >
-                          {FIXED_DAY_OPTIONS.map((o) => (
-                            <option key={o.value} value={o.value}>
-                              {o.label}
-                            </option>
-                          ))}
-                        </select>
-                        {/* Dauer nur für feste Karten — ein Intervalltag bekommt seine
-                            Dauer aus Phase und Zeitbudget. Leer = Generator wählt. */}
-                        {fd.typ !== FIXED_INTERVAL_TYP && (
-                          <input
-                            type="number"
-                            inputMode="numeric"
-                            min={FIXED_DURATION_MIN_MIN}
-                            max={FIXED_DURATION_MAX_MIN}
-                            step={1}
-                            placeholder="Dauer (min)"
-                            aria-label="Dauer in Minuten (optional)"
-                            style={{ ...FIELD_STYLE, width: 110 }}
-                            value={fd.durationMin ?? ""}
-                            onChange={(e) =>
-                              updateFixedDay(i, {
-                                durationMin: e.target.value === "" ? undefined : Number(e.target.value),
-                              })
-                            }
-                          />
-                        )}
-                        {/* Intervalltage entfallen in Erholungswochen immer (keine
-                            Qualitätstage dort) — die Checkbox hätte keine Wirkung. */}
-                        {fd.typ !== FIXED_INTERVAL_TYP && (
-                          <label
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 4,
-                              fontSize: ".76rem",
-                              color: "var(--ink-3)",
-                            }}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={fd.keepInRecoveryWeek}
-                              onChange={(e) =>
-                                updateFixedDay(i, { keepInRecoveryWeek: e.target.checked })
-                              }
-                            />
-                            auch in Erholungswochen
-                          </label>
-                        )}
-                        <button
-                          type="button"
-                          style={PILL_STYLE}
-                          onClick={() => removeFixedDay(i)}
-                          aria-label="Festen Tag entfernen"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      style={PILL_STYLE}
-                      onClick={addFixedDay}
-                      disabled={form.fixedDays.length >= form.trainingWeekdays.length}
-                    >
-                      + Fester Tag
-                    </button>
-                  </div>
-                </div>
+                <FixedDaysEditor
+                  fixedDays={form.fixedDays}
+                  trainingWeekdays={form.trainingWeekdays}
+                  estimates={groupEstimates}
+                  onChange={(fixedDays) => patch({ fixedDays })}
+                />
               )}
 
               <label style={LABEL_STYLE}>
@@ -1017,7 +873,9 @@ export function NewPlanDialog({ athleteId, onClose, onCreated }: NewPlanDialogPr
                 </div>
               </label>
 
-              {miniPreviewPlan && (
+              {multi.active && <MultiSportExtras ctl={multi} />}
+
+              {miniPreviewPlan && !multi.active && (
                 <div style={{ marginTop: 4 }}>
                   <div style={{ fontSize: ".72rem", color: "var(--ink-3)", marginBottom: 4 }}>
                     Wochenverlauf bei dieser Auswahl
@@ -1026,7 +884,7 @@ export function NewPlanDialog({ athleteId, onClose, onCreated }: NewPlanDialogPr
                 </div>
               )}
 
-              {(Object.keys(errors).length > 0 || saveError) && (
+              {!multi.active && (Object.keys(errors).length > 0 || saveError) && (
                 <ul
                   style={{
                     margin: 0,
@@ -1045,7 +903,7 @@ export function NewPlanDialog({ athleteId, onClose, onCreated }: NewPlanDialogPr
                 </ul>
               )}
 
-              {preview && (
+              {preview && !multi.active && (
                 <div style={{ borderTop: "1px solid var(--hair)", paddingTop: 14 }}>
                   <PlanPreview
                     plan={preview.plan}
@@ -1105,21 +963,34 @@ export function NewPlanDialog({ athleteId, onClose, onCreated }: NewPlanDialogPr
           </button>
           {!guidedMode && (
             <>
-              <button type="button" style={BTN_STYLE} onClick={handlePreview} disabled={saving}>
+              <button
+                type="button"
+                style={BTN_STYLE}
+                onClick={multi.active ? multi.preview : handlePreview}
+                disabled={saving}
+              >
                 Vorschau erstellen
               </button>
               <button
                 type="button"
                 style={
-                  preview && !saving
+                  hasPreview && !saving
                     ? PRIMARY_BTN_STYLE
                     : { ...PRIMARY_BTN_STYLE, opacity: 0.5, cursor: "not-allowed" }
                 }
-                disabled={!preview || saving}
-                onClick={handleAdopt}
-                title={preview ? undefined : "Erst eine Vorschau erstellen"}
+                disabled={!hasPreview || saving}
+                onClick={handleAdoptAction}
+                title={hasPreview ? undefined : "Erst eine Vorschau erstellen"}
               >
-                {saving ? "Speichert…" : willReplace ? "Plan ersetzen" : "Übernehmen"}
+                {saving
+                  ? "Speichert…"
+                  : multi.active
+                    ? multi.notes.some((n) => n.replaces)
+                      ? "Pläne ersetzen"
+                      : "Pläne übernehmen"
+                    : willReplace
+                      ? "Plan ersetzen"
+                      : "Übernehmen"}
               </button>
             </>
           )}

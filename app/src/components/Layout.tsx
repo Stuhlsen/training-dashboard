@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { EnvBadge } from "./EnvBadge";
 import { Footer } from "./Footer";
 import { AthleteToggle } from "./AthleteToggle";
@@ -45,6 +45,10 @@ export function Layout() {
   const accountLabel = useAccountLabel();
   const athleteOptions = useAthleteOptions();
 
+  // Fahrplan 44 E1: auf der Planungsseite ist der Sport-Umschalter ein Filter
+  // mit "Alle" (eigener Zustand), überall sonst der globale Umschalter.
+  const onPlanning = useLocation().pathname.startsWith("/app/planning");
+
   const sports = useAthleteSports(activeAthleteId);
   const hasCycling = sports.includes("ride");
 
@@ -80,7 +84,7 @@ export function Layout() {
               activeAthleteId={activeAthleteId}
               onChange={setActiveAthleteId}
             />
-            <SportToggle athleteId={activeAthleteId} />
+            <SportToggle athleteId={activeAthleteId} mode={onPlanning ? "planning-filter" : "global"} />
           </div>
           <div className="app-header-actions">
             {session ? (

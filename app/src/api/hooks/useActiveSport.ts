@@ -63,11 +63,14 @@ export function useActiveSport() {
  *  Wert, geklemmt auf `athleteConfig(athleteId).sports` (fehlt ⇒ `["ride"]`).
  *  Reine Ableitung, kein `setState` — trägt der Athlet die aktive Sportart
  *  nicht, ist `effectiveSport` schlicht `"ride"`. */
-export function useEffectiveSport(athleteId: string) {
+export function useEffectiveSport(athleteId: string, sportOverride?: ActiveSport) {
   const { activeSport, setActiveSport } = useActiveSport();
   const sports = useAthleteSports(athleteId);
-  const effectiveSport: ActiveSport = (sports as readonly string[]).includes(activeSport)
-    ? activeSport
-    : "ride";
+  // `sportOverride` (Fahrplan 44 E1): die Planungsseite wirkt im Modus "Alle"
+  // gezielt auf EINE gewählte Sportart, ohne den globalen Umschalter zu
+  // ändern. Gilt nur, wenn der Athlet die Sportart hat; sonst wie gehabt.
+  const base: ActiveSport =
+    sportOverride && (sports as readonly string[]).includes(sportOverride) ? sportOverride : activeSport;
+  const effectiveSport: ActiveSport = (sports as readonly string[]).includes(base) ? base : "ride";
   return { effectiveSport, setActiveSport, sports };
 }

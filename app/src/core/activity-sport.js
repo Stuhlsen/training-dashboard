@@ -62,3 +62,17 @@ export function onlyCyclingRides(rides) {
 export function ridesForSport(rides, sport) {
   return (rides || []).filter((r) => activitySport(r) === sport);
 }
+
+/** Beschriftung + Symbol + Farb-Token einer Sportart für Kalender-Abzeichen
+ *  (Fahrplan 44 E1). Symbol UND Text immer gemeinsam — die Farbe
+ *  (`--sport-*` in tokens.css) trägt nie allein die Bedeutung. Anders als
+ *  `sportEmoji()` hat auch Rad ein Symbol: im gemeinsamen Kalender ist Rad
+ *  keine markerlose Vorgabe mehr. Fehlend/unbekannt ⇒ Rad.
+ *  @param {string|null|undefined} sport
+ *  @returns {{label: string, icon: string, colorVar: string}} */
+export function sportBadge(sport) {
+  if (sport === "run") return { label: "Lauf", icon: "🏃", colorVar: "var(--sport-run)" };
+  if (sport === "swim") return { label: "Schwimmen", icon: "🏊", colorVar: "var(--sport-swim)" };
+  if (sport === "other") return { label: "Sonstiges", icon: "•", colorVar: "var(--ink-3)" };
+  return { label: "Rad", icon: "🚴", colorVar: "var(--sport-ride)" };
+}

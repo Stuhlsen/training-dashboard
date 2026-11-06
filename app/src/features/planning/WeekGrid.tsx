@@ -4,11 +4,18 @@ import { GlassCard } from "../../components/GlassCard";
 import { InfoTooltip } from "../../components/InfoTooltip";
 import { phaseColor } from "../../config";
 import { fmtDate } from "../../core/format.js";
-import { activitySport, sportEmoji } from "../../core/activity-sport.js";
+import { activitySport, sportBadge, sportEmoji } from "../../core/activity-sport.js";
 import { canDragCard, isDropAllowed } from "../../core/plan-drag.js";
 import { weekDisplayLabels } from "../../core/week-labels.js";
 import { typeColor, typeIcon } from "./planning-view-model";
-import { DAY_STATUS_COLOR_TOKEN, DAY_STATUS_GLYPH, DAY_STATUS_LABEL, type GridDayCell, type GridWeekRow } from "./week-grid-view-model";
+import {
+  DAY_STATUS_COLOR_TOKEN,
+  DAY_STATUS_GLYPH,
+  DAY_STATUS_LABEL,
+  type GridCardEntry,
+  type GridDayCell,
+  type GridWeekRow,
+} from "./week-grid-view-model";
 
 const WEEKDAY_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 const CELL_MIN_WIDTH = 104;
@@ -65,17 +72,20 @@ export function WeekGrid({ weeks, today, canEdit, trainerProposalMode, renderDet
                   padding: 6,
                 }}
               >
-                {week.days.map((cell) => (
-                  <DayCell
-                    key={cell.date}
-                    cell={cell}
-                    today={today}
-                    canEdit={canEdit}
-                    trainerProposalMode={trainerProposalMode}
-                    isOpen={cell.date === openDate}
-                    onToggle={() => toggle(week.weekKey, cell.date)}
-                  />
-                ))}
+                {week.days.map((cell) => {
+                  const Cell = week.multiSport ? SharedDayCell : DayCell;
+                  return (
+                    <Cell
+                      key={cell.date}
+                      cell={cell}
+                      today={today}
+                      canEdit={canEdit}
+                      trainerProposalMode={trainerProposalMode}
+                      isOpen={cell.date === openDate}
+                      onToggle={() => toggle(week.weekKey, cell.date)}
+                    />
+                  );
+                })}
               </GlassCard>
             </div>
             {detail && (
@@ -126,6 +136,9 @@ function WeekHeader({ week }: { week: GridWeekRow }) {
         >
           {Math.round(week.tssSum)} <InfoTooltip termKey="tss">TSS</InfoTooltip>
           {week.tssIsPlanned ? " (geplant)" : ""}
+          {/* Fahrplan 44 E1 (M8): über Sportarten summierte Last ist keine
+              geeichte Größe — als Näherung benennen. */}
+          {week.multiSport ? " · Näherung" : ""}
         </span>
       </div>
     </div>
@@ -288,6 +301,153 @@ function DayCell({ cell, today, canEdit, trainerProposalMode, isOpen, onToggle }
             </span>
           );
         })()}
+    </div>
+  );
+}
+
+/** Tageszelle im gemeinsamen Kalender (Fahrplan 44 E1, Modus "Alle"). Die
+ *  Zelle ist nur noch Ablageziel; jede Karte des Tages ist eine eigene
+ *  Ziehfläche (`CardChip`) mit Sport-Abzeichen aus Symbol + Text. So bleibt
+ *  Drag & Drop je Karte bedienbar, auch wenn Lauf und Rad am selben Tag
+ *  liegen, und die Zelle wächst auf dem Handy einfach in die Höhe. */
+function SharedDayCell({ cell, today, canEdit, trainerProposalMode, isOpen, onToggle }: DayCellProps) {
+  const dropEnabled = isDropAllowed(cell.date, today);
+  const { setNodeRef, isOver } = useDroppable({ id: cell.date, disabled: !dropEnabled });
+  const dropActive = isOver && dropEnabled;
+  const statusColor = DAY_STATUS_COLOR_TOKEN[cell.status];
+  const weekdayLabel = WEEKDAY_LABELS[(new Date(cell.date).getDay() + 6) % 7];
+  const border = `1px solid ${dropActive ? "var(--ss)" : isOpen ? statusColor : "var(--hair)"}`;
+  // Aktive Karten zuerst, ausgefallene Alt-Karten dahinter (wie otherCards).
+  const entries = [...cell.entries].sort((a, b) => Number(!!a.card.cancelled) - Number(!!b.card.cancelled));
+
+  return (
+    <div
+      ref={setNodeRef}
+      data-grid-cell-date={cell.date}
+      data-status={cell.status}
+      data-drop-allowed={dropEnabled}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 4,
+        minHeight: 64,
+        padding: "8px 10px",
+        borderRadius: "var(--radius-sm)",
+        border,
+        background: dropActive ? "rgba(224,138,60,.12)" : cell.isToday ? "rgba(255,255,255,.05)" : "rgba(255,255,255,.02)",
+      }}
+    >
+      <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-label)", color: "var(--ink-3)" }}>
+        {weekdayLabel} {fmtDate(cell.date)}
+      </span>
+      {entries.map((entry) => (
+        <CardChip
+          key={entry.card.id}
+          entry={entry}
+          date={cell.date}
+          weekdayLabel={weekdayLabel}
+          today={today}
+          canEdit={canEdit}
+          trainerProposalMode={trainerProposalMode}
+          onToggle={onToggle}
+        />
+      ))}
+      {!cell.card && cell.status === "rest" && (
+        <span style={{ fontSize: "var(--fs-label)", color: "var(--ink-3)" }}>Ruhetag</span>
+      )}
+      {/* V3: nur zwei aktive Karten DERSELBEN Sportart sind eine Doppelbelegung
+          (K-OVERLAP). Lauf + Rad am Tag ist bewusst erlaubt. */}
+      {cell.sameSportOverlap && (
+        <span style={{ fontSize: "var(--fs-label)", color: "var(--warn)" }}>
+          <span aria-hidden="true">⚠ </span>Doppelbelegung
+        </span>
+      )}
+    </div>
+  );
+}
+
+interface CardChipProps {
+  entry: GridCardEntry;
+  date: string;
+  weekdayLabel: string;
+  today: string;
+  canEdit: boolean;
+  trainerProposalMode: boolean;
+  onToggle: () => void;
+}
+
+function CardChip({ entry, date, weekdayLabel, today, canEdit, trainerProposalMode, onToggle }: CardChipProps) {
+  const { card, status } = entry;
+  const dragEnabled =
+    (status === "open" || status === "today") && canDragCard({ canEdit, cardDate: date, today, trainerProposalMode });
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: card.id, disabled: !dragEnabled });
+  const badge = sportBadge(entry.sport);
+  const statusLabel = DAY_STATUS_LABEL[status];
+  const accent = typeColor(card.typ);
+  const ariaLabel = `${weekdayLabel} ${fmtDate(date)}, ${badge.label}, ${card.name ?? ""}${statusLabel ? `, ${statusLabel}` : ""}`;
+  return (
+    <div
+      ref={setNodeRef}
+      data-card-id={card.id}
+      data-drag-enabled={dragEnabled}
+      data-status={status}
+      // Wie DayCell: eigene role/tabIndex, damit dnd-kits aria-disabled eine
+      // nur nicht ziehbare, aber aufklappbare Karte nicht als gesperrt meldet.
+      {...(dragEnabled ? attributes : { role: "button" as const, tabIndex: 0 })}
+      {...(dragEnabled ? listeners : undefined)}
+      aria-label={ariaLabel}
+      onClick={onToggle}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onToggle();
+        }
+      }}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 2,
+        minHeight: 32,
+        padding: "4px 6px",
+        borderRadius: 6,
+        border: `1px ${isDragging ? "dashed" : "solid"} var(--hair)`,
+        borderLeft: `3px solid ${accent}`,
+        background: "rgba(255,255,255,.03)",
+        opacity: isDragging ? 0.4 : status === "cancelled" ? 0.55 : 1,
+        cursor: dragEnabled ? "grab" : "pointer",
+        touchAction: dragEnabled ? "none" : undefined,
+        minWidth: 0,
+      }}
+    >
+      <span
+        data-sport-badge={entry.sport}
+        style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "var(--fs-label)", color: badge.colorVar }}
+      >
+        <span aria-hidden="true">{badge.icon}</span>
+        <span>{badge.label}</span>
+        {DAY_STATUS_GLYPH[status] && (
+          <span aria-hidden="true" style={{ marginLeft: "auto", color: DAY_STATUS_COLOR_TOKEN[status] }}>
+            {DAY_STATUS_GLYPH[status]}
+          </span>
+        )}
+      </span>
+      <span style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
+        <span aria-hidden="true">{typeIcon(card.typ)}</span>
+        <span
+          style={{
+            fontSize: ".78rem",
+            color: "var(--ink)",
+            overflow: "hidden",
+            // Zwei Zeilen statt einer: auf dem Handy bleibt der Kartenname lesbar.
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflowWrap: "anywhere",
+          }}
+        >
+          {card.name}
+        </span>
+      </span>
     </div>
   );
 }

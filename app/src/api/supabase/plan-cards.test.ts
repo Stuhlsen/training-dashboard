@@ -19,6 +19,7 @@ const {
   deleteFuturePlanCardsForPlan,
   deleteFuturePlanlessPlanCards,
   deletePlanCardsForPlan,
+  listReplaceablePlanCardsForPlan,
 } = await import("./plan-cards");
 
 const cardRow = (over: Record<string, unknown> = {}) => ({
@@ -218,5 +219,72 @@ describe("deletePlanCardsForPlan", () => {
     expect(res.ok).toBe(true);
     expect(seen?.method).toBe("delete");
     expect(seen?.filters).toEqual([{ op: "eq", col: "plan_id", val: "plan-9" }]);
+  });
+});
+
+describe("listReplaceablePlanCardsForPlan (Fahrplan 44 E6, Sicherung)", () => {
+  it("liest nur ersetzbare Karten ab dem Datum und mappt sie auf Bulk-Entwürfe", async () => {
+    let filters: unknown;
+    fakeClient.handlers.plan_cards = (c) => {
+      filters = c.filters;
+      return {
+        data: [
+          cardRow({ id: "c1", status: null, note: "Mein Hinweis", pushed_external_id: "ext-1" }),
+          cardRow({ id: "c2", status: "ausgefallen" }),
+          cardRow({ id: "c3", status: "erledigt" }),
+          cardRow({ id: "c4", status: "geplant", planned_date: "2026-09-10", moved_from_date: "2026-09-09", sport: "run" }),
+        ],
+        error: null,
+      };
+    };
+    const res = await listReplaceablePlanCardsForPlan("plan-9", "2026-09-08");
+    expect(filters).toEqual([
+      { op: "eq", col: "plan_id", val: "plan-9" },
+      { op: "gte", col: "planned_date", val: "2026-09-08" },
+    ]);
+    if (!res.ok) throw new Error("erwartet ok");
+    expect(res.cards).toHaveLength(2);
+    expect(res.cards[0]).toMatchObject({
+      date: "2026-09-08",
+      name: "Q1",
+      typ: "SS Intervalle",
+      sortOrder: 0,
+      details: "Mein Hinweis",
+      pushedExternalId: "ext-1",
+    });
+    expect(res.cards[1]).toMatchObject({ date: "2026-09-10", movedFromDate: "2026-09-09", sport: "run", status: "geplant" });
+  });
+
+  it("gibt den Fehler weiter", async () => {
+    fakeClient.handlers.plan_cards = () => ({ data: null, error: { message: "boom" } });
+    expect(await listReplaceablePlanCardsForPlan("plan-9", "2026-09-08")).toEqual({
+      ok: false,
+      error: { code: "UNKNOWN", message: "boom" },
+    });
+  });
+});
+
+describe("createPlanCards — Wiederherstellung (Fahrplan 44 E6)", () => {
+  it("schreibt Hinweis, Status, Verschiebung und Push-ID nur, wenn der Entwurf sie trägt", async () => {
+    const payloads: Record<string, unknown>[][] = [];
+    fakeClient.handlers.plan_cards = (c) => {
+      payloads.push(c.payload as Record<string, unknown>[]);
+      return { data: [], error: null };
+    };
+    await createPlanCards("prof-a", "plan-9", [
+      draft({ details: "Hinweis", status: "geplant", movedFromDate: "2026-09-07", previousDate: "2026-09-07", moveReason: "Termin", pushedExternalId: "ext-1" }),
+      draft(),
+    ]);
+    expect(payloads[0][0]).toMatchObject({
+      note: "Hinweis",
+      status: "geplant",
+      moved_from_date: "2026-09-07",
+      previous_date: "2026-09-07",
+      move_reason: "Termin",
+      pushed_external_id: "ext-1",
+    });
+    for (const key of ["note", "status", "moved_from_date", "previous_date", "move_reason", "pushed_external_id"]) {
+      expect(payloads[0][1]).not.toHaveProperty(key);
+    }
   });
 });

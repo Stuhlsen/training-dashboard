@@ -81,6 +81,11 @@ import { getSportStrategy } from "./plan-generator-sport.js";
  * @property {"allgemein"|"berg"|"langstrecke"|"crit"} focus
  * @property {"einsteiger"|"fortgeschritten"} level
  * @property {"pyramidal"|"polarized"|"block"|"linear"|"reverse"} model
+ * @property {import("./goals.js").GoalPlanProfile} [goalProfile]  Fahrplan 43 E5, optional. Wirkt NUR über
+ *   vorhandene Stellschrauben: `ramp` (flache Rampe wie bei schwacher Planerfüllung), `lowStartVolume`
+ *   (Woche-0-TSS × LOW_START_VOLUME_FACTOR), `keepHardStimuli` (kein Trainingstag fällt weg). Alle
+ *   anderen Felder (focus, level, eventMode, moreEasyVolume, intensityFocus, sweetSpot) ignoriert der
+ *   Generator. Fehlt das Feld, bleibt die Ausgabe identisch (Golden Master).
  * @property {HistoryAggregate} [history]
  * @property {Array<object>} [formats]  session_formats-Zeilen (E3); leer → eingebaute Startbelegung
  * @property {string} [regenerateFrom]  E13: ISO-Montag, ab dem die Wochen neu gerechnet werden
@@ -94,6 +99,8 @@ import { getSportStrategy } from "./plan-generator-sport.js";
  * @property {boolean} keepInRecoveryWeek  Default false — sonst pausiert die Fixierung in Erholungswochen
  * @property {number} [durationMin]  15..300 (Fahrplan 32 E2); fehlt → Ableitung aus TYPE_DEFAULT_TSS.
  *   Ohne Wirkung bei FIXED_INTERVAL_TYP (kein fester Karten-Tag)
+ * @property {"indoor"} [environment]  nur Anzeige: "indoor" nennt eine Gruppenfahrt
+ *   "Gruppenfahrt Zwift"; der Typ bleibt "Gruppenfahrt" (Stats/Matching)
  */
 
 /**
@@ -198,6 +205,10 @@ export function emptyHistory() {
     currentThresholdSpeed: null,
   };
 }
+
+/** Ziel „niedriger Startumfang" (Fahrplan 43 E5): Woche-0-TSS × Faktor.
+ *  Eigene Festlegung, nicht belegt — nur eine sanfte Absenkung des Starts. */
+export const LOW_START_VOLUME_FACTOR = 0.8;
 
 /** Level-Default für die Wochen-TSS, wenn keine Historie vorliegt. Linear mit
  *  dem Zeitbudget, in den level-typischen Korridor geklemmt. In E2
@@ -588,8 +599,9 @@ export const FIXED_DURATION_MAX_MIN = 300;
  *  (begrenzt auf FIXED_DURATION_MIN_MIN..MAX_MIN), die TSS folgt aus Dauer × IF².
  *  @param {string} typ  aus KNOWN_PLAN_TYPES @param {number|null} ftp
  *  @param {number} [fixedMin]  fehlt → Ableitung aus `TYPE_DEFAULT_TSS`
+ *  @param {"indoor"} [environment]  "indoor" = Gruppenfahrt auf Zwift, nur der Name ändert sich
  *  @returns {{name:string, typ:string, workout:object|null, workoutStructure:object|null, tssPlanned:number, durationMin:number}} */
-function fixedDayCard(typ, ftp, fixedMin) {
+function fixedDayCard(typ, ftp, fixedMin, environment) {
   const defaultTss = TYPE_DEFAULT_TSS[typ] ?? 50;
   if (defaultTss <= 0) {
     return { name: typ, typ, workout: null, workoutStructure: null, tssPlanned: 0, durationMin: 0 };
@@ -604,7 +616,11 @@ function fixedDayCard(typ, ftp, fixedMin) {
   const watts = ftp != null ? [Math.round((pct[0] / 100) * ftp), Math.round((pct[1] / 100) * ftp)] : undefined;
   // Z2-Tage heißen nach ihrer Dauer ("Z2 · 60 min") statt nach dem gewählten
   // Typ — der Typ bleibt unverändert (Stats/Matching/Altdaten).
-  const name = Z2_FIXED_TYPES.has(typ) ? `Z2 · ${fmtMinutesShort(durationMin)}` : typ;
+  const name = Z2_FIXED_TYPES.has(typ)
+    ? `Z2 · ${fmtMinutesShort(durationMin)}`
+    : typ === "Gruppenfahrt" && environment === "indoor"
+      ? "Gruppenfahrt Zwift"
+      : typ;
   const workout = {
     warmup: 0,
     intervals: 1,
@@ -711,7 +727,7 @@ function buildWeekCards(c) {
   for (const wd of effectiveWeekdays) {
     if (!dayIsFixed(wd)) continue;
     const entry = fixedByWeekday.get(wd);
-    const f = fixedDayCard(entry.typ, ftp, entry.durationMin);
+    const f = fixedDayCard(entry.typ, ftp, entry.durationMin, entry.environment);
     qTss += f.tssPlanned;
     cards.push(
       makeCard(addDaysISO(weekStart, wd - 1), phase, isoWeek, f, { isQuality: intensityClass(entry.typ) === "hart" })
@@ -734,7 +750,11 @@ function buildWeekCards(c) {
           `strategy.testCard fehlt (sport "${strategy.sport}").`
       );
     }
-    testWd = effectiveQuality.length && !isRecovery ? effectiveQuality[0] : effectiveWeekdays[0];
+    // Ein fester Tag bleibt, was er ist (Alex, 05.11.2026: der Test verdrängt
+    // keine Gruppenfahrt) — der Test ersetzt die Einheit am freien Qualitätstag.
+    const isFree = (wd) => !dayIsFixed(wd);
+    const freeQuality = isRecovery ? [] : effectiveQuality.filter(isFree);
+    testWd = freeQuality[0] ?? effectiveWeekdays.find(isFree) ?? effectiveWeekdays[0];
     const testDate = addDaysISO(weekStart, testWd - 1);
     for (let i = cards.length - 1; i >= 0; i--) {
       if (cards[i].date === testDate) {
@@ -889,17 +909,26 @@ export function generatePlan(input) {
   }
 
   // 3) Woche-0-TSS + Anpassung bei schwacher Planerfüllung -------------
+  const goalProfile = input.goalProfile ?? null;
   const recentTss = avg((history.weeklyActualTss || []).slice(-4));
-  const week0Tss =
+  const baseWeek0Tss =
     recentTss != null ? recentTss : levelDefaultWeekTss(input.level, input.weeklyHours);
+  const week0Tss = goalProfile?.lowStartVolume ? baseWeek0Tss * LOW_START_VOLUME_FACTOR : baseWeek0Tss;
   const lowAdherence = history.planAdherence != null && history.planAdherence < 0.7;
+  // Ziel-Rampe (Fahrplan 43 E5): dieselbe flache Rampe wie bei schwacher
+  // Planerfüllung — keine zweite Rampenlogik. Sie streicht für sich keinen Tag.
+  const goalFlatRamp = goalProfile?.ramp === "flach" || goalProfile?.ramp === "sanft";
   // Flachere Aufbaurampe: Rampenziel 6 → 4 UND wöchentlicher Zuwachs 8 % → 4 %.
   // Der Zuwachsfaktor ist der wirksame Hebel — die CTL-Rampe-Deckel greifen bei
   // moderatem Ausgangs-CTL selten (sonst bliebe der Unterschied unsichtbar).
-  const rampTarget = lowAdherence ? 4 : CONFLICT_THRESHOLDS.ctlRampInfo;
-  const weeklyGrowth = lowAdherence ? 1.04 : 1.08;
+  const flatRamp = lowAdherence || goalFlatRamp;
+  const rampTarget = flatRamp ? 4 : CONFLICT_THRESHOLDS.ctlRampInfo;
+  const weeklyGrowth = flatRamp ? 1.04 : 1.08;
   let effectiveWeekdays = [...input.trainingWeekdays].sort((x, y) => x - y);
-  if (lowAdherence && input.keepAllTrainingDays) {
+  // keepHardStimuli: harte Reize bleiben — die flachere Rampe wird nie über
+  // weniger Trainingstage erreicht (wirkt wie keepAllTrainingDays).
+  const keepDays = input.keepAllTrainingDays || goalProfile?.keepHardStimuli === true;
+  if (lowAdherence && keepDays) {
     warnings.push(`Planerfüllung zuletzt unter 70 % — flachere Aufbaurampe, alle gewählten Trainingstage bleiben.`);
   } else if (lowAdherence && effectiveWeekdays.length > 2) {
     effectiveWeekdays = effectiveWeekdays.slice(0, -1);
