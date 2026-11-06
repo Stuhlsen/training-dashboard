@@ -1225,6 +1225,52 @@ test("distributeLooseMinutes: langer Tag bevorzugt Draußen (Wochenende vor Woch
   assert.equal(long([2, 4, 6, 7], { 6: "indoor", 7: "indoor" }), 6); // sonst bisher
 });
 
+/* ── Obergrenze für jeden lockeren Tag (nicht nur den langen) ────── */
+
+const DAY_CAP_HINT = (h) =>
+  `Lockere Einheiten dauern höchstens ${h} h — das Zeitbudget wird in manchen Wochen nicht ausgeschöpft. Mehr Trainingstage nutzen es besser aus.`;
+const HIGH_LOAD = () => ({ history: { ...emptyHistory(), weeklyActualTss: Array(8).fill(700) } });
+const looseCards = (plan) => plan.weeks.flatMap((w) => w.cards.filter((c) => !c.isQuality && !c.isTest));
+
+test("distributeLooseMinutes: ein einziger lockerer Tag bleibt unter der Obergrenze", () => {
+  assert.equal(distributeLooseMinutes([7], 600, "allgemein")[7], 210);
+  assert.equal(distributeLooseMinutes([7], 600, "langstrecke")[7], 300);
+});
+
+test("distributeLooseMinutes: auch der normale Tag bleibt unter der Obergrenze", () => {
+  const perDay = distributeLooseMinutes([4, 7], 600, "allgemein");
+  assert.deepEqual(perDay, { 4: 210, 7: 210 });
+});
+
+test("distributeLooseMinutes: Tage ohne Wochenende bleiben unter der Obergrenze", () => {
+  assert.deepEqual(distributeLooseMinutes([2, 4], 600, "allgemein"), { 2: 210, 4: 210 });
+});
+
+test("distributeLooseMinutes: unter der Grenze wird das Budget weiter voll verteilt", () => {
+  assert.deepEqual(distributeLooseMinutes([4, 7], 300, "allgemein"), { 4: 150, 7: 150 });
+});
+
+for (const [name, days] of [["3 Tage", [2, 4, 7]], ["4 Tage", [2, 4, 6, 7]]]) {
+  test(`12 h, hohe Belastung, ${name}: keine lockere Fahrt über 3:30 h, offener Hinweis`, () => {
+    const plan = generatePlan(eventInput({ weeklyHours: 12, trainingWeekdays: days, ...HIGH_LOAD() }));
+    for (const c of looseCards(plan)) assert.ok(c.durationMin <= 210, `${c.date}: ${c.durationMin}`);
+    assert.equal(plan.warnings.filter((x) => x === DAY_CAP_HINT("3,5")).length, 1);
+    assert.equal(plan.warnings.filter((x) => x.includes("mehr Stunden pro Woche")).length, 0);
+  });
+}
+
+test("Langstrecke: Obergrenze 5 h statt 3:30 h", () => {
+  const plan = generatePlan(eventInput({ focus: "langstrecke", weeklyHours: 14, trainingWeekdays: [2, 4, 7], ...HIGH_LOAD() }));
+  for (const c of looseCards(plan)) assert.ok(c.durationMin <= 300, `${c.date}: ${c.durationMin}`);
+  assert.equal(plan.warnings.filter((x) => x === DAY_CAP_HINT("5")).length, 1);
+});
+
+test("kein Grenzen-Hinweis, wenn die Belastung die Stunden gar nicht braucht", () => {
+  const history = { ...emptyHistory(), weeklyActualTss: Array(8).fill(150), currentCtl: 20 };
+  const plan = generatePlan(eventInput({ weeklyHours: 12, trainingWeekdays: [2, 4, 7], history }));
+  assert.equal(plan.warnings.filter((x) => x === DAY_CAP_HINT("3,5")).length, 0);
+});
+
 test("distributeLooseMinutes: Drinnen-Tag max. 90 min, Überschuss geht auf die anderen lockeren Tage", () => {
   assert.equal(INDOOR_LOOSE_MAX_MIN, 90);
   const base = distributeLooseMinutes([2, 4, 6], 400);
