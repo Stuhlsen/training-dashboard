@@ -69,10 +69,16 @@ function legacyDescription(
   lines.push("");
 
   if (w.intervals && w.duration) {
-    lines.push(`Main Set ${w.intervals}x`);
-    lines.push(`- ${w.duration}m ${w.pct?.[0]}-${w.pct?.[1]}%${rpm(cadenceTarget)}`);
-    if (w.rest) lines.push(`- ${w.rest}m 50%${rpm(cadenceTarget - 10)}`);
-    lines.push("");
+    const workLine = `- ${w.duration}m ${w.pct?.[0]}-${w.pct?.[1]}%${rpm(cadenceTarget)}`;
+    // Die Nx-Ebene wiederholt auch die Pause — darum läuft die letzte
+    // Wiederholung als eigener Abschnitt, sonst steht vor dem Cooldown eine
+    // Pause zu viel (Konvention: (intervals-1)×rest, s. core/zwo-export.js).
+    if (w.rest && w.intervals > 1) {
+      lines.push(`Main Set ${w.intervals - 1}x`, workLine, `- ${w.rest}m 50%${rpm(cadenceTarget - 10)}`, "");
+      lines.push("Main Set", workLine, "");
+    } else {
+      lines.push(`Main Set ${w.intervals}x`, workLine, "");
+    }
   }
 
   lines.push("Cooldown");

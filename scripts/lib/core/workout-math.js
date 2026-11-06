@@ -17,11 +17,21 @@
    `targetZoneTime_s` zählt ausschließlich die `work`-Anteile von `set`-
    Schritten (die Progressionswährung, D1); `alternating` hat mit
    `overTime_s` eine eigene, getrennt ausgewiesene Währung.
+
+   Pausen-Konvention: die letzte Pause eines Schritts fällt weg, wenn danach
+   nur noch der Cool-down (oder nichts) kommt — dieselbe Regel wie
+   core/workout-structure-format.js und der Generator ((reps-1)×rest).
    ============================================================ */
 
 import { COGGAN_ZONE_UPPER_PCT } from "./zones.js";
 
 const ZONE_IDS = ["z1", "z2", "z3", "z4", "z5"];
+
+/** Folgt nach Schritt `i` noch Arbeit (also kein reiner Cool-down/Ende)?
+ *  @param {Array<any>} steps @param {number} i @returns {boolean} */
+export function workFollows(steps, i) {
+  return steps.slice(i + 1).some((s) => s && s.kind !== "cooldown");
+}
 
 function numOrNull(v) {
   return typeof v === "number" && Number.isFinite(v) ? v : null;
@@ -41,8 +51,9 @@ function phaseInstance(phase) {
 
 /** Ein Schritt (D1/D1.3) → Liste rechenbarer Phaseninstanzen, mit
  *  reps/cycles bereits ausmultipliziert. `isTargetZone`/`isOverTime`
- *  markieren die beiden Progressionswährungen (targetZoneTime_s/overTime_s). */
-function expandStep(step) {
+ *  markieren die beiden Progressionswährungen (targetZoneTime_s/overTime_s).
+ *  `keepLast` = die Pause nach der letzten Wiederholung bleibt stehen. */
+function expandStep(step, keepLast) {
   const kind = step?.kind;
   const instances = [];
 
@@ -59,7 +70,7 @@ function expandStep(step) {
     const recovery = phaseInstance(step.recovery);
     for (let i = 0; i < reps; i++) {
       if (work) instances.push({ ...work, isTargetZone: true });
-      if (recovery) instances.push(recovery);
+      if (recovery && (i < reps - 1 || keepLast)) instances.push(recovery);
     }
     return instances;
   }
@@ -69,7 +80,7 @@ function expandStep(step) {
     const recovery = phaseInstance(step.recovery);
     for (let i = 0; i < reps; i++) {
       if (work) instances.push(work); // null bei target:"max" — kein Beitrag
-      if (recovery) instances.push(recovery);
+      if (recovery && (i < reps - 1 || keepLast)) instances.push(recovery);
     }
     return instances;
   }
@@ -84,7 +95,7 @@ function expandStep(step) {
         if (over) instances.push({ ...over, isOverTime: true });
         if (under) instances.push(under);
       }
-      if (recovery) instances.push(recovery);
+      if (recovery && (r < reps - 1 || keepLast)) instances.push(recovery);
     }
     return instances;
   }
@@ -122,9 +133,9 @@ export function computeWorkoutSummary(structure, ftp) {
   let overTime_s = 0;
 
   const steps = Array.isArray(structure?.steps) ? structure.steps : [];
-  for (const step of steps) {
+  for (const [i, step] of steps.entries()) {
     if (!step || typeof step !== "object") continue;
-    for (const inst of expandStep(step)) {
+    for (const inst of expandStep(step, workFollows(steps, i))) {
       computedTss += (inst.durationS * (inst.pct / 100) * (inst.pct / 100)) / 36;
       const zoneId = zoneIdForPct(inst.pct);
       timeInZone_s[zoneId] = (timeInZone_s[zoneId] || 0) + inst.durationS;

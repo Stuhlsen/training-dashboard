@@ -12,8 +12,8 @@
    Die Rahmenbedingungen kommen aus den `training_plans`-Spalten (bei der
    Erstellung validiert); die aktuelle FTP / das Messdatum reicht der Aufrufer
    frisch aus der FTP-Historie durch (die Spalte `ftp_at_creation` ist der Stand
-   von damals). Trainingstage, feste Tage und Ziel-FTP kann der Athlet im Dialog
-   „Plan anpassen" ändern.
+   von damals). Trainingstage, Stunden pro Woche, feste Tage und Ziel-FTP kann
+   der Athlet im Dialog „Plan anpassen" ändern.
    ============================================================ */
 
 import { localISODate } from "../../core/format.js";
@@ -134,6 +134,8 @@ export interface RecomputeArgs {
   fixedDays?: FixedDay[];
   /** Im Dialog geändertes Ziel-FTP (W). Fehlt → das Ziel des Plans. */
   ftpTarget?: number | null;
+  /** Im Dialog geänderte Stunden pro Woche. Fehlt → die Stunden des Plans. */
+  weeklyHours?: number;
   /** Fahrplan 43 E5: Plan-Profil der Ziele (schon nach Sportart gefiltert).
    *  Fehlt → kein Ziel wirkt, Ausgabe wie bisher. */
   goalProfile?: GoalPlanProfile | null;
@@ -218,7 +220,7 @@ export function buildRecomputeInput(args: RecomputeArgs): RecomputeInput {
     ...(sport === "ride" && typeof form.startWithFtpTest === "boolean"
       ? { startWithFtpTest: form.startWithFtpTest }
       : {}),
-    weeklyHours: plan.weeklyHours ?? 6,
+    weeklyHours: args.weeklyHours ?? plan.weeklyHours ?? 6,
     // Aktuelle FTP zuerst; erst dahinter der (u. U. veraltete) Erstell-Stand.
     // Nur sport === "ride" (V1) — für Lauf/Schwimm bleibt es null.
     currentFtp:

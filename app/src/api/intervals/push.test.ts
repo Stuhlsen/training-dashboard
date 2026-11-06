@@ -45,6 +45,14 @@ describe("pushCardWorkout — Kadenz im Workout-Text (Fahrplan 11)", () => {
     expect(d).toContain("50%-40% 80rpm"); // Cooldown T-10
   });
 
+  test("Altform: keine Pause zwischen letztem Intervall und Cooldown", async () => {
+    const spy = stubFetchOk();
+    await pushCardWorkout(LEGACY_CARD, "tok", "i123");
+    expect(sentDescription(spy)).toContain(
+      "Main Set 2x\n- 8m 83-90% 90rpm\n- 3m 50% 80rpm\n\nMain Set\n- 8m 83-90% 90rpm\n\nCooldown\n",
+    );
+  });
+
   test("cadenceTarget 78 -> 73 / 78 / 68 rpm", async () => {
     const spy = stubFetchOk();
     await pushCardWorkout(LEGACY_CARD, "tok", "i123", 78);
@@ -107,7 +115,7 @@ describe("pushCardWorkout — Generator-Karte mit genauer workout_structure", ()
     await pushCardWorkout(OVER_UNDER_CARD, "token", "i1", 90);
     const description = sentDescription(spy);
     expect(description.startsWith("Over-Under 3×9\n\n")).toBe(true);
-    expect(description).toContain("Main Set 3x\n- 2m 105% 90rpm\n- 1m 88% 80rpm");
+    expect(description).toContain("Main Set 2x\n- 2m 105% 90rpm\n- 1m 88% 80rpm");
     expect(description).not.toContain("9m 88-105%");
   });
 

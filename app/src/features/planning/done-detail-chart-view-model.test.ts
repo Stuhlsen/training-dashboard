@@ -97,11 +97,10 @@ describe("targetProfileFromCard — volles geplantes Ziel-Profil", () => {
       { durationS: 600, watts: 110 }, // 55% × 200
       { durationS: 300, watts: 200 }, // 100% × 200
       { durationS: 180, watts: 100 }, // 50% × 200
-      { durationS: 300, watts: 200 },
-      { durationS: 180, watts: 100 },
+      { durationS: 300, watts: 200 }, // keine Pause vor dem Cooldown
       { durationS: 300, watts: 90 }, // 45% × 200
     ]);
-    expect(profile!.totalS).toBe(600 + 2 * (300 + 180) + 300);
+    expect(profile!.totalS).toBe(600 + 2 * 300 + 180 + 300);
   });
 
   it("liefert watts=null für eine Phase ohne relative Intensität (all-out Sprint)", () => {
@@ -118,7 +117,7 @@ describe("targetProfileFromCard — volles geplantes Ziel-Profil", () => {
       200,
     );
     expect(profile!.phases[1]).toEqual({ durationS: 15, watts: null });
-    expect(profile!.totalS).toBe(435);
+    expect(profile!.totalS).toBe(315);
   });
 
   it("liefert null ohne gültige FTP (kein Watt-Bezug → Chart nutzt das flache Band)", () => {
