@@ -328,7 +328,8 @@ const UNDERUSE_HINT_RATIO = 0.85;
 
 /** Lockere Restminuten auf die lockeren Tage verteilen: langer Tag (Wochenende,
  *  falls Trainingstag) bekommt den halben Rest (45–210 min), der Rest wird
- *  gleichmäßig verteilt. Jeder Tag mindestens 30 min. Fokus "langstrecke"
+ *  gleichmäßig verteilt. Jeder Tag mindestens 30 min und höchstens
+ *  `looseDayCap()`. Fokus "langstrecke"
  *  gibt dem langen Tag einen größeren Anteil (0.65 statt 0.5) und eine
  *  höhere Obergrenze (300 statt 210 min) — alle anderen Fokus-Werte
  *  verhalten sich exakt wie bisher. Mit `env` (nur Rad, Fahrplan 32 V3) bekommt
@@ -385,14 +386,36 @@ function capIndoorDays(perDay, looseDays, env, dayCap) {
   return overflow;
 }
 
-/** @returns {{ perDay: Record<number, number>, unplacedMin: number }} */
+/** Länger wird keine lockere Einheit, auch wenn das Zeitbudget mehr hergäbe:
+ *  Sonst landet bei wenigen Trainingstagen das ganze Budget auf einem Tag.
+ *  @param {string} [focus] @returns {number} Minuten */
+function looseDayCap(focus) {
+  return focus === "langstrecke" ? 300 : 210;
+}
+
+/** Jeden lockeren Tag auf `cap` kürzen. Mutiert `perDay`.
+ *  @returns {number} gekürzte Minuten */
+function capLooseDays(perDay, looseDays, cap) {
+  let cappedMin = 0;
+  for (const wd of looseDays) {
+    if (perDay[wd] > cap) {
+      cappedMin += perDay[wd] - cap;
+      perDay[wd] = cap;
+    }
+  }
+  return cappedMin;
+}
+
+/** `unplacedMin`: Minuten, die der Drinnen-Deckel übrig ließ; `cappedMin`:
+ *  Minuten, die die Obergrenze je Tag übrig ließ.
+ *  @returns {{ perDay: Record<number, number>, unplacedMin: number, cappedMin: number }} */
 function distributeLoose(looseDays, looseMin, focus, env) {
   /** @type {Record<number, number>} */
   const perDay = {};
-  if (!looseDays.length) return { perDay, unplacedMin: 0 };
+  if (!looseDays.length) return { perDay, unplacedMin: 0, cappedMin: 0 };
   const longDay = pickLongDay(looseDays, env);
   const longShare = focus === "langstrecke" ? 0.65 : 0.5;
-  const longCap = focus === "langstrecke" ? 300 : 210;
+  const longCap = looseDayCap(focus);
   if (longDay != null && looseDays.length > 1) {
     // Der lange Tag darf die übrigen nicht unter MIN_LOOSE_MIN drücken und das
     // Zeitbudget nicht sprengen (V1) — passt beides nicht, gewinnt die Untergrenze.
@@ -403,8 +426,16 @@ function distributeLoose(looseDays, looseMin, focus, env) {
   } else {
     for (const wd of looseDays) perDay[wd] = Math.max(MIN_LOOSE_MIN, looseMin / looseDays.length);
   }
+  const cappedMin = capLooseDays(perDay, looseDays, longCap);
   const unplacedMin = env ? capIndoorDays(perDay, looseDays, env, longCap) : 0;
-  return { perDay, unplacedMin };
+  return { perDay, unplacedMin, cappedMin };
+}
+
+/** Ein Deckel kostet nur dann Zeit, wenn die Ziel-TSS nicht ohnehin gestaucht
+ *  wird (`hasRoom`) — sonst bliebe die Zeit auch ohne Deckel ungenutzt.
+ *  @returns {{ indoorCapped: boolean, dayCapped: boolean }} */
+function looseCapFlags(unplacedMin, cappedMin, hasRoom) {
+  return { indoorCapped: unplacedMin >= 1 && hasRoom, dayCapped: cappedMin >= 1 && hasRoom };
 }
 
 /** Lockere Karten so umskalieren, dass ihre TSS-Summe ≈ `looseTargetTss`
@@ -656,10 +687,11 @@ function fixedDayCard(typ, ftp, fixedMin, environment) {
  * @param {Array<object>} c.formats  session_formats-Zeilen (leer → eingebaute Startbelegung)
  * @param {object} c.strategy  Sport-Strategie (`plan-generator-sport.js`)
  * @param {Record<number, "indoor"|"outdoor">|null} [c.dayEnv]  nur Rad (V2/V3), sonst null
- * @returns {{ cards: PlanCardDraft[], limited: boolean, overBudget: boolean, indoorCapped: boolean, budgetMin: number }}
+ * @returns {{ cards: PlanCardDraft[], limited: boolean, overBudget: boolean, indoorCapped: boolean, dayCapped: boolean, isRecovery: boolean, budgetMin: number }}
  *   `limited`: Ziel-TSS bräuchte mehr Zeit als das Budget (V1-Hinweis);
  *   `overBudget`: Qualitäts- + feste Tage sprengen das Budget schon allein;
- *   `indoorCapped`: der Drinnen-Deckel ließ lockere Minuten ungenutzt (V3-Hinweis).
+ *   `indoorCapped`: der Drinnen-Deckel ließ lockere Minuten ungenutzt (V3-Hinweis);
+ *   `dayCapped`: die Obergrenze je lockerem Tag ließ Minuten ungenutzt.
  */
 function buildWeekCards(c) {
   const { weekStart, isoWeek, phase, isRecovery, effectiveWeekdays, quality, weeklyHours, targetTss, ftp, isTestWeek } = c;
@@ -781,7 +813,7 @@ function buildWeekCards(c) {
   // Qualitäts-, feste und Testtage lassen den lockeren Tagen nicht einmal ihre
   // Mindestdauer: sie bleiben unverändert, die lockeren gehen auf MIN_LOOSE_MIN.
   const overBudget = freeLooseDays.length > 0 && nonLooseMin + MIN_LOOSE_MIN * freeLooseDays.length > weeklyMin;
-  const { perDay: perDayMin, unplacedMin } = distributeLoose(freeLooseDays, looseMin, focus, dayEnv);
+  const { perDay: perDayMin, unplacedMin, cappedMin } = distributeLoose(freeLooseDays, looseMin, focus, dayEnv);
   const looseBaseTss = () => looseCards.reduce((s, x) => s + x.tssPlanned, 0);
   const looseCards = freeLooseDays.map((wd) =>
     makeCard(
@@ -792,14 +824,12 @@ function buildWeekCards(c) {
     )
   );
   const looseTargetTss = Math.max(0, targetTss - qTss);
-  // Der Drinnen-Deckel kostet nur dann Zeit, wenn die Ziel-TSS nicht ohnehin
-  // gestaucht wird (dann bliebe die Zeit auch ohne Deckel ungenutzt).
-  const indoorCapped = unplacedMin >= 1 && looseTargetTss >= looseBaseTss();
+  const { indoorCapped, dayCapped } = looseCapFlags(unplacedMin, cappedMin, looseTargetTss >= looseBaseTss());
   const limited = scaleLooseCardsToTarget(looseCards, looseTargetTss, ftp, thresholdSpeed, strategy);
   cards.push(...looseCards);
 
   cards.sort((x, y) => x.date.localeCompare(y.date));
-  return { cards, limited, overBudget, indoorCapped, budgetMin: weeklyMin };
+  return { cards, limited, overBudget, indoorCapped, dayCapped, isRecovery, budgetMin: weeklyMin };
 }
 
 /** Stunden-Text mit deutschem Komma, eine Nachkommastelle. @param {number} min */
@@ -826,6 +856,32 @@ function timeBudgetWarnings(b, cut, weeklyHours) {
   if (b.first && b.first.min < b.first.budgetMin * UNDERUSE_HINT_RATIO) {
     out.push(
       `In Woche ${cut + 1} nutzt der Plan nur ${fmtHours(b.first.min)} von ${fmtHours(b.first.budgetMin)} h deines Zeitbudgets. Die Belastung steigt Woche für Woche, die Stunden dann mit.`
+    );
+  }
+  return out;
+}
+
+/** Würden mehr Stunden dieser Woche helfen? Gedeckelte Wochen bremst die
+ *  Obergrenze je Tag, Erholungswochen ihr fester Abschlag aufs Zeitbudget.
+ *  @param {{ limited: boolean, dayCapped: boolean, isRecovery: boolean }} r
+ *  @returns {boolean} */
+function hoursWouldHelp(r) {
+  return r.limited && !r.dayCapped && !r.isRecovery;
+}
+
+/** Zeitbudget-Hinweise plus der Hinweis auf den Drinnen-Deckel oder die
+ *  Obergrenze je Tag. Gibt es gedeckelte Wochen, zählt „reicht nicht" nur die
+ *  Wochen, in denen mehr Stunden helfen würden (`hoursWouldHelp`).
+ *  @returns {string[]} */
+function capWarnings(budget, cut, input, { indoorCapped, dayCapped }) {
+  const out = timeBudgetWarnings(dayCapped ? { ...budget, limited: budget.limitedByHours } : budget, cut, input.weeklyHours);
+  if (indoorCapped) {
+    out.push(
+      `Drinnen-Tage tragen höchstens ${INDOOR_LOOSE_MAX_MIN} min — das Zeitbudget wird in manchen Wochen nicht ausgeschöpft.`
+    );
+  } else if (dayCapped) {
+    out.push(
+      `Lockere Einheiten dauern höchstens ${fmtHours(looseDayCap(input.focus))} h — das Zeitbudget wird in manchen Wochen nicht ausgeschöpft. Mehr Trainingstage nutzen es besser aus.`
     );
   }
   return out;
@@ -1013,12 +1069,15 @@ export function generatePlan(input) {
   }
   // Sammelt je gebauter Woche die Zeitbudget-Befunde (V1); die Hinweise
   // entstehen einmal pro Plan nach der Schleife, nicht pro Woche.
-  const budget = { built: 0, limited: 0, over: null, first: null };
+  const budget = { built: 0, limited: 0, limitedByHours: 0, over: null, first: null };
   let indoorCapped = false;
+  let dayCapped = false;
   const takeCards = (r) => {
     budget.built += 1;
     if (r.limited) budget.limited += 1;
+    if (hoursWouldHelp(r)) budget.limitedByHours += 1;
     if (r.indoorCapped) indoorCapped = true;
+    if (r.dayCapped) dayCapped = true;
     const min = r.cards.reduce((s, x) => s + x.durationMin, 0);
     if (budget.first == null) budget.first = { min, budgetMin: r.budgetMin };
     if (r.overBudget && budget.over == null) budget.over = { min, budgetMin: r.budgetMin };
@@ -1080,12 +1139,7 @@ export function generatePlan(input) {
       })),
     };
   });
-  warnings.push(...timeBudgetWarnings(budget, cut, input.weeklyHours));
-  if (indoorCapped) {
-    warnings.push(
-      `Drinnen-Tage tragen höchstens ${INDOOR_LOOSE_MAX_MIN} min — das Zeitbudget wird in manchen Wochen nicht ausgeschöpft.`
-    );
-  }
+  warnings.push(...capWarnings(budget, cut, input, { indoorCapped, dayCapped }));
 
   // 8) Wochenmodell (V4) --------------------------------------------
   const weekModel = weeks.map((w, i) => ({

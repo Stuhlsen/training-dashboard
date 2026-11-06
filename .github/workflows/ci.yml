@@ -47,7 +47,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
 
       - name: Fallow Audit (JSON, non-blocking)
         continue-on-error: true
@@ -55,7 +55,11 @@ jobs:
 
       - name: Fallow Health Summary (Log)
         continue-on-error: true
-        run: npx --yes fallow health --score --hotspots --circular-deps
+        run: npx --yes fallow health --score --hotspots
+
+      - name: Fallow Circular Deps (Log)
+        continue-on-error: true
+        run: npx --yes fallow dead-code --circular-deps
 
       - name: Fallow-Report hochladen
         if: always()

@@ -53,7 +53,3 @@ export function useSessionProfile(): Profile | null {
 export function useIsAdmin(): boolean {
   return !!useSessionProfile()?.isAdmin;
 }
-
-export function useIsCoach(): boolean {
-  return useSessionProfile()?.role === "coach";
-}

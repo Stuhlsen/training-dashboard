@@ -84,7 +84,8 @@ npm run lint
 
 # Codebase-Intelligence-Report (Fallow, Repo-Root): Health Score, Circular Deps,
 # Duplication, Dead Code, Complexity Hotspots — läuft auch automatisch non-blocking in CI
-npx fallow health --score --hotspots --circular-deps
+npx fallow health --score --hotspots
+npx fallow dead-code --circular-deps
 npx fallow dead-code
 npx fallow dupes
 ```

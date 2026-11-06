@@ -1,8 +1,7 @@
-import { supabase, getAuthedClient } from "./client";
+import { getAuthedClient } from "./client";
 import type { Result } from "../types";
 
 const BUCKET_NAME = "bikefit-photos";
-const NOT_CONFIGURED = { code: "UNKNOWN" as const, message: "Supabase nicht konfiguriert" };
 
 /**
  * Lädt ein Foto (Legs oder Riding) für eine Fitting-Iteration in den privaten Storage-Bucket.
@@ -30,27 +29,6 @@ export async function uploadBikefitPhoto(
   }
 
   return { ok: true, path };
-}
-
-/**
- * Erzeugt eine zeitlich begrenzte signierte URL für ein Foto im privaten Storage-Bucket.
- */
-export async function createSignedPhotoUrl(
-  path: string,
-  expiresInSeconds = 3600
-): Promise<Result<{ signedUrl: string }>> {
-  const client = (await getAuthedClient()) ?? supabase;
-  if (!client) return { ok: false, error: NOT_CONFIGURED };
-
-  const { data, error } = await client.storage
-    .from(BUCKET_NAME)
-    .createSignedUrl(path, expiresInSeconds);
-
-  if (error || !data?.signedUrl) {
-    return { ok: false, error: { code: "UNKNOWN", message: error?.message || "Konnte signierte URL nicht erstellen" } };
-  }
-
-  return { ok: true, signedUrl: data.signedUrl };
 }
 
 /**

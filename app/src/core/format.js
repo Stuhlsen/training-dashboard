@@ -44,13 +44,6 @@ export const fmtInt = (v) => {
   return Math.round(v).toString();
 };
 
-/** Zahl mit Tausender-Trennzeichen (deutsch)
- *  @param {number|null|undefined} v @returns {string} */
-export const fmtThousands = (v) => {
-  if (v == null) return "–";
-  return Math.round(v).toLocaleString("de-DE");
-};
-
 /** Date-Objekt → lokales ISO-Datum (YYYY-MM-DD), OHNE UTC-Konvertierung.
  *  `date.toISOString()` würde bei UTC-Versatz (z.B. CEST) zwischen
  *  Mitternacht lokal und UTC auf den Vortag zurückrutschen — das hat in
@@ -209,20 +202,3 @@ export const windDir = (deg) => {
   return dirs[Math.round(deg / 45) % 8];
 };
 
-/** Phase → CSS-Tag-Klasse
- *  @param {string|null|undefined} phase @returns {string} */
-export const phaseTagClass = (phase) => {
-  if (!phase) return "";
-  if (phase.includes("Vor") || phase === "Vorbereitung") return "tag-vor";
-  if (phase === "Phase 1") return "tag-p1";
-  if (phase === "Phase 2") return "tag-p2";
-  if (phase === "Phase 3") return "tag-p3";
-  // Plan 2
-  if (phase === "Übergang") return "tag-vor";
-  if (phase === "Sweet Spot") return "tag-p1";
-  if (phase === "Schwelle") return "tag-p2";
-  if (phase === "VO2max") return "tag-p3";
-  if (phase === "Erholung") return "tag-vor";
-  if (phase === "Taper") return "tag-vor";
-  return "";
-};
