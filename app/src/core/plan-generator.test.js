@@ -1259,6 +1259,12 @@ for (const [name, days] of [["3 Tage", [2, 4, 7]], ["4 Tage", [2, 4, 6, 7]]]) {
   });
 }
 
+test("gemischter Plan: gedeckelte Wochen verschlucken den Stunden-Hinweis der anderen nicht", () => {
+  const plan = generatePlan(eventInput({ weeklyHours: 6, trainingWeekdays: [2, 4, 7], ...HIGH_LOAD() }));
+  assert.equal(plan.warnings.filter((x) => x === DAY_CAP_HINT("3,5")).length, 1);
+  assert.equal(plan.warnings.filter((x) => x.includes("mehr Stunden pro Woche")).length, 1);
+});
+
 test("Langstrecke: Obergrenze 5 h statt 3:30 h", () => {
   const plan = generatePlan(eventInput({ focus: "langstrecke", weeklyHours: 14, trainingWeekdays: [2, 4, 7], ...HIGH_LOAD() }));
   for (const c of looseCards(plan)) assert.ok(c.durationMin <= 300, `${c.date}: ${c.durationMin}`);

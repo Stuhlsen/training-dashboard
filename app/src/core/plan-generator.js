@@ -687,7 +687,7 @@ function fixedDayCard(typ, ftp, fixedMin, environment) {
  * @param {Array<object>} c.formats  session_formats-Zeilen (leer → eingebaute Startbelegung)
  * @param {object} c.strategy  Sport-Strategie (`plan-generator-sport.js`)
  * @param {Record<number, "indoor"|"outdoor">|null} [c.dayEnv]  nur Rad (V2/V3), sonst null
- * @returns {{ cards: PlanCardDraft[], limited: boolean, overBudget: boolean, indoorCapped: boolean, dayCapped: boolean, budgetMin: number }}
+ * @returns {{ cards: PlanCardDraft[], limited: boolean, overBudget: boolean, indoorCapped: boolean, dayCapped: boolean, isRecovery: boolean, budgetMin: number }}
  *   `limited`: Ziel-TSS bräuchte mehr Zeit als das Budget (V1-Hinweis);
  *   `overBudget`: Qualitäts- + feste Tage sprengen das Budget schon allein;
  *   `indoorCapped`: der Drinnen-Deckel ließ lockere Minuten ungenutzt (V3-Hinweis);
@@ -829,7 +829,7 @@ function buildWeekCards(c) {
   cards.push(...looseCards);
 
   cards.sort((x, y) => x.date.localeCompare(y.date));
-  return { cards, limited, overBudget, indoorCapped, dayCapped, budgetMin: weeklyMin };
+  return { cards, limited, overBudget, indoorCapped, dayCapped, isRecovery, budgetMin: weeklyMin };
 }
 
 /** Stunden-Text mit deutschem Komma, eine Nachkommastelle. @param {number} min */
@@ -861,12 +861,20 @@ function timeBudgetWarnings(b, cut, weeklyHours) {
   return out;
 }
 
+/** Würden mehr Stunden dieser Woche helfen? Gedeckelte Wochen bremst die
+ *  Obergrenze je Tag, Erholungswochen ihr fester Abschlag aufs Zeitbudget.
+ *  @param {{ limited: boolean, dayCapped: boolean, isRecovery: boolean }} r
+ *  @returns {boolean} */
+function hoursWouldHelp(r) {
+  return r.limited && !r.dayCapped && !r.isRecovery;
+}
+
 /** Zeitbudget-Hinweise plus der Hinweis auf den Drinnen-Deckel oder die
- *  Obergrenze je Tag. Bremst die Obergrenze, helfen mehr Stunden nicht: Dann
- *  entfällt „reicht nicht".
+ *  Obergrenze je Tag. Gibt es gedeckelte Wochen, zählt „reicht nicht" nur die
+ *  Wochen, in denen mehr Stunden helfen würden (`hoursWouldHelp`).
  *  @returns {string[]} */
 function capWarnings(budget, cut, input, { indoorCapped, dayCapped }) {
-  const out = timeBudgetWarnings(dayCapped ? { ...budget, limited: 0 } : budget, cut, input.weeklyHours);
+  const out = timeBudgetWarnings(dayCapped ? { ...budget, limited: budget.limitedByHours } : budget, cut, input.weeklyHours);
   if (indoorCapped) {
     out.push(
       `Drinnen-Tage tragen höchstens ${INDOOR_LOOSE_MAX_MIN} min — das Zeitbudget wird in manchen Wochen nicht ausgeschöpft.`
@@ -1061,12 +1069,13 @@ export function generatePlan(input) {
   }
   // Sammelt je gebauter Woche die Zeitbudget-Befunde (V1); die Hinweise
   // entstehen einmal pro Plan nach der Schleife, nicht pro Woche.
-  const budget = { built: 0, limited: 0, over: null, first: null };
+  const budget = { built: 0, limited: 0, limitedByHours: 0, over: null, first: null };
   let indoorCapped = false;
   let dayCapped = false;
   const takeCards = (r) => {
     budget.built += 1;
     if (r.limited) budget.limited += 1;
+    if (hoursWouldHelp(r)) budget.limitedByHours += 1;
     if (r.indoorCapped) indoorCapped = true;
     if (r.dayCapped) dayCapped = true;
     const min = r.cards.reduce((s, x) => s + x.durationMin, 0);
