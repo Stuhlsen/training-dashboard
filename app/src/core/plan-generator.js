@@ -393,6 +393,19 @@ function looseDayCap(focus) {
   return focus === "langstrecke" ? 300 : 210;
 }
 
+/** Jeden lockeren Tag auf `cap` kürzen. Mutiert `perDay`.
+ *  @returns {number} gekürzte Minuten */
+function capLooseDays(perDay, looseDays, cap) {
+  let cappedMin = 0;
+  for (const wd of looseDays) {
+    if (perDay[wd] > cap) {
+      cappedMin += perDay[wd] - cap;
+      perDay[wd] = cap;
+    }
+  }
+  return cappedMin;
+}
+
 /** `unplacedMin`: Minuten, die der Drinnen-Deckel übrig ließ; `cappedMin`:
  *  Minuten, die die Obergrenze je Tag übrig ließ.
  *  @returns {{ perDay: Record<number, number>, unplacedMin: number, cappedMin: number }} */
@@ -413,15 +426,16 @@ function distributeLoose(looseDays, looseMin, focus, env) {
   } else {
     for (const wd of looseDays) perDay[wd] = Math.max(MIN_LOOSE_MIN, looseMin / looseDays.length);
   }
-  let cappedMin = 0;
-  for (const wd of looseDays) {
-    if (perDay[wd] > longCap) {
-      cappedMin += perDay[wd] - longCap;
-      perDay[wd] = longCap;
-    }
-  }
+  const cappedMin = capLooseDays(perDay, looseDays, longCap);
   const unplacedMin = env ? capIndoorDays(perDay, looseDays, env, longCap) : 0;
   return { perDay, unplacedMin, cappedMin };
+}
+
+/** Ein Deckel kostet nur dann Zeit, wenn die Ziel-TSS nicht ohnehin gestaucht
+ *  wird (`hasRoom`) — sonst bliebe die Zeit auch ohne Deckel ungenutzt.
+ *  @returns {{ indoorCapped: boolean, dayCapped: boolean }} */
+function looseCapFlags(unplacedMin, cappedMin, hasRoom) {
+  return { indoorCapped: unplacedMin >= 1 && hasRoom, dayCapped: cappedMin >= 1 && hasRoom };
 }
 
 /** Lockere Karten so umskalieren, dass ihre TSS-Summe ≈ `looseTargetTss`
@@ -810,10 +824,7 @@ function buildWeekCards(c) {
     )
   );
   const looseTargetTss = Math.max(0, targetTss - qTss);
-  // Der Drinnen-Deckel kostet nur dann Zeit, wenn die Ziel-TSS nicht ohnehin
-  // gestaucht wird (dann bliebe die Zeit auch ohne Deckel ungenutzt).
-  const indoorCapped = unplacedMin >= 1 && looseTargetTss >= looseBaseTss();
-  const dayCapped = cappedMin >= 1 && looseTargetTss >= looseBaseTss();
+  const { indoorCapped, dayCapped } = looseCapFlags(unplacedMin, cappedMin, looseTargetTss >= looseBaseTss());
   const limited = scaleLooseCardsToTarget(looseCards, looseTargetTss, ftp, thresholdSpeed, strategy);
   cards.push(...looseCards);
 
@@ -845,6 +856,24 @@ function timeBudgetWarnings(b, cut, weeklyHours) {
   if (b.first && b.first.min < b.first.budgetMin * UNDERUSE_HINT_RATIO) {
     out.push(
       `In Woche ${cut + 1} nutzt der Plan nur ${fmtHours(b.first.min)} von ${fmtHours(b.first.budgetMin)} h deines Zeitbudgets. Die Belastung steigt Woche für Woche, die Stunden dann mit.`
+    );
+  }
+  return out;
+}
+
+/** Zeitbudget-Hinweise plus der Hinweis auf den Drinnen-Deckel oder die
+ *  Obergrenze je Tag. Bremst die Obergrenze, helfen mehr Stunden nicht: Dann
+ *  entfällt „reicht nicht".
+ *  @returns {string[]} */
+function capWarnings(budget, cut, input, { indoorCapped, dayCapped }) {
+  const out = timeBudgetWarnings(dayCapped ? { ...budget, limited: 0 } : budget, cut, input.weeklyHours);
+  if (indoorCapped) {
+    out.push(
+      `Drinnen-Tage tragen höchstens ${INDOOR_LOOSE_MAX_MIN} min — das Zeitbudget wird in manchen Wochen nicht ausgeschöpft.`
+    );
+  } else if (dayCapped) {
+    out.push(
+      `Lockere Einheiten dauern höchstens ${fmtHours(looseDayCap(input.focus))} h — das Zeitbudget wird in manchen Wochen nicht ausgeschöpft. Mehr Trainingstage nutzen es besser aus.`
     );
   }
   return out;
@@ -1101,17 +1130,7 @@ export function generatePlan(input) {
       })),
     };
   });
-  // Bremst die Obergrenze je Tag, helfen mehr Stunden nicht: Dann entfällt „reicht nicht".
-  warnings.push(...timeBudgetWarnings(dayCapped ? { ...budget, limited: 0 } : budget, cut, input.weeklyHours));
-  if (indoorCapped) {
-    warnings.push(
-      `Drinnen-Tage tragen höchstens ${INDOOR_LOOSE_MAX_MIN} min — das Zeitbudget wird in manchen Wochen nicht ausgeschöpft.`
-    );
-  } else if (dayCapped) {
-    warnings.push(
-      `Lockere Einheiten dauern höchstens ${fmtHours(looseDayCap(input.focus))} h — das Zeitbudget wird in manchen Wochen nicht ausgeschöpft. Mehr Trainingstage nutzen es besser aus.`
-    );
-  }
+  warnings.push(...capWarnings(budget, cut, input, { indoorCapped, dayCapped }));
 
   // 8) Wochenmodell (V4) --------------------------------------------
   const weekModel = weeks.map((w, i) => ({
