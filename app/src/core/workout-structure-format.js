@@ -14,12 +14,16 @@
    `(reps-1)×rest` im Generator und in zwo-export.js. Folgt ein weiterer
    Arbeitsschritt (z. B. Sprints nach dem Sweet-Spot-Satz), bleibt sie.
 
+   Im intervals.icu-Text gilt dieselbe Regel: eine `Nx`-Ebene wiederholt auch
+   ihre Pause, die letzte Wiederholung steht darum außerhalb der Ebene.
+
    intervals.icu kennt keine verschachtelten Wiederholungen — die inneren
    Zyklen eines `alternating`-Blocks werden darum unter EINER `Nx`-Ebene
    ausgeschrieben. Sprints (`target: "max"`) gehen als `freeride`.
    ============================================================ */
 
 import { validateWorkoutStructure } from "./workout-validator.js";
+import { workFollows } from "./workout-math.js";
 
 const INTERVAL_KINDS = new Set(["set", "alternating"]);
 
@@ -41,11 +45,6 @@ export function usableStructure(card) {
   if (!validateWorkoutStructure(structure).valid) return null;
   const steps = /** @type {{steps: Array<{kind: string}>}} */ (structure).steps;
   return steps.some((s) => INTERVAL_KINDS.has(s.kind)) ? /** @type {any} */ (structure) : null;
-}
-
-/** Folgt nach Schritt `i` noch Arbeit (also kein reiner Cool-down/Ende)? */
-function workFollows(steps, i) {
-  return steps.slice(i + 1).some((s) => s && s.kind !== "cooldown");
 }
 
 function seg(role, phase) {
@@ -144,8 +143,7 @@ export function structureRecoveries(structure) {
 }
 
 /** TSS über die Segmentfolge: Σ Dauer × IF² / 36 (IF = %FTP/100), gleiche
- *  Formel wie core/workout-math.js::computeWorkoutSummary — aber ohne die
- *  Pause nach der letzten Wiederholung, passend zu Dauer und Anzeige.
+ *  Formel und Pausen-Regel wie core/workout-math.js::computeWorkoutSummary.
  *  @param {any} structure @returns {number} */
 export function structureTss(structure) {
   const sum = structureSegments(structure).reduce(
@@ -213,6 +211,20 @@ function durIcu(sec) {
 }
 
 /**
+ * Eine Nx-Ebene wiederholt in intervals.icu alles darunter — auch die Pause.
+ * Folgt keine Arbeit mehr, läuft die letzte Wiederholung darum als eigener
+ * Abschnitt ohne Pause (Pausen-Konvention, s. Kopfkommentar).
+ * @param {string} title @param {number} reps @param {string[]} body
+ * @param {string} recovery @param {boolean} keepLast
+ * @returns {string[][]}
+ */
+function repeatSections(title, reps, body, recovery, keepLast) {
+  if (keepLast) return [[`${title} ${reps}x`, ...body, recovery]];
+  const last = [title, ...body];
+  return reps > 1 ? [[`${title} ${reps - 1}x`, ...body, recovery], last] : [last];
+}
+
+/**
  * Workout-Text für intervals.icu. Kadenz wie der bisherige Push-Text:
  * Warm-up T-5, Arbeit/Over T, Under/Pause/Cool-down T-10.
  * @param {{steps: Array<any>}} structure @param {number} cadenceTarget
@@ -222,29 +234,29 @@ export function structureIntervalsText(structure, cadenceTarget) {
   const line = (p, rpm) => `- ${durIcu(p.duration_s)} ${p.target_pct_ftp}% ${rpm}rpm`;
   const work = (p) => line(p, cadenceTarget);
   const easy = (p) => line(p, cadenceTarget - 10);
-  const sections = structure.steps.map((step) => {
+  const sections = structure.steps.flatMap((step, i) => {
+    const keepLast = workFollows(structure.steps, i);
     switch (step.kind) {
       case "warmup":
-        return ["Warmup", line(step, cadenceTarget - 5)];
+        return [["Warmup", line(step, cadenceTarget - 5)]];
       case "cooldown":
-        return ["Cooldown", easy(step)];
+        return [["Cooldown", easy(step)]];
       case "steady":
-        return ["Main Set", work(step)];
+        return [["Main Set", work(step)]];
       case "set":
-        return [`Main Set ${step.reps}x`, work(step.work), easy(step.recovery)];
-      case "accessory":
-        return [`Sprints ${step.reps}x`, `- Sprint max ${durIcu(step.work.duration_s)} freeride`, easy(step.recovery)];
+        return repeatSections("Main Set", step.reps, [work(step.work)], easy(step.recovery), keepLast);
+      case "accessory": {
+        const sprint = `- Sprint max ${durIcu(step.work.duration_s)} freeride`;
+        return repeatSections("Sprints", step.reps, [sprint], easy(step.recovery), keepLast);
+      }
       case "alternating": {
         const cycle = [];
         for (let c = 0; c < step.cycles; c++) cycle.push(work(step.over), easy(step.under));
-        return [`Main Set ${step.reps}x`, ...cycle, easy(step.recovery)];
+        return repeatSections("Main Set", step.reps, cycle, easy(step.recovery), keepLast);
       }
       default:
-        return null;
+        return [];
     }
   });
-  return sections
-    .filter(Boolean)
-    .map((s) => s.join("\n"))
-    .join("\n\n");
+  return sections.map((s) => s.join("\n")).join("\n\n");
 }

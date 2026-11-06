@@ -15,6 +15,7 @@ import {
   structureRecoveries,
   structureTss,
 } from "./workout-structure-format.js";
+import { computeWorkoutSummary, expandWorkoutPhases } from "./workout-math.js";
 import { selectWorkout } from "./plan-workout-select.js";
 
 const OVER_UNDER = {
@@ -194,7 +195,7 @@ describe("structureIntervalsText", () => {
         "Warmup",
         "- 15m 55% 85rpm",
         "",
-        "Main Set 3x",
+        "Main Set 2x",
         "- 2m 105% 90rpm",
         "- 1m 88% 80rpm",
         "- 2m 105% 90rpm",
@@ -202,6 +203,14 @@ describe("structureIntervalsText", () => {
         "- 2m 105% 90rpm",
         "- 1m 88% 80rpm",
         "- 3m 50% 80rpm",
+        "",
+        "Main Set",
+        "- 2m 105% 90rpm",
+        "- 1m 88% 80rpm",
+        "- 2m 105% 90rpm",
+        "- 1m 88% 80rpm",
+        "- 2m 105% 90rpm",
+        "- 1m 88% 80rpm",
         "",
         "Cooldown",
         "- 10m 50% 80rpm",
@@ -211,16 +220,72 @@ describe("structureIntervalsText", () => {
 
   test("30/15: Sekunden-Dauern, 10 Zyklen je Satz", () => {
     const text = structureIntervalsText(THIRTY_FIFTEEN, 90);
-    assert.match(text, /^Main Set 2x$/m);
-    assert.equal(text.match(/^- 30s 110% 90rpm$/gm)?.length, 10);
-    assert.equal(text.match(/^- 15s 50% 80rpm$/gm)?.length, 10);
-    assert.match(text, /^- 5m 50% 80rpm$/m);
+    assert.match(text, /^Main Set 1x$/m);
+    assert.match(text, /^Main Set$/m);
+    assert.equal(text.match(/^- 30s 110% 90rpm$/gm)?.length, 20);
+    assert.equal(text.match(/^- 15s 50% 80rpm$/gm)?.length, 20);
+    assert.equal(text.match(/^- 5m 50% 80rpm$/gm)?.length, 1);
   });
 
-  test("Sprints als freeride mit Hinweistext, Set mit eigener Wiederholung", () => {
+  test("Sprints als freeride, Pause vor den Sprints bleibt, nach dem letzten Sprint nicht", () => {
     const text = structureIntervalsText(SWEET_SPOT_CRIT, 90);
     assert.match(text, /^Main Set 3x\n- 10m 90% 90rpm\n- 5m 50% 80rpm$/m);
-    assert.match(text, /^Sprints 2x\n- Sprint max 12s freeride\n- 4m 40% 80rpm$/m);
+    assert.match(text, /^Sprints 1x\n- Sprint max 12s freeride\n- 4m 40% 80rpm\n\nSprints\n- Sprint max 12s freeride\n\nCooldown$/m);
+  });
+
+  test("set: keine Pause direkt vor dem Cool-down", () => {
+    const s = {
+      version: 1,
+      steps: [
+        { kind: "warmup", duration_s: 1020, target_pct_ftp: 60 },
+        { kind: "set", reps: 4, work: { duration_s: 720, target_pct_ftp: 88 }, recovery: { duration_s: 300, target_pct_ftp: 55 } },
+        { kind: "cooldown", duration_s: 600, target_pct_ftp: 55 },
+      ],
+    };
+    assert.equal(
+      structureIntervalsText(s, 90),
+      [
+        "Warmup",
+        "- 17m 60% 85rpm",
+        "",
+        "Main Set 3x",
+        "- 12m 88% 90rpm",
+        "- 5m 55% 80rpm",
+        "",
+        "Main Set",
+        "- 12m 88% 90rpm",
+        "",
+        "Cooldown",
+        "- 10m 55% 80rpm",
+      ].join("\n"),
+    );
+  });
+
+  test("Text-Dauer = structureTotalMin (Regel gilt für alle Generator-Formen)", () => {
+    const sum = (text) =>
+      text.split("\n\n").reduce((total, section) => {
+        const [head, ...lines] = section.split("\n");
+        const reps = Number(head.match(/(\d+)x$/)?.[1] ?? 1);
+        const sec = lines.reduce((acc, l) => {
+          const m = l.match(/(?:(\d+)m)?(?:(\d+)s)?(?: \d+%| freeride)/);
+          return acc + Number(m?.[1] ?? 0) * 60 + Number(m?.[2] ?? 0);
+        }, 0);
+        return total + reps * sec;
+      }, 0);
+    for (const s of [OVER_UNDER, THIRTY_FIFTEEN, SWEET_SPOT_CRIT]) {
+      assert.equal(Math.round(sum(structureIntervalsText(s, 90)) / 60), structureTotalMin(s));
+    }
+  });
+
+  test("eine einzige Wiederholung vor dem Cool-down: gar keine Pause, keine 0x-Ebene", () => {
+    const s = {
+      version: 1,
+      steps: [
+        { kind: "set", reps: 1, work: { duration_s: 1200, target_pct_ftp: 95 }, recovery: { duration_s: 300, target_pct_ftp: 50 } },
+        { kind: "cooldown", duration_s: 600, target_pct_ftp: 50 },
+      ],
+    };
+    assert.equal(structureIntervalsText(s, 90), "Main Set\n- 20m 95% 90rpm\n\nCooldown\n- 10m 50% 80rpm");
   });
 
   test("Kadenz folgt dem Athletenziel", () => {
@@ -236,6 +301,18 @@ describe("structureIntervalsText", () => {
     };
     assert.match(structureIntervalsText(s, 90), /^- 1m30s 120% 90rpm$/m);
   });
+});
+
+describe("gleiche Pausen-Regel wie core/workout-math.js", () => {
+  for (const [name, s] of [["Over-Under", OVER_UNDER], ["30/15", THIRTY_FIFTEEN], ["Sweet Spot + Sprints", SWEET_SPOT_CRIT]]) {
+    test(`${name}: Phasenfolge und TSS stimmen überein`, () => {
+      assert.deepEqual(
+        expandWorkoutPhases(s).map((p) => p.durationS),
+        structureSegments(s).map((p) => p.durationS),
+      );
+      assert.equal(computeWorkoutSummary(s).computedTss, structureTss(s));
+    });
+  }
 });
 
 describe("Generator-Ausgabe (plan-workout-select.js) läuft durch", () => {

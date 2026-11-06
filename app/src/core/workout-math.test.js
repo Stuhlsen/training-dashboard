@@ -21,11 +21,12 @@ test("computeWorkoutSummary: Sweet-Spot-Beispiel aus dem Konzept — deckt sich 
     ],
   };
   const result = computeWorkoutSummary(structure, 200);
-  // 600×0.55²/36 + 3×(900×0.9²/36 + 300×0.5²/36) + 600×0.5²/36 = 76.208… → 76
-  assert.equal(result.computedTss, 76);
+  // 600×0.55²/36 + 3×900×0.9²/36 + 2×300×0.5²/36 + 600×0.5²/36 = 74.125 → 74
+  // (nur 2 Pausen: keine Pause zwischen letzter Wiederholung und Cool-down)
+  assert.equal(result.computedTss, 74);
   assert.equal(result.targetZoneTime_s, 2700, "3×15min Arbeitszeit = 45min (deckt sich mit L2 S3)");
   assert.equal(result.overTime_s, 0, "kein alternating-Schritt");
-  assert.deepEqual(result.timeInZone_s, { z1: 2100, z3: 2700 });
+  assert.deepEqual(result.timeInZone_s, { z1: 1800, z3: 2700 });
 });
 
 test("computeWorkoutSummary: alternating (Over-Under) — overTime_s getrennt von targetZoneTime_s (D1.3)", () => {
@@ -44,11 +45,11 @@ test("computeWorkoutSummary: alternating (Over-Under) — overTime_s getrennt vo
     ],
   };
   const result = computeWorkoutSummary(structure);
-  // 2×(120×1.0²/36 + 120×0.8²/36) + 60×0.5²/36 = 6.667+4.267+0.417 = 11.35 → 11
+  // 2×(120×1.0²/36 + 120×0.8²/36) = 6.667+4.267 = 10.93 → 11 (einzige Wiederholung, keine Pause)
   assert.equal(result.computedTss, 11);
   assert.equal(result.overTime_s, 240, "reps × cycles × over.duration_s = 1×2×120");
   assert.equal(result.targetZoneTime_s, 0, "alternating zählt NICHT in targetZoneTime_s (eigene Währung)");
-  assert.deepEqual(result.timeInZone_s, { z1: 60, z3: 240, z4: 240 });
+  assert.deepEqual(result.timeInZone_s, { z3: 240, z4: 240 });
 });
 
 test("computeWorkoutSummary: accessory mit target:'max' trägt nicht zu TSS/Zonenzeit bei (D1.3)", () => {
@@ -65,11 +66,11 @@ test("computeWorkoutSummary: accessory mit target:'max' trägt nicht zu TSS/Zone
     ],
   };
   const result = computeWorkoutSummary(structure);
-  // work (target:"max") trägt 0 bei — nur 4× recovery: 285×0.5²/36 = 1.979… je Rep
-  assert.equal(result.computedTss, 8);
+  // work (target:"max") trägt 0 bei — nur 3× recovery: 285×0.5²/36 = 1.979… je Pause
+  assert.equal(result.computedTss, 6);
   assert.equal(result.targetZoneTime_s, 0);
   assert.equal(result.overTime_s, 0);
-  assert.deepEqual(result.timeInZone_s, { z1: 1140 }, "nur die Recovery-Phasen (4×285s), Sprints ohne Zonenbeitrag");
+  assert.deepEqual(result.timeInZone_s, { z1: 855 }, "nur die Recovery-Phasen (3×285s), Sprints ohne Zonenbeitrag");
 });
 
 test("computeWorkoutSummary: accessory mit target_pct_ftp (statt 'max') trägt normal bei (D1.2-Alternative)", () => {
@@ -90,7 +91,7 @@ test("computeWorkoutSummary: accessory mit target_pct_ftp (statt 'max') trägt n
   assert.ok(result.timeInZone_s.z5 >= 10, "150% FTP landet im obersten modellierten Band (Z5)");
 });
 
-test("expandWorkoutPhases: Warmup + 3×Set + Cooldown → geordnete Phasenfolge (1 + 3×2 + 1 = 8), reps ausmultipliziert", () => {
+test("expandWorkoutPhases: Warmup + 3×Set + Cooldown → geordnete Phasenfolge (1 + 3 + 2 Pausen + 1 = 7), keine Pause vor dem Cooldown", () => {
   const structure = {
     version: 1,
     steps: [
@@ -105,15 +106,35 @@ test("expandWorkoutPhases: Warmup + 3×Set + Cooldown → geordnete Phasenfolge 
     ],
   };
   const phases = expandWorkoutPhases(structure);
-  assert.equal(phases.length, 8);
+  assert.equal(phases.length, 7);
   assert.deepEqual(phases[0], { durationS: 600, pct: 55 });
   assert.deepEqual(phases[1], { durationS: 900, pct: 90 });
   assert.deepEqual(phases[2], { durationS: 300, pct: 50 });
-  assert.deepEqual(phases[7], { durationS: 600, pct: 50 });
+  assert.deepEqual(phases[5], { durationS: 900, pct: 90 });
+  assert.deepEqual(phases[6], { durationS: 600, pct: 50 });
   assert.equal(
     phases.reduce((s, p) => s + p.durationS, 0),
-    600 + 3 * (900 + 300) + 600,
+    600 + 3 * 900 + 2 * 300 + 600,
   );
+});
+
+test("expandWorkoutPhases: Pause bleibt, wenn danach noch Arbeit kommt", () => {
+  const phases = expandWorkoutPhases({
+    version: 1,
+    steps: [
+      { kind: "set", reps: 2, work: { duration_s: 600, target_pct_ftp: 90 }, recovery: { duration_s: 300, target_pct_ftp: 50 } },
+      { kind: "accessory", subtype: "sprint", reps: 1, work: { duration_s: 12, target: "max" }, recovery: { duration_s: 240, target_pct_ftp: 40 } },
+      { kind: "cooldown", duration_s: 600, target_pct_ftp: 50 },
+    ],
+  });
+  assert.deepEqual(phases, [
+    { durationS: 600, pct: 90 },
+    { durationS: 300, pct: 50 },
+    { durationS: 600, pct: 90 },
+    { durationS: 300, pct: 50 },
+    { durationS: 12, pct: null },
+    { durationS: 600, pct: 50 },
+  ]);
 });
 
 test("expandWorkoutPhases: accessory mit target:'max' → Phase bleibt mit ihrer Dauer, pct null (Uhr läuft weiter)", () => {
@@ -129,13 +150,13 @@ test("expandWorkoutPhases: accessory mit target:'max' → Phase bleibt mit ihrer
       },
     ],
   });
-  assert.equal(phases.length, 4);
+  assert.equal(phases.length, 3);
   assert.deepEqual(phases[0], { durationS: 15, pct: null });
   assert.deepEqual(phases[1], { durationS: 285, pct: 50 });
   assert.deepEqual(phases[2], { durationS: 15, pct: null });
 });
 
-test("expandWorkoutPhases: alternating → over/under je Cycle, recovery je Rep, Reihenfolge erhalten", () => {
+test("expandWorkoutPhases: alternating → over/under je Cycle, keine Pause am Ende, Reihenfolge erhalten", () => {
   const phases = expandWorkoutPhases({
     version: 1,
     steps: [
@@ -154,7 +175,6 @@ test("expandWorkoutPhases: alternating → over/under je Cycle, recovery je Rep,
     { durationS: 120, pct: 85 },
     { durationS: 120, pct: 105 },
     { durationS: 120, pct: 85 },
-    { durationS: 60, pct: 50 },
   ]);
 });
 
