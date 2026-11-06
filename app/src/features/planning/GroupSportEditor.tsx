@@ -9,13 +9,13 @@
    Zahlen kommen aus useGroupRecomputeFlow.
    ============================================================ */
 
-import { useState } from "react";
 import { sportBadge } from "../../core/activity-sport.js";
 import type { ActiveSport } from "../../api/hooks/useActiveSport";
 import { FixedDaysEditor } from "./FixedDaysEditor";
 import { MULTI_SPORT_LABEL } from "./multi-sport-plan-view-model";
 import { FIELD_STYLE, LABEL_STYLE, PILL_STYLE, PRIMARY_BTN_STYLE as PICKED_PILL_STYLE } from "./new-plan-dialog-styles";
 import { WEEKDAY_LABELS, type FixedDay, type GroupRideEstimates } from "./new-plan-dialog-view-model";
+import { WeeklyHoursField } from "./WeeklyHoursField";
 
 interface GroupSportEditorProps {
   sport: ActiveSport;
@@ -38,8 +38,6 @@ interface GroupSportEditorProps {
 
 export function GroupSportEditor(props: GroupSportEditorProps) {
   const { sport, selected, weekdays } = props;
-  // `null` = das Feld zeigt den Wert aus den Props; sonst steht darin, was gerade getippt wird.
-  const [hoursText, setHoursText] = useState<string | null>(null);
   const badge = sportBadge(sport);
   const label = MULTI_SPORT_LABEL[sport];
 
@@ -97,26 +95,7 @@ export function GroupSportEditor(props: GroupSportEditorProps) {
             })}
           </div>
 
-          <label style={LABEL_STYLE}>
-            Stunden pro Woche
-            <input
-              type="number"
-              inputMode="decimal"
-              min={0.5}
-              step={0.5}
-              disabled={props.disabled}
-              style={{ ...FIELD_STYLE, maxWidth: 140 }}
-              value={hoursText ?? String(props.hours)}
-              onChange={(e) => {
-                // Der Text gehört dem Feld, damit sich „8" löschen und „12" tippen lässt;
-                // nach außen geht nur eine gültige Zahl.
-                setHoursText(e.target.value);
-                const h = Number(e.target.value);
-                if (e.target.value !== "" && h > 0) props.onHours(h);
-              }}
-              onBlur={() => setHoursText(null)}
-            />
-          </label>
+          <WeeklyHoursField hours={props.hours} disabled={props.disabled} onHours={props.onHours} />
 
           {sport === "ride" && (
             <>

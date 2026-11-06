@@ -14,6 +14,7 @@ import {
   defaultRole,
   describeGoal,
   fieldsFor,
+  formFromGoal,
   groupGoals,
   mergedEftpHistory,
   pickCheckGoal,
@@ -96,6 +97,47 @@ describe("catalogChoices (Sportart)", () => {
 
   it("muskeln_kraft bleibt wählbar", () => {
     expect(keys(["ride"])).toContain("muskeln_kraft");
+  });
+});
+
+describe("formFromGoal (Ziel bearbeiten)", () => {
+  it("füllt das Formular mit dem gespeicherten Ziel", () => {
+    const g = goal({ id: "1", kind: "FTP", goalKey: "ftp", role: "side", targetValue: 230, targetDate: "2027-03-01" });
+    expect(formFromGoal(g, null)).toEqual({
+      goalKey: "ftp",
+      role: "side",
+      targetValue: "230",
+      targetDate: "2027-03-01",
+      freeText: "",
+      pace: "",
+      targetWeight: "",
+    });
+  });
+
+  it("„Sonstiges“: der Freitext steht im Feld Beschreibung", () => {
+    const g = goal({ id: "1", kind: "Alpencross", goalKey: "sonstiges", role: "main" });
+    expect(formFromGoal(g, null).freeText).toBe("Alpencross");
+  });
+
+  it("Defizit: Tempo und Zielgewicht aus dem aktiven Ernährungsziel", () => {
+    const g = goal({ id: "1", kind: "Fett verlieren", goalKey: "fett_verlieren", role: "main" });
+    const f = formFromGoal(g, { goalType: "lose", pacePerWeekKg: 0.3, targetWeightKg: 72 });
+    expect(f.pace).toBe("0.3");
+    expect(f.targetWeight).toBe("72");
+  });
+
+  it("kein Defizit aktiv: Tempo bleibt leer", () => {
+    const g = goal({ id: "1", kind: "Fett verlieren", goalKey: "fett_verlieren", role: "main" });
+    expect(formFromGoal(g, { goalType: "maintain", pacePerWeekKg: null, targetWeightKg: null }).pace).toBe("");
+  });
+
+  it("unverändert gespeichert ergibt dasselbe Ziel", () => {
+    const g = goal({ id: "1", kind: "FTP", goalKey: "ftp", role: "main", targetValue: 230, targetDate: "2027-03-01" });
+    const built = buildGoalInput(formFromGoal(g, null), TODAY);
+    expect(built).toEqual({
+      ok: true,
+      input: { kind: "FTP", goalKey: "ftp", role: "main", targetValue: 230, targetDate: "2027-03-01", note: null },
+    });
   });
 });
 

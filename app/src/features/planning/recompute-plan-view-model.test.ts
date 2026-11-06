@@ -62,6 +62,20 @@ describe("replaceFromISO", () => {
   });
 });
 
+describe("buildRecomputeInput — Stunden pro Woche", () => {
+  const base = { history: { weeklyActualTss: [] }, todayISO: "2026-10-07", athleteDefaults: defaults };
+
+  it("ohne Eingabe: die Stunden des Plans", () => {
+    const res = buildRecomputeInput({ ...base, plan: plan({ weeklyHours: 7 }) });
+    expect(res.ok && res.input.weeklyHours).toBe(7);
+  });
+
+  it("im Dialog geänderte Stunden gewinnen", () => {
+    const res = buildRecomputeInput({ ...base, plan: plan({ weeklyHours: 7 }), weeklyHours: 4.5 });
+    expect(res.ok && res.input.weeklyHours).toBe(4.5);
+  });
+});
+
 describe("buildRecomputeInput", () => {
   it("Startwoche = Montag der laufenden KW, baseWeekModel + regenerateFrom gesetzt", () => {
     const res = buildRecomputeInput({

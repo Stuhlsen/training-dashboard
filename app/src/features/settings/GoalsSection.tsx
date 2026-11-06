@@ -14,7 +14,7 @@
 
 import { useMemo, useState } from "react";
 import { useGoals, useReplaceGoal, useDeactivateGoal } from "../../api/hooks/useGoals";
-import { useAddNutritionGoal } from "../../api/hooks/useNutritionGoals";
+import { useActiveNutritionGoal, useAddNutritionGoal } from "../../api/hooks/useNutritionGoals";
 import { useProfileBasics } from "../../api/hooks/useProfile";
 import { useSessionProfile } from "../../api/hooks/useSession";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
@@ -48,6 +48,7 @@ import {
   defaultRole,
   describeGoal,
   fieldsFor,
+  formFromGoal,
   groupGoals,
   mergedEftpHistory,
   pickCheckGoal,
@@ -110,11 +111,14 @@ function GoalCard({
   check,
   busy,
   onEnd,
+  onEdit,
 }: {
   goal: Goal;
   check?: FtpCheckView | null;
   busy: boolean;
   onEnd: (id: string) => void;
+  /** Fehlt bei früheren Freitext-Zielen: die lassen sich nur beenden. */
+  onEdit?: (goal: Goal) => void;
 }) {
   const d = describeGoal(goal);
   const meta = [d.dateText, d.valueText].filter(Boolean).join(" · ");
@@ -138,15 +142,28 @@ function GoalCard({
           </div>
           {meta && <div style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", color: "var(--ink-3)" }}>{meta}</div>}
         </div>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => onEnd(goal.id)}
-          aria-label={`Ziel beenden: ${d.title}`}
-          style={{ ...GHOST_BUTTON_STYLE, opacity: busy ? 0.6 : 1 }}
-        >
-          Beenden
-        </button>
+        <div style={{ display: "flex", gap: 6 }}>
+          {onEdit && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onEdit(goal)}
+              aria-label={`Ziel bearbeiten: ${d.title}`}
+              style={{ ...GHOST_BUTTON_STYLE, opacity: busy ? 0.6 : 1 }}
+            >
+              Bearbeiten
+            </button>
+          )}
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => onEnd(goal.id)}
+            aria-label={`Ziel beenden: ${d.title}`}
+            style={{ ...GHOST_BUTTON_STYLE, opacity: busy ? 0.6 : 1 }}
+          >
+            Beenden
+          </button>
+        </div>
       </div>
       {d.notice && <p style={INFO_STYLE}>{d.notice}</p>}
       {check && <FtpCheck view={check} />}
@@ -160,6 +177,7 @@ export function GoalsSection() {
   const { replace, isPending: isSaving } = useReplaceGoal();
   const { deactivate, isPending: isEnding } = useDeactivateGoal();
   const { add: addNutritionGoal, isPending: isWritingNutrition } = useAddNutritionGoal();
+  const { goal: nutritionGoal } = useActiveNutritionGoal();
   const { data: basics } = useProfileBasics();
 
   // Sportarten und eFTP-Daten: wie Hero/Analyse über den aktiven Athleten.
@@ -176,6 +194,8 @@ export function GoalsSection() {
   const groups = useMemo(() => groupGoals(goals), [goals]);
 
   const [open, setOpen] = useState(false);
+  // Das Formular bearbeitet dieses Ziel; `null` = ein neues Ziel.
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<GoalFormState>(() => emptyForm("main"));
   const [error, setError] = useState("");
   const [endError, setEndError] = useState("");
@@ -200,7 +220,7 @@ export function GoalsSection() {
   const choices = catalogChoices(isSelf ? sports : [], form.goalKey || null);
   const fields = fieldsFor(form.goalKey);
   const hint = conflictHint(groups, open ? { goalKey: form.goalKey, role: form.role } : null);
-  const replacing = open && form.goalKey ? replaceNotice(groups, form.role) : "";
+  const replacing = open && form.goalKey && !editingId ? replaceNotice(groups, form.role) : "";
   const busy = isSaving || isEnding || isWritingNutrition;
   // Fahrplan 43 E6: Tempo und Zielgewicht nur, wenn der Entwurf ein Defizit setzt
   // (Fett verlieren, und das Profil des Hauptziels lässt die Energie offen).
@@ -225,7 +245,17 @@ export function GoalsSection() {
 
   function openForm() {
     setError("");
+    setEditingId(null);
     setForm(emptyForm(defaultRole(groups)));
+    setOpen(true);
+  }
+
+  // Bearbeiten nutzt den Ersetzen-Weg: Die Rolle bleibt fest, das alte Ziel wird
+  // beendet und das geänderte neu angelegt. So bleibt der Verlauf erhalten.
+  function openEdit(goal: Goal) {
+    setError("");
+    setEditingId(goal.id);
+    setForm(formFromGoal(goal, nutritionGoal));
     setOpen(true);
   }
 
@@ -275,7 +305,9 @@ export function GoalsSection() {
           ? outcome.message
           : `Das Ziel konnte nicht beendet werden.${outcome.nutritionPaused ? ` ${NUTRITION_PAUSED_NOTE}` : ""}`,
       );
+      return;
     }
+    if (goalId === editingId) setOpen(false);
   }
 
   return (
@@ -302,6 +334,7 @@ export function GoalsSection() {
                   check={checkGoal?.id === g.id ? check : null}
                   busy={busy}
                   onEnd={(id) => void handleEnd(id)}
+                  onEdit={openEdit}
                 />
               ),
           )}
@@ -342,6 +375,7 @@ export function GoalsSection() {
 
       {open && (
         <form onSubmit={(e) => void handleSubmit(e)} style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
+          {editingId && <div style={LABEL_STYLE}>{form.role === "main" ? "Hauptziel" : "Nebenziel"} bearbeiten</div>}
           <label style={LABEL_STYLE}>
             Ziel
             <select
@@ -358,13 +392,15 @@ export function GoalsSection() {
             </select>
           </label>
 
-          <label style={LABEL_STYLE}>
-            Rolle
-            <select value={form.role} onChange={(e) => patch({ role: e.target.value as GoalRole })} style={INPUT_STYLE}>
-              <option value="main">Hauptziel</option>
-              <option value="side">Nebenziel</option>
-            </select>
-          </label>
+          {!editingId && (
+            <label style={LABEL_STYLE}>
+              Rolle
+              <select value={form.role} onChange={(e) => patch({ role: e.target.value as GoalRole })} style={INPUT_STYLE}>
+                <option value="main">Hauptziel</option>
+                <option value="side">Nebenziel</option>
+              </select>
+            </label>
+          )}
 
           {fields.showFreeText && (
             <label style={LABEL_STYLE}>

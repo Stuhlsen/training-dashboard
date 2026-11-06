@@ -15,7 +15,7 @@ import { GOAL_CATALOG, goalConflicts } from "../../core/goals.js";
 import { assessFtpGoal } from "../../core/goal-check.js";
 import { eftpHistory, eftpHistoryFromWellness, mergeEftpHistories } from "../../core/ftp-forecast.js";
 import { fmtDateFull } from "../../core/format.js";
-import type { Goal, GoalInput, GoalKey, GoalRole, Sport } from "../../api/types";
+import type { Goal, GoalInput, GoalKey, GoalRole, NutritionGoal, Sport } from "../../api/types";
 
 type Ride = import("../../types.js").Ride;
 type WellnessDay = import("../../types.js").WellnessDay;
@@ -183,6 +183,24 @@ export function buildGoalInput(form: GoalFormState, todayISO: string): BuildGoal
   return {
     ok: true,
     input: { kind, goalKey: entry.key, role: form.role, targetValue, targetDate, note: null },
+  };
+}
+
+/** Formular zum Bearbeiten eines Ziels. Tempo und Zielgewicht stehen nicht am
+ *  Ziel, sondern im aktiven Ernährungsziel — nur ein Defizit trägt sie. */
+export function formFromGoal(
+  goal: Goal,
+  nutrition: Pick<NutritionGoal, "goalType" | "pacePerWeekKg" | "targetWeightKg"> | null,
+): GoalFormState {
+  const lose = nutrition?.goalType === "lose" ? nutrition : null;
+  return {
+    goalKey: goal.goalKey ?? "",
+    role: goal.role ?? "main",
+    targetValue: goal.targetValue != null ? String(goal.targetValue) : "",
+    targetDate: goal.targetDate ?? "",
+    freeText: goal.goalKey === "sonstiges" ? goal.kind : "",
+    pace: lose?.pacePerWeekKg != null ? String(lose.pacePerWeekKg) : "",
+    targetWeight: lose?.targetWeightKg != null ? String(lose.targetWeightKg) : "",
   };
 }
 

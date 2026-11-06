@@ -60,6 +60,8 @@ export interface RecomputeRemainingPlanArgs {
   input: PlanGeneratorInput;
   /** Heute (lokal, ISO): Karten davor bleiben unberührt. */
   todayISO: string;
+  /** Nur gesetzt, wenn der Athlet die Stunden bewusst geändert hat. */
+  weeklyHours?: number;
 }
 
 export function useRecomputeRemainingPlan(athleteId: string) {
@@ -87,7 +89,8 @@ export function useRecomputeRemainingPlan(athleteId: string) {
 
         // Plan-Zeile nachziehen (Wochenmodell, Tage, params, Ziel-FTP) — der
         // Baustein ist mit der gemeinsamen Anpassung (Fahrplan 44 E6) geteilt.
-        unwrap(await updateTrainingPlan(planId, buildRecomputePatch(args.plan, args.generated, args.input)));
+        const hours = args.weeklyHours != null ? { weeklyHours: args.weeklyHours } : {};
+        unwrap(await updateTrainingPlan(planId, buildRecomputePatch(args.plan, args.generated, args.input, hours)));
 
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: qk.planCards(athleteId) }),

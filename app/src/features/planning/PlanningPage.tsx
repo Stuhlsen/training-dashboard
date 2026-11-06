@@ -948,7 +948,7 @@ export function PlanningPage() {
                         }}
                         style={SECTION_ACTION_BTN_STYLE}
                       >
-                        Plan anpassen…
+                        Plan anpassen
                       </button>
                     )}
                     <button type="button" onClick={() => setDialog("new")} style={SECTION_ACTION_BTN_STYLE}>

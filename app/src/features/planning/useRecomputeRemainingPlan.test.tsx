@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Result } from "../../api/types";
 
 const calls: string[] = [];
-let lastPatch: { ftpTarget?: number } | null = null;
+let lastPatch: { ftpTarget?: number; weeklyHours?: number } | null = null;
 let createCardsResult: Result<{ cards: unknown[] }> = { ok: true, cards: [] };
 
 vi.mock("../../api/hooks/useAthleteProfileId", () => ({
@@ -27,7 +27,7 @@ vi.mock("../../api/supabase/plan-cards", () => ({
 }));
 
 vi.mock("../../api/supabase/training-plans", () => ({
-  updateTrainingPlan: async (id: string, patch: { ftpTarget?: number }) => {
+  updateTrainingPlan: async (id: string, patch: { ftpTarget?: number; weeklyHours?: number }) => {
     calls.push(`updateTrainingPlan(${id})`);
     lastPatch = patch;
     return { ok: true, plan: { id } };
@@ -134,6 +134,15 @@ describe("useRecomputeRemainingPlan", () => {
 
     await result.current.recompute({ ...args, plan: { ...activePlan, sport: "run" } });
     expect(lastPatch?.ftpTarget).toBeUndefined();
+  });
+
+  it("speichert die Stunden nur, wenn der Athlet sie geändert hat", async () => {
+    const { result } = setup();
+    await result.current.recompute(args);
+    expect(lastPatch?.weeklyHours).toBeUndefined();
+
+    await result.current.recompute({ ...args, weeklyHours: 4.5 });
+    expect(lastPatch?.weeklyHours).toBe(4.5);
   });
 
   it("bricht das Einfügen ab → Fehlermeldung weist auf entfernte Karten hin", async () => {

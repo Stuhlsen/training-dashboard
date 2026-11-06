@@ -2,7 +2,7 @@
    FEATURES/PLANNING/RECOMPUTEPLANDIALOG.TSX — „Plan anpassen"
    (Fahrplan 8 E13)
 
-   Ändert Trainingstage, feste Tage und Ziel-FTP und rechnet die Restwochen des
+   Ändert Trainingstage, Stunden, feste Tage und Ziel-FTP und rechnet die Restwochen des
    aktiven Plans mit frischer Form / Planerfüllung neu — Blockstruktur +
    Vergangenheit bleiben, es ist DIESELBE `training_plans`-Zeile. Vorschau
    zeigt nur die betroffenen Wochen. „Änderungen übernehmen" ersetzt deren
@@ -36,6 +36,7 @@ import { PlanPreview } from "./PlanPreview";
 import { buildRecomputeInput, currentTailWeekdays, replaceFromISO } from "./recompute-plan-view-model";
 import { useFtpHistoryEntries } from "./useFtpHistoryEntries";
 import { useRecomputeRemainingPlan } from "./useRecomputeRemainingPlan";
+import { WeeklyHoursField } from "./WeeklyHoursField";
 import { resolveMeasuredFtp, savedFixedDays, WEEKDAY_LABELS } from "./new-plan-dialog-view-model";
 import {
   FIELD_STYLE,
@@ -104,6 +105,7 @@ export function RecomputePlanDialog({ athleteId, onClose, withGoals = false, spo
   const [keepAllDays, setKeepAllDays] = useState<boolean | null>(null);
   const [pickedFixedDays, setPickedFixedDays] = useState<FixedDay[] | null>(null);
   const [pickedFtpTarget, setPickedFtpTarget] = useState<number | null>(null);
+  const [pickedHours, setPickedHours] = useState<number | null>(null);
   // Fahrplan 44 E5: „Sportart hinzufügen" ist eine eigene Ansicht (AddSportFlow).
   const [adding, setAdding] = useState(false);
 
@@ -150,6 +152,7 @@ export function RecomputePlanDialog({ athleteId, onClose, withGoals = false, spo
       ...(pickedDays ? { trainingWeekdays: pickedDays } : {}),
       ...(keepAllDays != null ? { keepAllTrainingDays: keepAllDays } : {}),
       ...(pickedFixedDays ? { fixedDays: pickedFixedDays } : {}),
+      ...(pickedHours != null ? { weeklyHours: pickedHours } : {}),
       // Von Hand geändertes Ziel-FTP gewinnt; sonst bei „Ziele berücksichtigen"
       // das Zwischenziel (nur Rad, nur bei ok — sonst null).
       ...(pickedFtpTarget != null
@@ -184,6 +187,7 @@ export function RecomputePlanDialog({ athleteId, onClose, withGoals = false, spo
     pickedDays,
     keepAllDays,
     pickedFixedDays,
+    pickedHours,
     pickedFtpTarget,
     goalsOn,
     goalProfile,
@@ -204,6 +208,7 @@ export function RecomputePlanDialog({ athleteId, onClose, withGoals = false, spo
       generated: built.generated,
       input: built.input,
       todayISO: today,
+      ...(pickedHours != null && pickedHours !== activePlan.weeklyHours ? { weeklyHours: pickedHours } : {}),
     });
     if (!result.ok) {
       setSaveError(result.error.message);
@@ -261,7 +266,7 @@ export function RecomputePlanDialog({ athleteId, onClose, withGoals = false, spo
           Plan anpassen{sport ? ` — ${sportBadge(sport).label}` : ""}
         </div>
         <p style={{ margin: "8px 0 16px", fontSize: ".82rem", color: "var(--ink-3)" }}>
-          Ändere Trainingstage, feste Tage oder dein Ziel. Die Restwochen werden mit deiner aktuellen
+          Ändere Trainingstage, Stunden pro Woche, feste Tage oder dein Ziel. Die Restwochen werden mit deiner aktuellen
           Form und Planerfüllung neu gerechnet. Blockfolge und Vergangenheit bleiben.
         </p>
 
@@ -316,6 +321,13 @@ export function RecomputePlanDialog({ athleteId, onClose, withGoals = false, spo
                 (kein Trainingstag mehr).
               </div>
             )}
+            <WeeklyHoursField
+              hours={pickedHours ?? activePlan.weeklyHours ?? 6}
+              onHours={(h) => {
+                setPickedHours(h);
+                setSaveError(null);
+              }}
+            />
             {isRide && (
               <FixedDaysEditor
                 fixedDays={shownFixedDays.filter((d) => shownDays.includes(d.weekday))}
