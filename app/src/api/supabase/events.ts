@@ -56,30 +56,6 @@ export async function listEvents(athleteId: string): Promise<Result<{ events: Ev
   return { ok: true, events: data.map(toEvent) };
 }
 
-/** Nächstes zukünftige Event ab `todayIso` (>=), gefiltert auf `type`
- *  (Default "race"). `type: null` explizit übergeben, um den Typ-Filter
- *  aufzuheben — ein `.eq("type", null)` würde in PostgREST "type IS NULL"
- *  statt "kein Filter" bedeuten. */
-export async function getNextEvent(
-  athleteId: string,
-  todayIso: string,
-  type: EventType | null = "race",
-): Promise<Result<{ event: EventItem | null }>> {
-  if (!supabase) return { ok: true, event: null };
-  const client = (await getAuthedClient()) ?? supabase;
-  let query = client
-    .from("events")
-    .select(SELECT_COLS)
-    .eq("athlete_id", athleteId)
-    .gte("event_date", todayIso)
-    .order("event_date", { ascending: true })
-    .limit(1);
-  if (type !== null) query = query.eq("type", type);
-  const { data, error } = await query.maybeSingle<EventRow>();
-  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
-  return { ok: true, event: data ? toEvent(data) : null };
-}
-
 export async function createEvent(
   athleteId: string,
   event: EventInput,
