@@ -111,7 +111,7 @@ services:
       ]
 
   gotrue:
-    image: supabase/gotrue:v2.197.0
+    image: supabase/gotrue:v2.198.0
     depends_on:
       migrate:
         condition: service_completed_successfully
